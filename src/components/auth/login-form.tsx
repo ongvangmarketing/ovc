@@ -43,7 +43,7 @@ export function LoginForm() {
       } else if (role === "STUDENT") {
         router.push("/portal/student/dashboard");
       } else {
-        router.push("/workspace/dashboard");
+        router.push("/");
       }
       router.refresh();
     } catch {
@@ -60,14 +60,14 @@ export function LoginForm() {
         <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
           <Hexagon className="w-4 h-4 text-white fill-white" />
         </div>
-        <span className="font-bold text-foreground">Ong Vàng Workspace</span>
+        <span className="font-bold text-foreground">Ong Vàng</span>
       </div>
 
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-foreground">Chào mừng trở lại</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Đăng nhập để tiếp tục vào Workspace
+          Đăng nhập để tiếp tục vào hệ thống
         </p>
       </div>
 

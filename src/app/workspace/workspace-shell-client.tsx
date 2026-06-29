@@ -19,8 +19,8 @@ export function WorkspaceShellClient({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="workspace-shell flex min-h-screen overflow-x-hidden p-5">
-      <div className="workspace-frame flex min-h-[calc(100dvh-2.5rem)] flex-1 rounded-[22px]">
+    <div className="workspace-shell flex min-h-screen overflow-x-hidden p-2 sm:p-5">
+      <div className="workspace-frame flex min-w-0 flex-1 rounded-[18px] sm:min-h-[calc(100dvh-2.5rem)] sm:rounded-[22px]">
         <Sidebar
           enabledModuleCodes={enabledModuleCodes}
           collapsed={sidebarCollapsed}

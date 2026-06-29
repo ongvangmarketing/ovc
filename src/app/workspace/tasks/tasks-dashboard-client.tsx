@@ -95,12 +95,12 @@ export function TasksDashboardClient({ tasks, mode = "tasks" }: { tasks: TaskIte
       </div>
 
       <div className="card-base p-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative min-w-64 flex-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="relative w-full min-w-0 sm:flex-1">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm nhiệm vụ, dự án, người làm..." className="h-9 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20" />
           </div>
-          <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-9 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20">
+          <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-9 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 sm:w-auto">
             <option value="ALL">Tất cả trạng thái</option>
             {Object.entries(statusLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
           </select>
@@ -161,22 +161,22 @@ function TaskRow({ task }: { task: TaskItem }) {
 
 function TimelineView({ tasks }: { tasks: TaskItem[] }) {
   return (
-    <div className="card-base p-5">
-      <div className="space-y-4">
+    <div className="card-base p-3 sm:p-5">
+      <div className="space-y-3 sm:space-y-4">
         {tasks.map((task, index) => (
-          <div key={task.id} className="grid gap-3 rounded-2xl border border-border p-4 lg:grid-cols-[120px_1fr_140px] lg:items-center">
-            <div className="flex items-center gap-3">
+          <div key={task.id} className="grid min-w-0 gap-3 rounded-2xl border border-border p-3 sm:p-4 lg:grid-cols-[120px_1fr_140px] lg:items-center">
+            <div className="flex min-w-0 items-center gap-3">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">{index + 1}</span>
-              <span className="text-xs font-semibold text-muted-foreground">{task.startDate ? formatDate(task.startDate) : "Chưa bắt đầu"}</span>
+              <span className="min-w-0 text-xs font-semibold text-muted-foreground">{task.startDate ? formatDate(task.startDate) : "Chưa bắt đầu"}</span>
             </div>
-            <div>
-              <p className="font-semibold text-foreground">{task.title}</p>
+            <div className="min-w-0">
+              <p className="break-words font-semibold text-foreground">{task.title}</p>
               <div className="mt-2 h-2 rounded-full bg-muted">
                 <div className={cn("h-full rounded-full", task.status === "DONE" ? "bg-emerald-500" : task.status === "IN_PROGRESS" ? "bg-blue-500" : "bg-primary")} style={{ width: task.status === "DONE" ? "100%" : task.status === "IN_PROGRESS" ? "62%" : "28%" }} />
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">{task.project.name}</p>
+              <p className="mt-2 break-words text-xs text-muted-foreground">{task.project.name}</p>
             </div>
-            <div className="text-sm text-muted-foreground">{task.dueDate ? formatDate(task.dueDate) : "Chưa có hạn"}</div>
+            <div className="rounded-xl bg-muted/50 px-3 py-2 text-sm text-muted-foreground lg:bg-transparent lg:px-0 lg:py-0">{task.dueDate ? formatDate(task.dueDate) : "Chưa có hạn"}</div>
           </div>
         ))}
         {!tasks.length ? <Empty /> : null}
