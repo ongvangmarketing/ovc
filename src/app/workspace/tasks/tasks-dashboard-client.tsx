@@ -5,6 +5,7 @@ import type { ElementType } from "react";
 import Link from "next/link";
 import { Activity, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FolderKanban, LayoutList, Search, TimerReset, User } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { SelectBox } from "@/components/ui/select-box";
 import { formatDate, getInitials } from "@/lib/utils/format";
 
 type TaskItem = {
@@ -87,7 +88,7 @@ export function TasksDashboardClient({ tasks, mode = "tasks" }: { tasks: TaskIte
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat icon={LayoutList} label="Tổng nhiệm vụ" value={stats.total} tone="bg-primary/10 text-primary" />
         <Stat icon={Activity} label="Đang làm" value={stats.doing} tone="bg-blue-50 text-blue-600" />
         <Stat icon={CheckCircle2} label="Hoàn thành" value={stats.done} tone="bg-emerald-50 text-emerald-600" />
@@ -100,10 +101,7 @@ export function TasksDashboardClient({ tasks, mode = "tasks" }: { tasks: TaskIte
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm nhiệm vụ, dự án, người làm..." className="h-9 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20" />
           </div>
-          <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-9 w-full rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20 sm:w-auto">
-            <option value="ALL">Tất cả trạng thái</option>
-            {Object.entries(statusLabels).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-          </select>
+          <SelectBox ariaLabel="Lọc trạng thái công việc" value={status} onChange={setStatus} options={[{ value: "ALL", label: "Tất cả trạng thái" }, ...Object.entries(statusLabels).map(([value, label]) => ({ value, label }))]} className="w-full sm:w-48" />
         </div>
       </div>
 
@@ -126,8 +124,8 @@ function Stat({ icon: Icon, label, value, tone }: { icon: ElementType; label: st
 
 function TaskList({ tasks }: { tasks: TaskItem[] }) {
   return (
-    <div className="card-base overflow-hidden">
-      <div className="divide-y divide-border">
+    <div className="lg:card-base lg:overflow-hidden">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-0 lg:divide-y lg:divide-border">
         {tasks.map((task) => <TaskRow key={task.id} task={task} />)}
         {!tasks.length ? <Empty /> : null}
       </div>
@@ -138,21 +136,21 @@ function TaskList({ tasks }: { tasks: TaskItem[] }) {
 function TaskRow({ task }: { task: TaskItem }) {
   const doneSubtasks = task.subtasks?.filter((item) => item.status === "DONE").length || 0;
   return (
-    <Link href={`/workspace/projects/${task.project.id}`} className="grid gap-4 p-4 transition-colors hover:bg-muted/50 lg:grid-cols-[1.4fr_180px_160px_140px] lg:items-center">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-white" style={{ backgroundColor: task.project.color || "#F59E0B" }}>{getInitials(task.project.name)}</div>
+    <Link href={`/workspace/projects/${task.project.id}`} className="grid min-w-0 gap-3 rounded-2xl border border-border bg-white p-3 shadow-sm transition-colors hover:bg-muted/50 lg:grid-cols-[1.4fr_180px_160px_140px] lg:items-center lg:gap-4 lg:rounded-none lg:border-0 lg:p-4 lg:shadow-none">
+      <div className="flex min-w-0 items-center gap-2.5 lg:gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[11px] font-bold text-white lg:h-10 lg:w-10 lg:text-xs" style={{ backgroundColor: task.project.color || "#F59E0B" }}>{getInitials(task.project.name)}</div>
         <div className="min-w-0">
           <p className="truncate font-semibold text-foreground">{task.title}</p>
           <p className="truncate text-xs text-muted-foreground">{task.project.name}</p>
         </div>
       </div>
       <span className={cn("badge-status w-fit", statusTone[task.status] || "bg-muted text-muted-foreground")}>{statusLabels[task.status] || task.status}</span>
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground lg:text-sm">
         <User className="h-4 w-4" />
         <span className="truncate">{task.assignee?.name || "Chưa gán"}</span>
       </div>
-      <div className="text-sm text-muted-foreground">
-        <div className="flex items-center gap-1.5"><Clock3 className="h-4 w-4" />{task.dueDate ? formatDate(task.dueDate) : "Chưa đặt"}</div>
+      <div className="text-xs text-muted-foreground lg:text-sm">
+        <div className="flex items-center gap-1.5"><Clock3 className="h-4 w-4 shrink-0" /><span className="truncate">{task.dueDate ? formatDate(task.dueDate) : "Chưa đặt"}</span></div>
         <p className="mt-1 text-xs">{doneSubtasks}/{task.subtasks?.length || 0} việc con</p>
       </div>
     </Link>

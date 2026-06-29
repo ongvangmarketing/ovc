@@ -49,7 +49,7 @@ function progressFromCustomFields(value: unknown): number {
 
 export type WorkspaceDashboardData = Awaited<ReturnType<typeof getWorkspaceDashboard>>;
 
-export async function getWorkspaceDashboard() {
+export async function getWorkspaceDashboard(range?: { from: Date; to: Date }) {
   const session = await requireAuth();
   let orgId: string | undefined = session.organizationId;
   if (!orgId) {
@@ -72,12 +72,16 @@ export async function getWorkspaceDashboard() {
   }
 
   const now = new Date();
+  const rangeStart = range?.from;
+  const rangeEnd = range?.to;
+  const createdAtRange = rangeStart && rangeEnd ? { gte: rangeStart, lte: rangeEnd } : undefined;
   const monthStart = startOfMonth(now);
   const monthEnd = endOfMonth(now);
   const previousMonthStart = startOfMonth(subMonths(now, 1));
   const previousMonthEnd = endOfMonth(subMonths(now, 1));
   const sevenDays = Array.from({ length: 7 }, (_, index) => startOfDay(subDays(now, 6 - index)));
-  const trendMonths = Array.from({ length: 6 }, (_, index) => startOfMonth(subMonths(now, 5 - index)));
+  const trendDays = Array.from({ length: 30 }, (_, index) => startOfDay(subDays(now, 29 - index)));
+  const trendMonths = Array.from({ length: 12 }, (_, index) => startOfMonth(subMonths(now, 11 - index)));
 
   const [
     customers,
@@ -93,6 +97,7 @@ export async function getWorkspaceDashboard() {
     totalTasks,
     taskStatus,
     projectStatus,
+    completedProjectsWithDeadline,
     projectTrendRows,
     paymentsLast7Days,
     recentPayments,
@@ -103,7 +108,7 @@ export async function getWorkspaceDashboard() {
     receivableInvoices,
     potentialCustomers,
   ] = await Promise.all([
-    db.contact.count({ where: { organizationId: orgId } }),
+    db.contact.count({ where: { organizationId: orgId, createdAt: createdAtRange } }),
     db.contact.count({ where: { organizationId: orgId, createdAt: { lt: previousMonthStart } } }),
     db.invoice.aggregate({
       where: {
@@ -150,23 +155,33 @@ export async function getWorkspaceDashboard() {
       _sum: { amountDue: true },
     }),
     db.invoice.aggregate({
-      where: { organizationId: orgId, status: { in: MONEY_STATUSES } },
+      where: { organizationId: orgId, status: { in: MONEY_STATUSES }, issuedAt: createdAtRange },
       _sum: { total: true },
     }),
     db.payment.aggregate({
-      where: { organizationId: orgId, status: "COMPLETED" },
+      where: { organizationId: orgId, status: "COMPLETED", paidAt: createdAtRange },
       _sum: { amount: true },
     }),
-    db.task.count({ where: { project: { organizationId: orgId } } }),
+    db.task.count({ where: { project: { organizationId: orgId }, createdAt: createdAtRange } }),
     db.task.groupBy({
       by: ["status"],
-      where: { project: { organizationId: orgId } },
+      where: { project: { organizationId: orgId }, createdAt: createdAtRange },
       _count: { _all: true },
     }),
     db.project.groupBy({
       by: ["status"],
-      where: { organizationId: orgId },
+      where: { organizationId: orgId, createdAt: createdAtRange },
       _count: { _all: true },
+    }),
+    db.project.findMany({
+      where: {
+        organizationId: orgId,
+        status: "COMPLETED",
+        completedAt: { not: null },
+        dueDate: { not: null },
+        ...(rangeStart && rangeEnd ? { completedAt: { gte: rangeStart, lte: rangeEnd } } : {}),
+      },
+      select: { completedAt: true, dueDate: true },
     }),
     db.project.findMany({
       where: { organizationId: orgId, createdAt: { gte: trendMonths[0] } },
@@ -231,6 +246,12 @@ export async function getWorkspaceDashboard() {
   const receivableValue = toNumber(receivable._sum?.amountDue);
   const monthlyRevenueValue = toNumber(monthlyRevenue._sum?.total);
   const paidThisMonthValue = toNumber(paidThisMonth._sum?.amount);
+  const onTimeProjects = completedProjectsWithDeadline.filter(
+    (project) => project.completedAt && project.dueDate && project.completedAt <= project.dueDate,
+  ).length;
+  const projectOnTimeRate = completedProjectsWithDeadline.length
+    ? Math.round((onTimeProjects / completedProjectsWithDeadline.length) * 100)
+    : null;
   const projectTrend = trendMonths.map((month) => {
     const key = format(month, "yyyy-MM");
     const created = projectTrendRows.filter((project) => format(project.createdAt, "yyyy-MM") === key).length;
@@ -239,6 +260,16 @@ export async function getWorkspaceDashboard() {
       month: format(month, "MM/yyyy"),
       newProjects: created,
       completedProjects: completed,
+      activeProjects: projectTrendRows.filter((project) => project.status === "ACTIVE" && format(project.createdAt, "yyyy-MM") === key).length,
+    };
+  });
+  const projectDailyTrend = trendDays.map((day) => {
+    const key = format(day, "yyyy-MM-dd");
+    return {
+      month: format(day, "dd/MM"),
+      newProjects: projectTrendRows.filter((project) => format(project.createdAt, "yyyy-MM-dd") === key).length,
+      completedProjects: projectTrendRows.filter((project) => project.completedAt && format(project.completedAt, "yyyy-MM-dd") === key).length,
+      activeProjects: projectTrendRows.filter((project) => project.status === "ACTIVE" && format(project.createdAt, "yyyy-MM-dd") === key).length,
     };
   });
 
@@ -319,6 +350,12 @@ export async function getWorkspaceDashboard() {
       value: item._count._all,
     })),
     projectTrend,
+    projectDailyTrend,
+    projectOnTime: {
+      rate: projectOnTimeRate,
+      onTime: onTimeProjects,
+      measured: completedProjectsWithDeadline.length,
+    },
     projectStatus: projectStatus.map((item) => ({
       status: item.status,
       label:

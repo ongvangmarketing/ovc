@@ -12,6 +12,7 @@ import type { TaskStatus } from "@prisma/client";
 import { addProjectMember, createTask, removeProjectMember, updateProjectOwner, updateTaskStatus } from "@/app/actions/projects";
 import { cn } from "@/lib/utils/cn";
 import { formatDate, getInitials } from "@/lib/utils/format";
+import { SelectBox } from "@/components/ui/select-box";
 
 const statusConfig: Record<string, { label: string; cls: string; dot: string }> = {
   PLANNING: { label: "Lên kế hoạch", cls: "bg-slate-100 text-slate-700", dot: "bg-slate-400" },
@@ -381,7 +382,7 @@ export function ProjectDetailClient({ project }: { project: ProjectLite }) {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.15fr_0.85fr]">
           <div className="card-base p-5">
             <h3 className="mb-4 font-bold text-foreground">Bảng vận hành</h3>
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-2 gap-3">
               <Info icon={CalendarDays} label="Ngày bắt đầu" value={project.startDate ? formatDate(project.startDate) : "Chưa đặt"} />
               <Info icon={Flag} label="Hạn hoàn thành" value={project.dueDate ? formatDate(project.dueDate) : "Chưa đặt"} />
               <Info icon={TimerReset} label="Cập nhật gần nhất" value={formatDate(project.updatedAt || project.createdAt)} />
@@ -430,12 +431,7 @@ export function ProjectDetailClient({ project }: { project: ProjectLite }) {
                 <p className="mt-1 text-sm text-muted-foreground">Một người chịu trách nhiệm chính, nhiều người có thể follow dự án.</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <select value={memberToAdd} onChange={(event) => setMemberToAdd(event.target.value)} className="h-9 min-w-56 rounded-lg border border-border bg-white px-3 text-sm outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/20">
-                  <option value="">Thêm người từ workspace</option>
-                  {availableToAdd.map((member) => (
-                    <option key={member.userId} value={member.userId}>{member.user?.name || member.user?.email || "Thành viên"}</option>
-                  ))}
-                </select>
+                <SelectBox ariaLabel="Thêm người từ workspace" value={memberToAdd} onChange={setMemberToAdd} placeholder="Thêm người từ workspace" options={[{ value: "", label: "Thêm người từ workspace" }, ...availableToAdd.map((member) => ({ value: member.userId, label: member.user?.name || member.user?.email || "Thành viên" }))]} className="min-w-56" />
                 <button onClick={handleAddMember} disabled={!memberToAdd || isMemberSaving} className="flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50">
                   <UserPlus className="h-4 w-4" />
                   Thêm
@@ -445,12 +441,7 @@ export function ProjectDetailClient({ project }: { project: ProjectLite }) {
             <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
               <div className="rounded-2xl border border-border p-4">
                 <Field label="Người chịu trách nhiệm">
-                  <select value={ownerId} onChange={(event) => handleOwnerChange(event.target.value)} className="quote-input">
-                    <option value="">Chọn owner dự án</option>
-                    {(project.availableMembers || project.members || []).map((member) => (
-                      <option key={member.userId} value={member.userId}>{member.user?.name || member.user?.email || "Thành viên"}</option>
-                    ))}
-                  </select>
+                  <SelectBox ariaLabel="Người chịu trách nhiệm dự án" value={ownerId} onChange={handleOwnerChange} placeholder="Chọn owner dự án" options={[{ value: "", label: "Chọn owner dự án" }, ...(project.availableMembers || project.members || []).map((member) => ({ value: member.userId, label: member.user?.name || member.user?.email || "Thành viên" }))]} className="w-full" />
                 </Field>
               </div>
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -754,12 +745,7 @@ export function ProjectDetailClient({ project }: { project: ProjectLite }) {
                     <input type="date" value={taskForm.dueDate} onChange={(event) => setTaskForm({ ...taskForm, dueDate: event.target.value })} className="quote-input" />
                   </Field>
                   <Field label="Người làm">
-                    <select value={taskForm.assigneeId} onChange={(event) => setTaskForm({ ...taskForm, assigneeId: event.target.value })} className="quote-input">
-                      <option value="">Chưa phân công</option>
-                      {project.members?.map((member) => (
-                        <option key={member.userId} value={member.userId}>{member.user?.name || member.user?.email || "Thành viên"}</option>
-                      ))}
-                    </select>
+                    <SelectBox ariaLabel="Chọn người làm" value={taskForm.assigneeId} onChange={(assigneeId) => setTaskForm({ ...taskForm, assigneeId })} placeholder="Chưa phân công" options={[{ value: "", label: "Chưa phân công" }, ...(project.members || []).map((member) => ({ value: member.userId, label: member.user?.name || member.user?.email || "Thành viên" }))]} className="w-full" />
                   </Field>
                   <Field label="Tag">
                     <input value={taskForm.tags} onChange={(event) => setTaskForm({ ...taskForm, tags: event.target.value })} placeholder="design, urgent, client" className="quote-input" />
@@ -917,13 +903,13 @@ function MiniMetric({ label, value }: { label: string; value: React.ReactNode })
 
 function Info({ icon: Icon, label, value }: { icon: ElementType; label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border p-4">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+    <div className="flex min-w-0 items-center gap-2 rounded-2xl border border-border p-3 sm:gap-3 sm:p-4">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary sm:h-10 sm:w-10">
         <Icon className="h-4 w-4" />
       </div>
-      <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
+      <div className="min-w-0">
+        <p className="truncate whitespace-nowrap text-[11px] text-muted-foreground sm:text-xs">{label}</p>
+        <p className="mt-1 truncate whitespace-nowrap text-sm font-semibold text-foreground">{value}</p>
       </div>
     </div>
   );

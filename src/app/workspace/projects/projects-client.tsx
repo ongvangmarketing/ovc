@@ -6,11 +6,12 @@ import { Archive, CalendarDays, CheckCircle2, CircleDot, FolderKanban, Plus, Sea
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createProject } from "@/app/actions/projects";
 import { cn } from "@/lib/utils/cn";
 import { formatDate, getInitials } from "@/lib/utils/format";
 import { ViewSwitcher } from "@/components/ui/view-switcher";
+import { SelectBox } from "@/components/ui/select-box";
 
 const statusConfig: Record<string, { label: string; cls: string; dot: string }> = {
   PLANNING: { label: "Lên kế hoạch", cls: "bg-slate-100 text-slate-700", dot: "bg-slate-400" },
@@ -54,11 +55,12 @@ function getProgress(project: ProjectLite) {
 
 export function ProjectsClient({ initialProjects }: { initialProjects: ProjectLite[] }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [projects] = useState(initialProjects);
   const [view, setView] = useState<"card" | "list">("card");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ALL");
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(searchParams.get("create") === "1");
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({ name: "", description: "", color: "#F59E0B" });
 
@@ -110,7 +112,7 @@ export function ProjectsClient({ initialProjects }: { initialProjects: ProjectLi
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat icon={FolderKanban} label="Tổng dự án" value={projects.length} tone="text-primary bg-primary/10" />
         <Stat icon={CircleDot} label="Đang chạy" value={stats.active} tone="text-emerald-600 bg-emerald-50" />
         <Stat icon={CheckCircle2} label="Hoàn tất" value={stats.completed} tone="text-blue-600 bg-blue-50" />
@@ -123,14 +125,9 @@ export function ProjectsClient({ initialProjects }: { initialProjects: ProjectLi
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm theo tên hoặc mô tả..." className="h-9 w-full rounded-lg border border-border bg-background pl-9 pr-3 text-sm outline-none transition-all focus:border-primary/50 focus:ring-2 focus:ring-primary/20" />
           </div>
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-3">
+          <div className="flex items-center gap-2">
             <SlidersHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-            <select value={status} onChange={(event) => setStatus(event.target.value)} className="h-9 bg-transparent text-sm text-foreground outline-none">
-              <option value="ALL">Tất cả trạng thái</option>
-              {Object.entries(statusConfig).map(([key, item]) => (
-                <option key={key} value={key}>{item.label}</option>
-              ))}
-            </select>
+            <SelectBox ariaLabel="Lọc trạng thái dự án" value={status} onChange={setStatus} options={[{ value: "ALL", label: "Tất cả trạng thái" }, ...Object.entries(statusConfig).map(([value, item]) => ({ value, label: item.label }))]} className="w-48" />
           </div>
           <ViewSwitcher value={view} onChange={(value) => setView(value as "card" | "list")} options={["card", "list"]} />
         </div>

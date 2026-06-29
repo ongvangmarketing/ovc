@@ -16,7 +16,7 @@ const workspaceModules = ["WORKSPACE", "CRM", "FINANCE", "EDUCATION", "PROJECTS"
 async function main() {
   console.log("Seeding database...");
 
-  const password = await hashPassword("Ongvang@2025");
+  const password = await hashPassword("Ongvang@2026");
 
   const superAdmin = await prisma.user.upsert({
     where: { email: "info@ovc.vn" },

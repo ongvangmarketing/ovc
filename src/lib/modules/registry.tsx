@@ -41,6 +41,7 @@ export type ModuleNavItem = {
   label: string;
   href: string;
   icon: ReactNode;
+  available?: boolean;
   children?: ModuleNavChild[];
 };
 
@@ -220,6 +221,7 @@ export const moduleDefinitions: PlatformModuleDefinition[] = [
       label: "Báo cáo",
       href: "/workspace/report",
       icon: <BarChart3 className="h-5 w-5" />,
+      available: false,
     },
   },
   {

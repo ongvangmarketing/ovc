@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, Plus, Download, Eye, Edit, MoreHorizontal, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, Download, Eye, Edit, MoreHorizontal, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatDate, formatCurrency } from "@/lib/utils/format";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -24,7 +25,6 @@ const QUOTATION_STATUS_COLORS: Record<string, string> = {
   CONVERTED: "bg-indigo-100 text-indigo-700",
   EXPIRED: "bg-orange-100 text-orange-700",
 };
-import { ViewSwitcher } from "@/components/ui/view-switcher";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getQuotations } from "@/app/actions/finance";
@@ -46,10 +46,8 @@ function getCustomerName(contact?: FinanceContact | null) {
 }
 
 export function QuotationsClient() {
+  const router = useRouter();
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [view, setView] = useState("table");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: quotations = [] } = useQuery({
@@ -63,13 +61,6 @@ export function QuotationsClient() {
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
       setDeletingId(null);
     }
-  });
-
-  const filtered = quotations.filter((inv: any) => {
-    const customer = getCustomerName(inv.contact);
-    const matchSearch = `${inv.number} ${inv.title} ${customer}`.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = selectedStatus === "all" || inv.status === selectedStatus;
-    return matchSearch && matchStatus;
   });
 
   const summaryStats = [
@@ -87,7 +78,7 @@ export function QuotationsClient() {
       <div className="page-header">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Báo giá</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">{filtered.length} báo giá</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{quotations.length} báo giá</p>
         </div>
         <div className="flex items-center gap-3">
           <button className="h-9 px-4 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors inline-flex items-center gap-2">
@@ -111,46 +102,10 @@ export function QuotationsClient() {
         ))}
       </div>
 
-      {/* Toolbar */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-64 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm hóa đơn..."
-            className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
-          />
-        </div>
-
-        {/* Status Filter */}
-        <div className="flex items-center gap-1">
-          {["all", "DRAFT", "SENT", "PARTIAL", "PAID", "OVERDUE"].map((s) => (
-            <button
-              key={s}
-              onClick={() => setSelectedStatus(s)}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-                selectedStatus === s
-                  ? "bg-primary text-white"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              )}
-            >
-              {s === "all" ? "Tất cả" : QUOTATION_STATUS_LABELS[s as any] || s}
-            </button>
-          ))}
-        </div>
-
-        <div className="ml-auto">
-          <ViewSwitcher value={view} onChange={setView} options={["table", "card"]} />
-        </div>
-      </div>
-
       {/* Table */}
       <div className="card-base overflow-hidden">
         <div className="overflow-x-auto scrollable-x">
-          <table className="w-full text-sm min-w-[680px]">
+          <table className="w-full min-w-[680px] text-sm [&_td]:!px-3 [&_td]:!py-2.5 [&_th]:!px-3 [&_th]:!py-2.5">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Số Báo giá</th>
@@ -162,18 +117,18 @@ export function QuotationsClient() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((inv) => {
+              {quotations.map((inv) => {
                 const statusColor = QUOTATION_STATUS_COLORS[inv.status] || QUOTATION_STATUS_COLORS["DRAFT"];
                 const statusLabel = QUOTATION_STATUS_LABELS[inv.status] || inv.status;
 
                 return (
-                  <tr key={inv.id} className="border-b border-border last:border-0 table-row-hover">
-                    <td className="py-3 px-4">
-                      <Link href={`/workspace/finance/quotations/${inv.id}`} className="text-sm font-semibold text-blue-600 hover:underline">
+                  <tr key={inv.id} onClick={() => router.push(`/workspace/finance/quotations/${inv.id}`)} className="cursor-pointer border-b border-border last:border-0 table-row-hover">
+                    <td className="whitespace-nowrap py-3 px-4">
+                      <Link href={`/workspace/finance/quotations/${inv.id}`} className="whitespace-nowrap text-sm font-semibold text-blue-600 hover:underline">
                         {inv.number}
                       </Link>
                     </td>
-                    <td className="py-3 px-4 text-sm text-muted-foreground">{getCustomerName(inv.contact)}</td>
+                    <td className="whitespace-nowrap py-3 px-4 text-sm text-muted-foreground">{getCustomerName(inv.contact)}</td>
                     <td className="py-3 px-4">
                       <span
                         className="badge-status text-xs font-medium"

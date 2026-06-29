@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Search, Plus, Download, Eye, Edit, MoreHorizontal, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatDate, formatCurrency } from "@/lib/utils/format";
@@ -44,6 +45,7 @@ function getCustomerName(contact?: FinanceContact | null) {
 }
 
 export function ContractsClient() {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
@@ -148,7 +150,7 @@ export function ContractsClient() {
       {/* Table */}
       <div className="card-base overflow-hidden">
         <div className="overflow-x-auto scrollable-x">
-          <table className="w-full text-sm min-w-[680px]">
+          <table className="w-full min-w-[680px] text-sm [&_td]:!px-3 [&_td]:!py-2.5 [&_th]:!px-3 [&_th]:!py-2.5">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Số HĐ</th>
@@ -166,13 +168,13 @@ export function ContractsClient() {
 
 
                 return (
-                  <tr key={inv.id} className="border-b border-border last:border-0 table-row-hover">
-                    <td className="py-3 px-4">
-                      <Link href={`/workspace/finance/contracts/${inv.id}`} className="text-sm font-semibold text-blue-600 hover:underline">
+                  <tr key={inv.id} onClick={() => router.push(`/workspace/finance/contracts/${inv.id}`)} className="cursor-pointer border-b border-border last:border-0 table-row-hover">
+                    <td className="whitespace-nowrap py-3 px-4">
+                      <Link href={`/workspace/finance/contracts/${inv.id}`} className="whitespace-nowrap text-sm font-semibold text-blue-600 hover:underline">
                         {inv.number}
                       </Link>
                     </td>
-                    <td className="py-4 px-4 text-sm text-muted-foreground">{getCustomerName(inv.contact)}</td>
+                    <td className="whitespace-nowrap py-4 px-4 text-sm text-muted-foreground">{getCustomerName(inv.contact)}</td>
                     <td className="py-3 px-4">
                       <span
                         className="badge-status text-xs font-medium"

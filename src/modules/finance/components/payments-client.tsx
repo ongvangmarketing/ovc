@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Download, Edit, Eye, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -76,6 +77,7 @@ function customerName(payment: PaymentListItem) {
 }
 
 export function PaymentsClient({ initialData }: { initialData: PaymentListItem[] }) {
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -158,7 +160,7 @@ export function PaymentsClient({ initialData }: { initialData: PaymentListItem[]
 
       <div className="card-base overflow-hidden">
         <div className="overflow-x-auto scrollable-x">
-          <table className="w-full text-sm min-w-[760px]">
+          <table className="w-full min-w-[760px] text-sm [&_td]:!px-3 [&_td]:!py-2.5 [&_th]:!px-3 [&_th]:!py-2.5">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Mã phiếu</th>
@@ -176,13 +178,13 @@ export function PaymentsClient({ initialData }: { initialData: PaymentListItem[]
                 const color = statusColor[payment.status] || "rgb(100 116 139)";
 
                 return (
-                  <tr key={payment.id} className="border-b border-border last:border-0 table-row-hover">
-                    <td className="py-3 px-4">
-                      <Link href={`/workspace/finance/payments/${payment.id}`} className="text-sm font-semibold text-blue-600 hover:underline">
+                  <tr key={payment.id} onClick={() => router.push(`/workspace/finance/payments/${payment.id}`)} className="cursor-pointer border-b border-border last:border-0 table-row-hover">
+                    <td className="whitespace-nowrap py-3 px-4">
+                      <Link href={`/workspace/finance/payments/${payment.id}`} className="whitespace-nowrap text-sm font-semibold text-blue-600 hover:underline">
                         {payment.reference || payment.id.slice(-8).toUpperCase()}
                       </Link>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="whitespace-nowrap py-3 px-4">
                       {payment.invoice?.id ? (
                         <Link href={`/workspace/finance/invoices/${payment.invoice.id}`} className="text-sm font-medium text-foreground hover:text-blue-600 hover:underline">
                           {payment.invoice.number || "Không có mã"}
@@ -191,7 +193,7 @@ export function PaymentsClient({ initialData }: { initialData: PaymentListItem[]
                         <span className="text-muted-foreground">Không gắn hóa đơn</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-sm text-muted-foreground">{customerName(payment)}</td>
+                    <td className="whitespace-nowrap py-3 px-4 text-sm text-muted-foreground">{customerName(payment)}</td>
                     <td className="py-3 px-4">
                       <span className="badge-status text-xs font-medium" style={{ backgroundColor: `${color.replace("rgb", "rgba").replace(")", ", 0.14)")}`, color }}>
                         {label}

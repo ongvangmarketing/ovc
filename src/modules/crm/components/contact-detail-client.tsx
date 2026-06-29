@@ -18,6 +18,7 @@ import {
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 import { sendPortalAccessEmailForContact } from "@/app/actions/crm";
 import { cn } from "@/lib/utils/cn";
+import { SelectBox } from "@/components/ui/select-box";
 
 type MoneyValue = number | string | { toString(): string } | null | undefined;
 
@@ -428,6 +429,8 @@ export function ContactDetailClient({ contact }: { contact: ContactDetail }) {
   const [activeTab, setActiveTab] = useState("notes");
   const [activeFinanceTab, setActiveFinanceTab] = useState("deals");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [chartMetric, setChartMetric] = useState<"revenue" | "debt">("revenue");
+  const [chartRange, setChartRange] = useState<"30d" | "3m" | "6m" | "12m">("6m");
   const [isPortalPending, startPortalTransition] = useTransition();
   const name = displayCustomerName(contact);
   const personalName = contactName(contact);
@@ -462,7 +465,6 @@ export function ContactDetailClient({ contact }: { contact: ContactDetail }) {
       .reduce((paymentSum, payment) => paymentSum + asNumber(payment.amount), 0);
     return sum + Math.max(asNumber(invoice.total) - Math.max(asNumber(invoice.amountPaid), paidByPayments), 0);
   }, 0);
-  const paidPercent = totalRevenue ? Math.round((paidAmount / totalRevenue) * 100) : 0;
   const invoiceDates = invoices.reduce<Date[]>((dates, item) => {
     if (!item.createdAt) return dates;
     const date = new Date(item.createdAt);
@@ -470,20 +472,38 @@ export function ContactDetailClient({ contact }: { contact: ContactDetail }) {
     return [...dates, date];
   }, []);
   const newestInvoiceDate = invoiceDates.sort((a, b) => b.getTime() - a.getTime())[0] || new Date();
-  const revenueMonths = Array.from({ length: 6 }).map((_, index) => {
-    const date = new Date(newestInvoiceDate.getFullYear(), newestInvoiceDate.getMonth() - (5 - index), 1);
-    return { key: monthKey(date), label: monthLabel(date), value: 0 };
+  const rangeCount = chartRange === "30d" ? 30 : Number(chartRange.replace("m", ""));
+  const chartSeries = Array.from({ length: rangeCount }).map((_, index) => {
+    const date = chartRange === "30d"
+      ? new Date(newestInvoiceDate.getFullYear(), newestInvoiceDate.getMonth(), newestInvoiceDate.getDate() - (29 - index))
+      : new Date(newestInvoiceDate.getFullYear(), newestInvoiceDate.getMonth() - (rangeCount - 1 - index), 1);
+    return {
+      key: chartRange === "30d" ? date.toISOString().slice(0, 10) : monthKey(date),
+      label: chartRange === "30d" ? `${date.getDate()}/${date.getMonth() + 1}` : monthLabel(date),
+      value: 0,
+    };
   });
   invoices.forEach((invoice) => {
     const date = invoice.createdAt ? new Date(invoice.createdAt) : null;
     if (!date || Number.isNaN(date.getTime())) return;
-    const month = revenueMonths.find((item) => item.key === monthKey(date));
-    if (month) month.value += asNumber(invoice.total);
+    const key = chartRange === "30d" ? date.toISOString().slice(0, 10) : monthKey(date);
+    const period = chartSeries.find((item) => item.key === key);
+    if (period) period.value += asNumber(invoice.total);
   });
-  const maxRevenue = Math.max(...revenueMonths.map((item) => item.value), 1);
-  const hasRevenueData = revenueMonths.some((item) => item.value > 0);
-  const chartPoints = revenueMonths.map((item, index) => {
-    const x = 32 + index * 112;
+  const filteredInvoiceIds = new Set(invoices.filter((invoice) => {
+    const date = invoice.createdAt ? new Date(invoice.createdAt) : null;
+    if (!date || Number.isNaN(date.getTime())) return false;
+    const key = chartRange === "30d" ? date.toISOString().slice(0, 10) : monthKey(date);
+    return chartSeries.some((item) => item.key === key);
+  }).map((invoice) => invoice.id));
+  const rangeRevenue = invoices.filter((invoice) => filteredInvoiceIds.has(invoice.id)).reduce((sum, invoice) => sum + asNumber(invoice.total), 0);
+  const rangePaid = invoices.filter((invoice) => filteredInvoiceIds.has(invoice.id)).reduce((sum, invoice) => sum + asNumber(invoice.amountPaid), 0);
+  const rangeDebt = invoices.filter((invoice) => filteredInvoiceIds.has(invoice.id)).reduce((sum, invoice) => sum + asNumber(invoice.amountDue), 0);
+  const rangePaidPercent = rangeRevenue ? Math.round((rangePaid / rangeRevenue) * 100) : 0;
+  const maxRevenue = Math.max(...chartSeries.map((item) => item.value), 1);
+  const hasRevenueData = chartSeries.some((item) => item.value > 0);
+  const chartPoints = chartSeries.map((item, index) => {
+    const x = 32 + index * (576 / Math.max(chartSeries.length - 1, 1));
     const y = 210 - (item.value / maxRevenue) * 170;
     return { ...item, x, y };
   });
@@ -634,16 +654,19 @@ export function ContactDetailClient({ contact }: { contact: ContactDetail }) {
 
       <div className="quote-detail-layout">
         <main className="space-y-5">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.65fr)_minmax(260px,0.85fr)]">
+          <div className="grid gap-5">
             <section className="quote-detail-card">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2>Doanh thu theo thời gian</h2>
-                  <strong>{formatCurrency(totalRevenue)}</strong>
+                  <h2>{chartMetric === "revenue" ? "Doanh thu theo thời gian" : "Công nợ theo trạng thái"}</h2>
+                  <strong>{formatCurrency(chartMetric === "revenue" ? rangeRevenue : rangeDebt)}</strong>
                 </div>
-                <div className="customer-filter-pills"><span>Doanh thu</span><span>6 tháng</span></div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <SelectBox ariaLabel="Loại biểu đồ khách hàng" value={chartMetric} onChange={(value) => setChartMetric(value as "revenue" | "debt")} options={[{ value: "revenue", label: "Doanh thu" }, { value: "debt", label: "Công nợ" }]} className="w-[118px]" />
+                  <SelectBox ariaLabel="Thời gian biểu đồ khách hàng" value={chartRange} onChange={(value) => setChartRange(value as "30d" | "3m" | "6m" | "12m")} options={[{ value: "30d", label: "30 ngày" }, { value: "3m", label: "3 tháng" }, { value: "6m", label: "6 tháng" }, { value: "12m", label: "12 tháng" }]} className="w-[118px]" />
+                </div>
               </div>
-              <svg viewBox="0 0 640 260" className="customer-line-chart">
+              {chartMetric === "revenue" ? <svg viewBox="0 0 640 260" className="customer-line-chart">
                 <defs><linearGradient id={`customerRevenueFill-${contact.id}`} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#f59e0b" stopOpacity="0.22" /><stop offset="100%" stopColor="#f59e0b" stopOpacity="0.02" /></linearGradient></defs>
                 {[40, 80, 120, 160, 200].map((y) => <line key={y} x1="0" x2="640" y1={y} y2={y} stroke="#e5eaf2" strokeDasharray="6 6" />)}
                 {hasRevenueData ? <path d={chartAreaPath} fill={`url(#customerRevenueFill-${contact.id})`} /> : null}
@@ -651,21 +674,17 @@ export function ContactDetailClient({ contact }: { contact: ContactDetail }) {
                 {chartPoints.map((point) => (
                   <g key={point.key}>
                     {hasRevenueData ? <circle cx={point.x} cy={point.y} r="5" fill="#f59e0b" stroke="#fff" strokeWidth="3" /> : null}
-                    <text x={point.x} y="248" textAnchor="middle">{point.label}</text>
+                    {(chartSeries.length <= 12 || point.key === chartSeries[0]?.key || point.key === chartSeries.at(-1)?.key) ? <text x={point.x} y="248" textAnchor="middle">{point.label}</text> : null}
                   </g>
                 ))}
-                {!hasRevenueData ? <text x="320" y="130" textAnchor="middle" className="customer-chart-empty">Chưa có doanh thu trong 6 tháng</text> : null}
-              </svg>
-            </section>
-            <section className="quote-detail-card">
-              <h2>Công nợ theo trạng thái</h2>
-              <div className="customer-donut-wrap">
-                <div className="customer-donut" style={{ "--paid": `${totalRevenue ? Math.max(12, paidPercent) : 50}%` } as CSSProperties} />
+                {!hasRevenueData ? <text x="320" y="130" textAnchor="middle" className="customer-chart-empty">Chưa có doanh thu trong kỳ</text> : null}
+              </svg> : <div className="customer-donut-wrap">
+                <div className="customer-donut" style={{ "--paid": `${rangeRevenue ? Math.max(12, rangePaidPercent) : 0}%` } as CSSProperties} />
                 <div className="customer-donut-legend">
-                  <span><i className="paid" />Đã thu</span>
-                  <span><i className="debt" />Còn phải thu</span>
+                  <span><i className="paid" />Đã thu: {formatCurrency(rangePaid)}</span>
+                  <span><i className="debt" />Còn phải thu: {formatCurrency(rangeDebt)}</span>
                 </div>
-              </div>
+              </div>}
             </section>
           </div>
 

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Hexagon, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Layers3, Loader2, LockKeyhole } from "lucide-react";
 import { signIn } from "@/lib/auth/client";
 import { cn } from "@/lib/utils/cn";
 
@@ -54,25 +54,31 @@ export function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="w-full max-w-[420px]">
       {/* Mobile Logo */}
-      <div className="flex items-center gap-2 mb-8 lg:hidden">
-        <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-          <Hexagon className="w-4 h-4 text-white fill-white" />
+      <div className="mb-10 flex items-center gap-3 lg:hidden">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 shadow-sm shadow-emerald-500/20">
+          <Layers3 className="h-5 w-5 text-white" />
         </div>
-        <span className="font-bold text-foreground">Ong Vàng</span>
+        <div>
+          <span className="block text-sm font-semibold text-foreground">Business Workspace</span>
+          <span className="block text-xs text-muted-foreground">Secure access portal</span>
+        </div>
       </div>
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-foreground">Chào mừng trở lại</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Đăng nhập để tiếp tục vào hệ thống
+        <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-600">
+          <LockKeyhole className="h-5 w-5" />
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">Đăng nhập</h1>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Sử dụng tài khoản của tổ chức để tiếp tục.
         </p>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Error */}
         {error && (
           <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive animate-fade-in">
@@ -93,7 +99,7 @@ export function LoginForm() {
             placeholder="ban@congty.vn"
             required
             autoComplete="email"
-            className="w-full h-10 px-3 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
+            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-800 shadow-sm shadow-slate-950/[0.02] transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
           />
         </div>
 
@@ -105,7 +111,7 @@ export function LoginForm() {
             </label>
             <Link
               href="/forgot-password"
-              className="text-xs text-primary hover:text-primary/80 transition-colors"
+              className="text-xs font-medium text-emerald-600 transition-colors hover:text-emerald-700"
             >
               Quên mật khẩu?
             </Link>
@@ -119,7 +125,7 @@ export function LoginForm() {
               placeholder="••••••••"
               required
               autoComplete="current-password"
-              className="w-full h-10 px-3 pr-10 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/60 transition-all"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 pr-11 text-sm text-slate-800 shadow-sm shadow-slate-950/[0.02] transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
             />
             <button
               type="button"
@@ -136,7 +142,7 @@ export function LoginForm() {
           <input
             id="remember"
             type="checkbox"
-            className="w-4 h-4 rounded border-border text-primary focus:ring-primary/30"
+            className="h-4 w-4 rounded border-slate-300 accent-emerald-500 focus:ring-emerald-500/20"
           />
           <label htmlFor="remember" className="text-sm text-muted-foreground">
             Ghi nhớ đăng nhập
@@ -148,8 +154,8 @@ export function LoginForm() {
           type="submit"
           disabled={loading}
           className={cn(
-            "w-full h-10 rounded-lg bg-primary text-white text-sm font-semibold transition-all duration-150 flex items-center justify-center gap-2",
-            loading ? "opacity-70 cursor-not-allowed" : "hover:bg-primary/90 shadow-sm hover:shadow-md"
+            "flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 text-sm font-semibold text-white transition-all duration-150",
+            loading ? "cursor-not-allowed opacity-70" : "shadow-sm shadow-emerald-500/20 hover:bg-emerald-600 hover:shadow-md"
           )}
         >
           {loading ? (
@@ -162,18 +168,12 @@ export function LoginForm() {
           )}
         </button>
 
-        {/* Demo login hint */}
-        <div className="p-3 rounded-lg bg-muted/50 border border-border">
-          <p className="text-xs text-muted-foreground font-medium mb-1">Demo tài khoản</p>
-          <p className="text-xs text-muted-foreground">Email: admin@ongvang.com</p>
-          <p className="text-xs text-muted-foreground">Password: Ongvang@2026</p>
-        </div>
       </form>
 
       {/* Footer */}
-      <p className="mt-6 text-center text-sm text-muted-foreground">
+      <p className="mt-8 text-center text-sm text-muted-foreground">
         Chưa có tài khoản?{" "}
-        <Link href="/register" className="text-primary font-medium hover:text-primary/80 transition-colors">
+        <Link href="/register" className="font-medium text-emerald-600 transition-colors hover:text-emerald-700">
           Đăng ký ngay
         </Link>
       </p>

@@ -42,6 +42,23 @@ function SidebarLink({
   collapsed: boolean;
   active: boolean;
 }) {
+  if (item.available === false) {
+    return (
+      <button
+        type="button"
+        disabled
+        title={`${item.label} · Đang phát triển`}
+        className={cn(
+          "sidebar-item h-10 w-full gap-2.5 rounded-lg px-2.5 text-left text-[14px] font-medium text-slate-400",
+          collapsed && "justify-center px-0",
+        )}
+      >
+        <span className="text-slate-400">{item.icon}</span>
+        {!collapsed ? <><span className="min-w-0 flex-1 truncate">{item.label}</span><span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-semibold text-amber-600">Đang phát triển</span></> : null}
+      </button>
+    );
+  }
+
   return (
     <Link
       href={item.href}
@@ -117,9 +134,10 @@ function ModuleButton({
                 type="button"
                 disabled
                 title="Tính năng đang phát triển"
-                className="block w-full rounded-lg px-2.5 py-1.5 text-left text-[13px] font-medium text-slate-300"
+                className="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-[13px] font-medium text-slate-400"
               >
-                {child.label}
+                <span className="truncate">{child.label}</span>
+                <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-semibold text-amber-600">Đang phát triển</span>
               </button>
             );
           })}
@@ -133,9 +151,11 @@ type SidebarProps = {
   enabledModuleCodes?: PlatformModuleCode[];
   collapsed?: boolean;
   onCollapsedChange?: (collapsed: boolean) => void;
+  mobileOpen?: boolean;
+  onMobileNavigate?: () => void;
 };
 
-export function Sidebar({ enabledModuleCodes = defaultModuleCodes, collapsed: controlledCollapsed, onCollapsedChange }: SidebarProps) {
+export function Sidebar({ enabledModuleCodes = defaultModuleCodes, collapsed: controlledCollapsed, onCollapsedChange, mobileOpen = false, onMobileNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [internalCollapsed, setInternalCollapsed] = useState(false);
@@ -168,9 +188,13 @@ export function Sidebar({ enabledModuleCodes = defaultModuleCodes, collapsed: co
 
   return (
     <aside
+      onClick={(event) => {
+        if ((event.target as HTMLElement).closest("a")) onMobileNavigate?.();
+      }}
       className={cn(
-        "relative flex shrink-0 flex-col border-r border-slate-200 bg-white text-slate-800 transition-all duration-300",
-        collapsed ? "w-[86px]" : "w-[260px]"
+        "fixed inset-y-0 left-0 z-[300] flex w-[min(86vw,320px)] shrink-0 flex-col overflow-y-auto border-r border-slate-200 bg-white text-slate-800 shadow-2xl transition-transform duration-300 lg:relative lg:inset-auto lg:z-auto lg:shadow-none lg:transition-all",
+        mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
+        collapsed ? "lg:w-[86px]" : "lg:w-[260px]"
       )}
     >
       <div className="flex h-20 items-center gap-3 border-b border-slate-100 px-6">
@@ -266,12 +290,12 @@ export function Sidebar({ enabledModuleCodes = defaultModuleCodes, collapsed: co
 
       <div className="space-y-1.5 border-t border-slate-100 p-3">
         <SidebarLink
-          item={{ label: "Trung tâm trợ giúp", href: "/workspace/help", icon: <HelpCircle className="h-5 w-5" /> }}
+          item={{ label: "Trung tâm trợ giúp", href: "/workspace/help", icon: <HelpCircle className="h-5 w-5" />, available: false }}
           collapsed={collapsed}
           active={isActive(pathname, "/workspace/help")}
         />
         <SidebarLink
-          item={{ label: "Mời thành viên", href: "/workspace/settings/members", icon: <UserPlus className="h-5 w-5" /> }}
+          item={{ label: "Mời thành viên", href: "/workspace/settings/members", icon: <UserPlus className="h-5 w-5" />, available: false }}
           collapsed={collapsed}
           active={isActive(pathname, "/workspace/settings/members")}
         />
