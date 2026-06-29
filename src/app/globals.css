@@ -3662,7 +3662,19 @@ main.scrollable .customer-line-chart text {
 @media (max-width: 760px) {
   .quote-detail-page {
     gap: 0.875rem;
+    min-width: 0;
     padding: 0.875rem;
+  }
+
+  .quote-detail-page > *,
+  .quote-detail-layout,
+  .quote-detail-layout > *,
+  .quote-detail-hero,
+  .quote-detail-summary,
+  .quote-detail-top-actions {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
   }
 
   .quote-detail-hero {
@@ -3702,6 +3714,7 @@ main.scrollable .customer-line-chart text {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     justify-content: stretch;
+    overflow: visible;
   }
 
   .quote-detail-top-actions > *,
