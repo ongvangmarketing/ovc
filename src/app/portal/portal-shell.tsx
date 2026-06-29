@@ -30,9 +30,9 @@ export function PortalShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="workspace-shell flex min-h-screen overflow-hidden p-5">
-      <div className="workspace-frame flex min-h-0 flex-1 rounded-[22px] bg-white">
-        <aside className="flex w-[260px] shrink-0 flex-col border-r border-slate-200 bg-white">
+    <div className="portal-shell workspace-shell flex min-h-screen overflow-hidden p-5">
+      <div className="portal-frame workspace-frame flex min-h-0 flex-1 rounded-[22px] bg-white">
+        <aside className="portal-sidebar flex w-[260px] shrink-0 flex-col border-r border-slate-200 bg-white">
           <div className="flex h-20 items-center gap-3 border-b border-slate-100 px-6">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
               <BadgeCheck className="h-5 w-5" />
@@ -42,7 +42,7 @@ export function PortalShell({
               <p className="text-sm text-slate-500">Customer Portal</p>
             </div>
           </div>
-          <nav className="grid gap-1 p-4">
+          <nav className="portal-nav grid gap-1 p-4">
             {nav.map((item) => {
               const Icon = item.icon;
               const activeClass = item.key === active ? "bg-orange-50 text-orange-600" : "";
@@ -55,7 +55,7 @@ export function PortalShell({
               );
             })}
           </nav>
-          <div className="mt-auto border-t border-slate-100 p-4">
+          <div className="portal-account mt-auto border-t border-slate-100 p-4">
             <Link href="/portal/account" className={`block rounded-xl p-3 transition hover:bg-orange-50 ${active === "account" ? "bg-orange-50" : "bg-slate-50"}`}>
               <p className="font-semibold text-slate-900">{customerName}</p>
               <p className="mt-1 truncate text-sm text-slate-500">{email || "Chưa có email"}</p>
@@ -64,8 +64,8 @@ export function PortalShell({
           </div>
         </aside>
 
-        <main className="scrollable flex-1 overflow-y-auto bg-[#f8fafc]">
-          <div className="mx-auto grid max-w-7xl gap-5 p-6">{children}</div>
+        <main className="portal-main scrollable flex-1 overflow-y-auto bg-[#f8fafc]">
+          <div className="portal-content mx-auto grid max-w-7xl gap-5 p-6">{children}</div>
         </main>
       </div>
     </div>
