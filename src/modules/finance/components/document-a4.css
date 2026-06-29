@@ -1,0 +1,667 @@
+@page {
+  size: A4;
+  margin: 9mm;
+}
+
+
+
+.document-a4-wrapper {
+  margin: 0;
+  font-family: "Inter", "DejaVu Sans", Arial, sans-serif;
+  font-size: 10.5px;
+  line-height: 1.3;
+  color: #111827;
+  background: #ffffff;
+}
+
+.document-a4-wrapper .sheet  {
+  width: 100%;
+  min-height: 0;
+  position: relative;
+  padding: 4%;
+  box-sizing: border-box;
+}
+
+.document-a4-wrapper .topbar  {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.document-a4-wrapper .topbar .company,
+.document-a4-wrapper .topbar .national  {
+  display: block;
+}
+
+.document-a4-wrapper .topbar .company  {
+  float: left;
+  width: 60%;
+  padding-right: 18px;
+}
+
+.document-a4-wrapper .topbar .national  {
+  float: right;
+  width: 40%;
+}
+
+.document-a4-wrapper .brand-row  {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.document-a4-wrapper .logo-image  {
+  display: block;
+  width: 118px;
+  max-height: 38px;
+  object-fit: contain;
+  margin-bottom: 5px;
+}
+
+.document-a4-wrapper .company-name  {
+  font-size: 12.5px;
+  font-weight: 900;
+  color: #1f2937;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+.document-a4-wrapper .muted  {
+  color: #92400e;
+  font-weight: 700;
+}
+
+.document-a4-wrapper .company-line  {
+  margin-bottom: 2px;
+  color: #374151;
+}
+
+.document-a4-wrapper .national  {
+  text-align: center;
+  color: #111827;
+}
+
+.document-a4-wrapper .national-title  {
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.document-a4-wrapper .national-subtitle  {
+  font-size: 11px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.document-a4-wrapper .dash  {
+  color: #d97706;
+  margin: 3px 0 6px;
+}
+
+.document-a4-wrapper .meta  {
+  margin-bottom: 2px;
+}
+
+.document-a4-wrapper .meta strong  {
+  color: #ea580c;
+}
+
+.document-a4-wrapper .title-block  {
+  text-align: center;
+  margin: 5px 0 8px;
+}
+
+.document-a4-wrapper .title-block h1  {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.1;
+  font-weight: 900;
+  color: #1f2937;
+  text-transform: uppercase;
+}
+
+.document-a4-wrapper .accent-line  {
+  width: 118px;
+  height: 3px;
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+  margin: 5px auto 0;
+  border-radius: 99px;
+}
+
+.document-a4-wrapper .intro  {
+  margin: 0 0 3px;
+}
+
+.document-a4-wrapper .intro strong  {
+  font-style: italic;
+  color: #1f2937;
+}
+
+.document-a4-wrapper .intro.small  {
+  margin-bottom: 6px;
+  color: #374151;
+}
+
+.document-a4-wrapper .section  {
+  margin-bottom: 7px;
+}
+
+.document-a4-wrapper .section-label  {
+  display: inline-block;
+  background: #f59e0b;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  border-radius: 5px 5px 0 0;
+  letter-spacing: .01em;
+}
+
+.document-a4-wrapper .party-grid  {
+  display: block;
+  width: 100%;
+}
+
+.document-a4-wrapper .party-box  {
+  display: block;
+  float: none;
+  width: 100%;
+  border: 1px solid #f3b45b;
+  border-top: 3px solid #f59e0b;
+  border-radius: 0 6px 6px 6px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+}
+
+.document-a4-wrapper .party-box.light  {
+  float: none;
+  width: 100%;
+  background: #ffffff;
+}
+
+.document-a4-wrapper .party-box h2  {
+  margin: 0 0 5px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #fde0b2;
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.document-a4-wrapper .info-row  {
+  display: block;
+  width: 100%;
+  margin-bottom: 3px;
+}
+
+.document-a4-wrapper .info-row span  {
+  display: inline-block;
+  width: 86px;
+  font-weight: 800;
+}
+
+.document-a4-wrapper .info-row b  {
+  display: inline-block;
+  width: 8px;
+}
+
+.document-a4-wrapper .info-row div,
+.document-a4-wrapper .info-row strong  {
+  display: inline;
+}
+
+.document-a4-wrapper .note-line  {
+  margin-top: 7px;
+  padding: 6px;
+  border-radius: 5px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-style: italic;
+}
+
+.document-a4-wrapper .price-table  {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.document-a4-wrapper .price-table th  {
+  background: #d97706;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 900;
+  text-align: center;
+  padding: 4px 4px;
+  border: 1px solid #f3c17d;
+}
+
+.document-a4-wrapper .price-table td  {
+  padding: 4px 5px;
+  border: 1px solid #f3c17d;
+  vertical-align: top;
+}
+
+.document-a4-wrapper .price-table tbody tr:nth-child(even) td  {
+  background: #fffaf2;
+}
+
+.document-a4-wrapper .price-table td:nth-child(1),
+.document-a4-wrapper .price-table td:nth-child(3),
+.document-a4-wrapper .price-table td:nth-child(4)  {
+  text-align: center;
+}
+
+.document-a4-wrapper .price-table td:nth-child(5),
+.document-a4-wrapper .price-table td:nth-child(6)  {
+  text-align: right;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.document-a4-wrapper .price-table th:nth-child(3),
+.document-a4-wrapper .price-table th:nth-child(4),
+.document-a4-wrapper .price-table th:nth-child(5),
+.document-a4-wrapper .price-table th:nth-child(6),
+.document-a4-wrapper .price-table td:nth-child(3),
+.document-a4-wrapper .price-table td:nth-child(4)  {
+  white-space: nowrap;
+}
+
+.document-a4-wrapper .summary-grid  {
+  display: block;
+  width: 100%;
+  margin-bottom: 7px;
+}
+
+.document-a4-wrapper .box  {
+  display: block;
+  float: none;
+  width: 100%;
+  border: 1px solid #f3b45b;
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-bottom: 6px;
+}
+
+.document-a4-wrapper .total-box  {
+  float: none;
+  width: 100%;
+}
+
+.document-a4-wrapper .box-title  {
+  color: #92400e;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.document-a4-wrapper .terms ul  {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.document-a4-wrapper .terms li  {
+  margin-bottom: 2px;
+}
+
+.document-a4-wrapper .payment-section {
+  margin-top: 7px;
+}
+
+.document-a4-wrapper .payment-box {
+  border: 1px solid #f59e0b;
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: #fffbeb;
+}
+
+.document-a4-wrapper .payment-row {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.document-a4-wrapper .payment-row + .payment-row {
+  border-top: 1px solid #fde68a;
+}
+
+.document-a4-wrapper .vietqr {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border: 1px solid #fde0b2;
+  border-radius: 4px;
+  background: #fff;
+  padding: 2px;
+}
+
+.document-a4-wrapper .payment-row-title {
+  color: #92400e;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.document-a4-wrapper .payment-info {
+  color: #334155;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.document-a4-wrapper .payment-info span {
+  color: #64748b;
+  font-weight: 700;
+}
+
+.document-a4-wrapper .total-table  {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.document-a4-wrapper .total-table td  {
+  padding: 4px 0;
+  border-bottom: 1px solid #fde0b2;
+}
+
+.document-a4-wrapper .total-table td:last-child  {
+  text-align: right;
+  font-weight: 800;
+}
+
+.document-a4-wrapper .total-table .grand td  {
+  color: #ea580c;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.document-a4-wrapper .words  {
+  margin: 5px 0 0;
+  font-style: italic;
+  color: #374151;
+}
+
+.document-a4-wrapper .summary-note  {
+  margin: 0;
+  color: #374151;
+}
+
+.document-a4-wrapper .sign-section  {
+  margin-top: 2px;
+}
+
+.document-a4-wrapper .sign-grid  {
+  display: block;
+  width: 100%;
+  border: 0;
+  padding: 0;
+}
+
+.document-a4-wrapper .sign-box  {
+  display: block;
+  float: left;
+  width: 48.5%;
+  min-height: 0;
+  text-align: center;
+  padding: 8px 10px;
+  border: 1px solid #fde0b2;
+  border-radius: 6px;
+  background: #fffdf8;
+}
+
+.document-a4-wrapper .sign-box + .sign-box  {
+  float: right;
+  padding-top: 8px;
+}
+
+.document-a4-wrapper .topbar::after,
+.document-a4-wrapper .party-grid::after,
+.document-a4-wrapper .summary-grid::after,
+.document-a4-wrapper .sign-grid::after  {
+  content: "";
+  display: block;
+  clear: both;
+}
+
+.document-a4-wrapper .sign-party  {
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #1f2937;
+  text-align: center;
+}
+
+.document-a4-wrapper .sign-sub  {
+  font-size: 10px;
+  color: #6b7280;
+  font-style: normal;
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+.document-a4-wrapper .esign  {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 99px;
+  font-weight: 900;
+  margin: 2px 0 6px;
+  font-size: 9px;
+  text-align: center;
+}
+
+.document-a4-wrapper .signature-line  {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #374151;
+  text-align: center;
+}
+
+.document-a4-wrapper .signature-thumb  {
+  display: inline-block;
+  max-width: 88px;
+  max-height: 36px;
+  object-fit: contain;
+  vertical-align: middle;
+  border: 1px solid #fde0b2;
+  border-radius: 4px;
+  background: #ffffff;
+  padding: 2px;
+}
+
+.document-a4-wrapper .esign.signed  {
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+}
+
+.document-a4-wrapper .esign.pending  {
+  color: #92400e;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+}
+
+.document-a4-wrapper .signer  {
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.document-a4-wrapper .job-title  {
+  font-size: 9px;
+  color: #374151;
+  text-align: center;
+}
+
+.document-a4-wrapper .signature-id  {
+  margin-top: 3px;
+  font-size: 9px;
+  color: #6b7280;
+  line-height: 1.25;
+  text-align: center;
+}
+
+.document-a4-wrapper .user-agent  {
+  overflow-wrap: anywhere;
+}
+
+.document-a4-wrapper .footer  {
+  clear: both;
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 2px solid #f59e0b;
+  margin-top: 6px;
+  padding-top: 4px;
+  font-size: 9.5px;
+  color: #4b5563;
+}
+
+.document-a4-wrapper .no-break  {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.document-a4-wrapper .screen-preview  {
+  background: #f3f4f6;
+  padding: 18px;
+  overflow-x: hidden;
+}
+
+.document-a4-wrapper .screen-preview .sheet  {
+  width: auto;
+  max-width: 980px;
+  margin: 0 auto;
+  background: #ffffff;
+  padding: 4%;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, .12);
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.document-a4-wrapper .screen-preview .section  {
+  overflow-x: auto;
+}
+
+.document-a4-wrapper .screen-preview .price-table  {
+  min-width: 880px;
+}
+
+.document-a4-wrapper .screen-preview .topbar  {
+  display: block;
+}
+
+.document-a4-wrapper .screen-preview .topbar .company,
+.document-a4-wrapper .screen-preview .topbar .national  {
+  float: none;
+  width: 100%;
+  padding-right: 0;
+}
+
+.document-a4-wrapper .screen-preview .topbar .national  {
+  margin-top: 10px;
+}
+
+.document-a4-wrapper .screen-preview .footer  {
+  display: block;
+}
+
+.document-a4-wrapper .screen-preview .footer div + div  {
+  margin-top: 3px;
+}
+
+@media screen and (max-width: 640px) {
+.document-a4-wrapper   .screen-preview  {
+    padding: 0;
+    background: #ffffff;
+  }
+
+.document-a4-wrapper   .screen-preview .sheet  {
+    width: 100%;
+    max-width: none;
+    padding: 12px;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+.document-a4-wrapper   .screen-preview .topbar .company  {
+    display: none;
+  }
+
+.document-a4-wrapper   .screen-preview .topbar .national  {
+    margin-top: 0;
+  }
+}
+
+@media (min-width: 900px) {
+.document-a4-wrapper   .screen-preview .topbar .company  {
+    float: left;
+    width: 60%;
+    padding-right: 18px;
+  }
+
+.document-a4-wrapper   .screen-preview .topbar .national  {
+    float: right;
+    width: 40%;
+    margin-top: 0;
+  }
+}
+
+.document-a4-wrapper .screen-alert  {
+  border: 1px solid #86efac;
+  background: #f0fdf4;
+  color: #166534;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-weight: 800;
+}
+
+.document-a4-wrapper .signature-form  {
+  margin-top: 10px;
+}
+
+.document-a4-wrapper .signature-pad-wrap  {
+  position: relative;
+  border: 1px dashed #f59e0b;
+  border-radius: 6px;
+  background: #ffffff;
+  margin-bottom: 8px;
+}
+
+.document-a4-wrapper #signature-pad  {
+  display: block;
+  width: 100%;
+  height: 120px;
+}
+
+.document-a4-wrapper #clear-btn  {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #9a3412;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.document-a4-wrapper .signature-submit  {
+  border: 0;
+  background: #f59e0b;
+  color: #ffffff;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-weight: 900;
+  cursor: pointer;
+  width: 100%;
+}

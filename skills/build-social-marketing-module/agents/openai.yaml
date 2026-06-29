@@ -1,0 +1,4 @@
+interface:
+  display_name: "Social Marketing Module"
+  short_description: "Build multi-tenant social reporting modules"
+  default_prompt: "Use $build-social-marketing-module to build or extend a licensed multi-tenant Social Marketing reporting provider."

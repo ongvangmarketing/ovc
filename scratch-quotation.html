@@ -1,0 +1,317 @@
+@php
+    $formatDate = function ($value) {
+        if (blank($value)) {
+            return '';
+        }
+
+        try {
+            return \Illuminate\Support\Carbon::parse($value)->format('d/m/Y');
+        } catch (\Throwable $exception) {
+            return (string) $value;
+        }
+    };
+
+    $formatDateTime = function ($value) {
+        if (blank($value)) {
+            return '';
+        }
+
+        try {
+            return \Illuminate\Support\Carbon::parse($value)->format('d/m/Y H:i');
+        } catch (\Throwable $exception) {
+            return (string) $value;
+        }
+    };
+
+    $money = function ($value) {
+        return number_format((float) ($value ?? 0), 0, ',', '.') . ' VND';
+    };
+
+    $richText = function ($value) {
+        $html = e((string) ($value ?? ''));
+        $html = preg_replace('/&lt;br\s*\/?&gt;/i', '<br>', $html);
+
+        return nl2br($html, false);
+    };
+
+    $quotationCode = $quotation->code ?? (($quotation->prefix ?? '') . ($quotation->number ?? ''));
+    $quotationDate = $quotation->created_at ?? $quotation->date ?? null;
+    $subtotal = $quotation->subtotal ?? 0;
+    $vatAmount = $quotation->vat_amount ?? $quotation->total_tax ?? 0;
+    $grandTotal = $quotation->grand_total ?? $quotation->total ?? 0;
+    $amountInWords = $quotation->amount_in_words ?? null;
+    $sellerSigned = filled($quotation->seller_signed_at ?? $quotation->admin_signed_at ?? null);
+    $customerSigned = filled($quotation->customer_signed_at ?? $quotation->signed_at ?? null);
+    $isPdf = $isPdf ?? true;
+    $sellerUser = ($quotation->admin_id ?? null) ? \App\Models\User::find($quotation->admin_id) : null;
+    $sellerSignerName = $quotation->seller_signer_name ?? $company->representative ?? $sellerUser?->name ?? '';
+    $sellerSignerPosition = $quotation->seller_signer_position ?? $sellerUser?->getRoleNames()?->first() ?? 'Người phụ trách';
+    $customerSignerName = $quotation->customer_signer_name ?? $customer->name ?? '';
+    $customerSignerPosition = $quotation->customer_signer_position ?? 'Khách hàng';
+    $companyDisplayName = \Illuminate\Support\Str::upper($company->name ?? '');
+    $sellerSignerName = 'Trần Anh Trung';
+    $sellerSignerPosition = 'Giám đốc công ty';
+    $customerCompany = trim((string) ($customer->company ?? ''));
+    $customerPerson = trim((string) (($customer->contact_person ?? null) ?: ($customer->name ?? '')));
+    $customerPosition = trim((string) (($customer->contact_position ?? null) ?: ($customer->position ?? null) ?: ($customer->job_title ?? null) ?: ($customer->title ?? null) ?: ''));
+    $customerDisplayName = $customerCompany !== '' ? $customerCompany : $customerPerson;
+    $companyTaxCode = filled($company->tax_code ?? null) ? $company->tax_code : 'Đang cập nhật';
+    $companyAddress = filled($company->address ?? null) ? $company->address : 'Đang cập nhật';
+    $logoSrc = null;
+
+    if (filled($company->logo_path ?? null) && is_file($company->logo_path)) {
+        $logoMime = mime_content_type($company->logo_path) ?: 'image/png';
+        $logoSrc = 'data:' . $logoMime . ';base64,' . base64_encode(file_get_contents($company->logo_path));
+    }
+
+    $companyWebsite = filled($company->website ?? null) ? preg_replace('#^https?://#i', '', rtrim($company->website, '/')) : '';
+@endphp
+
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    @if (! $isPdf)
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+    @endif
+    <title>Báo giá dịch vụ {{ $quotationCode }}</title>
+    <style>{!! file_get_contents(resource_path('css/pdf/quotation.css')) !!}</style>
+    @if (! $isPdf && ! $customerSigned)
+        <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    @endif
+</head>
+<body class="{{ $isPdf ? '' : 'screen-preview' }}">
+    <main class="sheet">
+        @if (! $isPdf && session('success'))
+            <div class="screen-alert">{{ session('success') }}</div>
+        @endif
+
+        <header class="topbar no-break">
+            <section class="company">
+                <div class="brand-row">
+                    @if ($logoSrc)
+                        <img class="logo-image" src="{{ $logoSrc }}" alt="{{ $companyDisplayName }}">
+                    @endif
+                    <div>
+                        <div class="company-name">{{ $companyDisplayName }}</div>
+                    </div>
+                </div>
+
+                @if (filled($company->tax_code ?? null))
+                    <div class="company-line">MST: {{ $company->tax_code }}</div>
+                @endif
+                @if (filled($company->address ?? null))
+                    <div class="company-line">{{ $company->address }}</div>
+                @endif
+                <div class="company-line">{{ $company->phone }} | {{ $company->email }}@if($companyWebsite) | {{ $companyWebsite }}@endif</div>
+            </section>
+
+            <section class="national">
+                <div class="national-title">Cộng hòa xã hội chủ nghĩa Việt Nam</div>
+                <div class="national-subtitle">Độc lập - Tự do - Hạnh phúc</div>
+                <div class="dash">----- ★ -----</div>
+                <div class="meta">Số: <strong>{{ $quotationCode }}</strong></div>
+                <div class="meta">Ngày lập: <strong>{{ $formatDate($quotationDate) }}</strong></div>
+            </section>
+        </header>
+
+        <section class="title-block no-break">
+            <h1>Báo Giá Dịch Vụ</h1>
+            <div class="accent-line"></div>
+        </section>
+
+        <p class="intro"><strong>Kính gửi:</strong> {{ $customerDisplayName }}</p>
+        <p class="intro small">{{ $companyDisplayName }} trân trọng gửi đến Quý khách hàng báo giá chi tiết như sau:</p>
+
+        <section class="section parties no-break">
+            <div class="section-label">I. Thông tin các bên</div>
+            <div class="party-grid">
+                <div class="party-box">
+                    <h2>Bên A: Đơn vị cung cấp</h2>
+                    <div class="info-row"><span>Tên đơn vị</span><b>:</b><div><strong>{{ $companyDisplayName }}</strong></div></div>
+                    <div class="info-row"><span>Người đại diện</span><b>:</b><div>{{ $sellerSignerName ?: 'Đang cập nhật' }}</div></div>
+                    <div class="info-row"><span>Chức danh</span><b>:</b><div>{{ $sellerSignerPosition ?: 'Đang cập nhật' }}</div></div>
+                    <div class="info-row"><span>Mã số thuế</span><b>:</b><div>{{ $companyTaxCode }}</div></div>
+                    <div class="info-row"><span>Địa chỉ</span><b>:</b><div>{{ $companyAddress }}</div></div>
+                    <div class="info-row"><span>Điện thoại</span><b>:</b><div>{{ $company->phone }}</div></div>
+                    <div class="info-row"><span>Email</span><b>:</b><div>{{ $company->email }}</div></div>
+                </div>
+
+                <div class="party-box light">
+                    <h2>Bên B: Khách hàng</h2>
+                    @if($customerCompany !== '')
+                        <div class="info-row"><span>Tên công ty</span><b>:</b><div><strong>{{ $customerCompany }}</strong></div></div>
+                        <div class="info-row"><span>Người đại diện</span><b>:</b><div>{{ $customerPerson ?: 'Đang cập nhật' }}</div></div>
+                        @if($customerPosition !== '')
+                            <div class="info-row"><span>Chức danh</span><b>:</b><div>{{ $customerPosition }}</div></div>
+                        @endif
+                    @else
+                        <div class="info-row"><span>Tên khách hàng</span><b>:</b><div><strong>{{ $customerPerson ?: 'Đang cập nhật' }}</strong></div></div>
+                    @endif
+                    <div class="info-row"><span>Điện thoại</span><b>:</b><div>{{ $customer->phone }}</div></div>
+                    <div class="info-row"><span>Email</span><b>:</b><div>{{ $customer->email }}</div></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section no-break">
+            <div class="section-label">II. Nội dung báo giá</div>
+            <table class="price-table">
+                <thead>
+                    <tr>
+                        <th style="width: 34px;">STT</th>
+                        <th>Nội dung dịch vụ</th>
+                        <th style="width: 64px;">ĐVT</th>
+                        <th style="width: 48px;">SL</th>
+                        <th style="width: 112px;">Đơn giá (VND)</th>
+                        <th style="width: 122px;">Thành tiền (VND)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($quotation->items as $index => $item)
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td>
+                                <strong>{!! $richText($item->description) !!}</strong>
+                                @if (filled($item->long_description ?? null))
+                                    <br>{!! $richText($item->long_description) !!}
+                                @endif
+                            </td>
+                            <td>{{ $item->unit }}</td>
+                            <td>{{ rtrim(rtrim(number_format((float) ($item->qty ?? 0), 2, ',', '.'), '0'), ',') }}</td>
+                            <td>{{ $money($item->rate ?? 0) }}</td>
+                            <td>{{ $money($item->amount ?? ((float) ($item->qty ?? 0) * (float) ($item->rate ?? 0))) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </section>
+
+        <section class="summary-grid no-break">
+            <div class="box total-box">
+                <table class="total-table">
+                    <tr><td>Tạm tính</td><td>{{ $money($subtotal) }}</td></tr>
+                    <tr><td>VAT / Thuế</td><td>{{ $money($vatAmount) }}</td></tr>
+                    <tr class="grand"><td>Tổng cộng</td><td>{{ $money($grandTotal) }}</td></tr>
+                </table>
+                @if (filled($amountInWords))
+                    <p class="words"><strong>Bằng chữ:</strong> {{ $amountInWords }}</p>
+                @endif
+            </div>
+
+            <div class="box terms">
+                <div class="box-title">III. Điều khoản</div>
+                <ul>
+                    <li>Giá trị báo giá có hiệu lực theo thời hạn thể hiện trên hệ thống hoặc theo thỏa thuận bằng văn bản.</li>
+                    <li>Nội dung triển khai sẽ được xác nhận lại trước khi ký hợp đồng hoặc bắt đầu thực hiện dịch vụ.</li>
+                    <li>Các thay đổi ngoài phạm vi báo giá sẽ được thống nhất và cập nhật bằng phụ lục hoặc báo giá bổ sung.</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="section sign-section">
+            <div class="section-label">V. Xác nhận & ký điện tử</div>
+            <div class="sign-grid">
+                <div class="sign-box">
+                    <div class="sign-party">Bên A</div>
+                    <div class="sign-sub">Đơn vị cung cấp dịch vụ</div>
+                    <div class="signature-line">
+                        <span class="esign {{ $sellerSigned ? 'signed' : 'pending' }}">{{ $sellerSigned ? 'Đã ký điện tử' : 'Chờ ký điện tử' }}</span>
+                        @if ($sellerSigned && filled($quotation->admin_signature ?? null))
+                            <img class="signature-thumb" src="{{ $quotation->admin_signature }}" alt="Chữ ký Bên A">
+                        @endif
+                    </div>
+                    <div class="signer">Họ tên: {{ $sellerSignerName ?: 'Đang cập nhật' }}</div>
+                    <div class="job-title">Chức danh: {{ $sellerSignerPosition ?: 'Đang cập nhật' }}</div>
+                    <div class="signature-id">Thời gian ký: {{ $formatDateTime($quotation->seller_signed_at ?? $quotation->admin_signed_at ?? null) }}</div>
+                    <div class="signature-id">Signature ID: {{ $quotation->seller_signature_id ?? $quotation->admin_signature_id ?? '' }}</div>
+                    <div class="signature-id">IP: {{ $quotation->seller_signed_ip ?? $quotation->admin_signed_ip ?? '' }}</div>
+                    <div class="signature-id user-agent">UserAgent: {{ $quotation->seller_signed_user_agent ?? $quotation->admin_signed_user_agent ?? '' }}</div>
+                </div>
+
+                <div class="sign-box">
+                    <div class="sign-party">Bên B</div>
+                    <div class="sign-sub">Khách hàng</div>
+                    <div class="signature-line">
+                        <span class="esign {{ $customerSigned ? 'signed' : 'pending' }}">{{ $customerSigned ? 'Đã ký điện tử' : 'Chờ ký điện tử' }}</span>
+                        @if ($customerSigned && filled($quotation->signature ?? null))
+                            <img class="signature-thumb" src="{{ $quotation->signature }}" alt="Chữ ký Bên B">
+                        @endif
+                    </div>
+                    <div class="signer">Họ tên: {{ $customerSignerName ?: 'Đang cập nhật' }}</div>
+                    @if($customerCompany !== '' && $customerPosition !== '')
+                        <div class="job-title">Chức danh: {{ $customerPosition }}</div>
+                    @endif
+                    <div class="signature-id">Thời gian ký: {{ $formatDateTime($quotation->customer_signed_at ?? $quotation->signed_at ?? null) }}</div>
+                    <div class="signature-id">Signature ID: {{ $quotation->customer_signature_id ?? $quotation->signature_id ?? '' }}</div>
+                    <div class="signature-id">IP: {{ $quotation->customer_signed_ip ?? $quotation->signed_ip ?? '' }}</div>
+                    <div class="signature-id user-agent">UserAgent: {{ $quotation->customer_signed_user_agent ?? $quotation->signed_user_agent ?? '' }}</div>
+
+                    @if (! $isPdf && ! $customerSigned)
+                        <form action="{{ route('client.quotation.sign', $quotation->hash) }}" method="POST" id="signature-form" class="signature-form">
+                            @csrf
+                            <div class="signature-pad-wrap">
+                                <canvas id="signature-pad"></canvas>
+                                <button type="button" id="clear-btn">Xóa chữ ký</button>
+                            </div>
+                            <input type="hidden" name="signature" id="signature-input" required>
+                            <button type="submit" class="signature-submit">Xác nhận & gửi chữ ký</button>
+                        </form>
+                    @endif
+                </div>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <div>{{ $company->name }} - {{ $company->email }} - {{ $company->phone }}</div>
+            <div>Báo giá {{ $quotationCode }}</div>
+        </footer>
+    </main>
+
+    @if (! $isPdf && ! $customerSigned)
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var canvas = document.getElementById('signature-pad');
+                var signaturePad;
+
+                function resizeCanvas() {
+                    var ratio = Math.max(window.devicePixelRatio || 1, 1);
+                    canvas.width = canvas.offsetWidth * ratio;
+                    canvas.height = canvas.offsetHeight * ratio;
+                    canvas.getContext('2d').scale(ratio, ratio);
+                    if (signaturePad) {
+                        signaturePad.clear();
+                    }
+                }
+
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+
+                signaturePad = new SignaturePad(canvas, {
+                    backgroundColor: 'rgb(255, 255, 255)',
+                    penColor: 'rgb(17, 24, 39)'
+                });
+
+                document.getElementById('clear-btn').addEventListener('click', function () {
+                    signaturePad.clear();
+                });
+
+                document.getElementById('signature-form').addEventListener('submit', function (event) {
+                    if (signaturePad.isEmpty()) {
+                        event.preventDefault();
+                        alert('Vui lòng ký tên trước khi xác nhận.');
+                        return;
+                    }
+
+                    if (!confirm('Bạn chắc chắn muốn xác nhận chữ ký này?')) {
+                        event.preventDefault();
+                        return;
+                    }
+
+                    document.getElementById('signature-input').value = signaturePad.toDataURL('image/png');
+                });
+            });
+        </script>
+    @endif
+</body>
+</html>

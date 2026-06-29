@@ -1,0 +1,8 @@
+<svg width="156" height="40" viewBox="0 0 156 40" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ong Vàng">
+  <rect x="2" y="7" width="26" height="26" rx="8" fill="#FFF7ED"/>
+  <path d="M15 11.5L24 16.75V27.25L15 32.5L6 27.25V16.75L15 11.5Z" fill="#F97316"/>
+  <path d="M15 14.75L21.2 18.35V25.55L15 29.15L8.8 25.55V18.35L15 14.75Z" fill="#FBBF24"/>
+  <text x="36" y="26" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="800" letter-spacing="0">
+    <tspan fill="#111827">Ong</tspan><tspan fill="#F97316">Vàng</tspan>
+  </text>
+</svg>
