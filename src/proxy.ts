@@ -17,10 +17,13 @@ export async function proxy(request: NextRequest) {
   const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
 
   if (isProtected) {
+    const authBaseURL = process.env.INTERNAL_AUTH_URL
+      ?? (process.env.NODE_ENV === "production" ? "http://127.0.0.1:3000" : request.nextUrl.origin);
+
     const { data: session } = await betterFetch<SessionWithRole>(
       "/api/auth/get-session",
       {
-        baseURL: request.nextUrl.origin,
+        baseURL: authBaseURL,
         headers: {
           cookie: request.headers.get("cookie") || "",
         },
