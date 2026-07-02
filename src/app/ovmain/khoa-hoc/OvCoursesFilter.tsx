@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { BookOpen, Clock3, Users } from "lucide-react";
 
@@ -10,13 +9,6 @@ type Course = {
   slug: string; price: number; currency: string; level: string; duration?: number | null; tags: string[];
   instructor: string; instructorImage?: string | null; students: number;
 };
-
-const levels = [
-  { key: "all", label: "Tất cả" },
-  { key: "beginner", label: "Cơ bản" },
-  { key: "intermediate", label: "Trung cấp" },
-  { key: "advanced", label: "Nâng cao" },
-];
 
 const levelColors: Record<string, string> = {
   beginner: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
@@ -32,6 +24,14 @@ const instructorAvatars = [
   "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=160&q=80",
 ];
 
+const fallbackThumbnails = [
+  "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=900&q=85",
+  "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=900&q=85",
+  "https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=900&q=85",
+  "https://images.unsplash.com/photo-1556761175-4b46a572b786?auto=format&fit=crop&w=900&q=85",
+  "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=900&q=85",
+];
+
 function courseTitle(title: string) {
   return title
     .replace(/^OVC LMS:\s*/i, "")
@@ -45,54 +45,24 @@ function courseTitle(title: string) {
 }
 
 export function OvCoursesFilter({ courses }: { courses: Course[] }) {
-  const [active, setActive] = useState("all");
-
-  const filtered = active === "all" ? courses : courses.filter((c) => c.level === active);
-
   return (
     <>
-      {/* Filter tabs */}
-      <div className="mb-8 flex flex-wrap gap-2">
-        {levels.map((l) => {
-          const count = l.key === "all" ? courses.length : courses.filter((c) => c.level === l.key).length;
-          const isActive = active === l.key;
-          return (
-            <button
-              key={l.key}
-              onClick={() => setActive(l.key)}
-              className={`relative rounded-full px-5 py-2.5 text-sm font-semibold transition-all ${isActive ? "text-white" : "text-slate-500 hover:text-slate-800"}`}
-            >
-              {isActive && (
-                <motion.span
-                  layoutId="ov-filter-pill"
-                  className="absolute inset-0 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 shadow-lg shadow-orange-200"
-                  transition={{ type: "spring", bounce: 0.25, duration: 0.45 }}
-                />
-              )}
-              <span className="relative z-10">{l.label} <span className={`ml-1 text-xs ${isActive ? "text-white/70" : "text-slate-400"}`}>({count})</span></span>
-            </button>
-          );
-        })}
-      </div>
-
       {/* Grid */}
-      <AnimatePresence mode="popLayout">
-        {filtered.length > 0 ? (
+        {courses.length > 0 ? (
           <motion.div
-            key={active}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
             className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
           >
-            {filtered.map((course, i) => {
+            {courses.map((course, i) => {
               const price = Number(course.price);
               const fp = price > 0 ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: course.currency, maximumFractionDigits: 0 }).format(price) : "Miễn phí";
               const dur = course.duration ? (course.duration >= 60 ? `${Math.floor(course.duration / 60)}h` : `${course.duration}m`) : null;
               const lessons = Math.max(6, course.tags.length * 2 || 8);
               const students = course.students || [128, 96, 84, 72][i % 4];
               const avatar = course.instructorImage || instructorAvatars[i % instructorAvatars.length];
+              const thumbnail = course.thumbnail || fallbackThumbnails[i % fallbackThumbnails.length];
               return (
                 <motion.div
                   key={course.id}
@@ -102,12 +72,8 @@ export function OvCoursesFilter({ courses }: { courses: Course[] }) {
                   className="group flex flex-col overflow-hidden rounded-2xl border border-orange-100 bg-white shadow-sm transition-all hover:border-orange-200 hover:shadow-md"
                 >
                   <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-amber-100 to-orange-50">
-                    {course.thumbnail ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={course.thumbnail} alt={course.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-5xl">🎓</div>
-                    )}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={thumbnail} alt={course.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-700" />
                     <span className={`absolute left-3 top-3 rounded-full px-3 py-1 text-[11px] font-normal ${levelColors[course.level] ?? levelColors.beginner}`}>
                       {levelLabels[course.level] ?? course.level}
                     </span>
@@ -145,7 +111,6 @@ export function OvCoursesFilter({ courses }: { courses: Course[] }) {
             <p className="text-slate-500">Chưa có khóa học ở cấp độ này.</p>
           </motion.div>
         )}
-      </AnimatePresence>
     </>
   );
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getOrganization, getCourses } from "../actions";
 import { OvReveal } from "../_components/OvReveal";
+import { OvHorizontalCarousel } from "../_components/OvHorizontalCarousel";
 import { OvCoursesFilter } from "./OvCoursesFilter";
 
 export const metadata: Metadata = {
@@ -41,7 +42,7 @@ export default async function OvKhoaHocPage() {
     <>
       {/* Hero */}
       <section className="relative overflow-hidden bg-[#EEF2FF] pt-40 pb-20">
-        <div className="pointer-events-none absolute -top-4 inset-x-0 flex justify-center overflow-hidden select-none" aria-hidden="true">
+        <div className="pointer-events-none absolute -top-4 inset-x-0 hidden justify-center overflow-hidden select-none md:flex" aria-hidden="true">
           <span
             className="whitespace-nowrap text-[20vw] font-black uppercase leading-none"
             style={{ fontFamily: "'Bebas Neue', sans-serif", color: "transparent", WebkitTextStroke: "2px rgba(99,102,241,0.07)" }}
@@ -56,7 +57,7 @@ export default async function OvKhoaHocPage() {
             </div>
           </OvReveal>
           <OvReveal delay={0.1}>
-            <h1 className="max-w-3xl text-5xl font-black tracking-tight text-slate-900 sm:text-6xl lg:text-8xl">
+            <h1 className="ovmain-page-title max-w-3xl tracking-tight text-slate-900">
             Học thông minh.<br />
             Ứng dụng hiệu quả.<br />
             <span className="bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">Tăng trưởng bền vững.</span>
@@ -71,9 +72,9 @@ export default async function OvKhoaHocPage() {
       </section>
 
       {/* Benefits strip */}
-      <section className="border-y border-slate-200/60 bg-white py-5">
+      <section className="border-y border-slate-200/60 bg-white py-4">
         <div className="mx-auto max-w-7xl px-6">
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:gap-x-8 sm:gap-y-3">
             {[
               { icon: "🎥", label: "Video HD không giới hạn" },
               { icon: "📱", label: "Học mọi thiết bị" },
@@ -81,9 +82,9 @@ export default async function OvKhoaHocPage() {
               { icon: "🎓", label: "Chứng chỉ hoàn thành" },
               { icon: "💬", label: "Hỗ trợ từ chuyên gia" },
             ].map((item) => (
-              <div key={item.label} className="flex items-center gap-2">
-                <span>{item.icon}</span>
-                <span className="text-sm font-normal text-slate-500">{item.label}</span>
+              <div key={item.label} className="flex min-h-10 items-center justify-center gap-2 rounded-full bg-slate-50 px-3 text-center ring-1 ring-slate-100 sm:min-h-0 sm:justify-start sm:bg-transparent sm:px-0 sm:ring-0">
+                <span className="text-sm">{item.icon}</span>
+                <span className="text-xs font-medium leading-tight text-slate-500 sm:text-sm sm:font-normal">{item.label}</span>
               </div>
             ))}
           </div>
@@ -113,7 +114,7 @@ export default async function OvKhoaHocPage() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <OvReveal>
-              <h2 className="text-3xl font-black text-slate-900 sm:text-4xl">
+              <h2 className="ovmain-section-title text-slate-900">
                 Học để làm thật.<br />Không học cho có.
               </h2>
             </OvReveal>
@@ -121,13 +122,13 @@ export default async function OvKhoaHocPage() {
               <p className="text-sm text-slate-400 font-normal">Cảm nhận từ học viên</p>
             </OvReveal>
           </div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <OvHorizontalCarousel>
             {[
               { name: "Nguyễn Thị Lan", role: "Quản lý marketing", text: "Khóa học thực tế, áp dụng ngay vào công việc. Giảng viên hỗ trợ rõ và dễ hiểu.", avatar: "NL", rating: 4.9 },
               { name: "Trần Văn Minh", role: "Chủ doanh nghiệp", text: "Sau khóa học, đội ngũ của tôi tự tin hơn khi triển khai chiến dịch và đọc báo cáo.", avatar: "TM", rating: 4.8 },
               { name: "Phạm Thu Hà", role: "Nhà sáng lập", text: "Nội dung cập nhật, không lý thuyết suông. Học xong có thể bắt tay làm ngay.", avatar: "PH", rating: 5.0 },
             ].map((item, i) => (
-              <OvReveal key={item.name} delay={i * 0.1}>
+              <OvReveal key={item.name} delay={i * 0.1} className="w-[82vw] max-w-[360px] shrink-0 snap-start sm:w-[calc((100%_-_40px)/3)] sm:max-w-none">
                 <div className="rounded-2xl border border-slate-100 bg-[#EEF2FF] p-6 hover:border-orange-100 transition-colors h-full flex flex-col">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-600 text-xs font-bold text-white">
@@ -143,13 +144,13 @@ export default async function OvKhoaHocPage() {
                 </div>
               </OvReveal>
             ))}
-          </div>
+          </OvHorizontalCarousel>
         </div>
       </section>
 
       {/* CTA */}
       <section className="bg-white py-20 text-center">
-        <OvReveal><h2 className="text-4xl font-black text-slate-900">Chưa biết chọn khóa nào?</h2></OvReveal>
+        <OvReveal><h2 className="ovmain-section-title text-slate-900">Chưa biết chọn khóa nào?</h2></OvReveal>
         <OvReveal delay={0.1}><p className="mt-3 text-slate-500">Để lại thông tin — chuyên gia sẽ tư vấn lộ trình phù hợp nhất.</p></OvReveal>
         <OvReveal delay={0.2}>
           <Link href="/ovmain/lien-he" className="mt-8 inline-flex rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-4 font-bold text-white shadow-xl shadow-orange-200 transition-all hover:scale-105">

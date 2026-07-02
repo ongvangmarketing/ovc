@@ -320,7 +320,7 @@ export default async function OvMainPage() {
 
             {/* Avatar row */}
             <OvReveal delay={0.48}>
-              <div className="mt-8 flex items-center gap-4">
+              <div className="mt-10 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:gap-4">
                 <div className="flex -space-x-2">
                   {["NL","TM","PH","BT","VA"].map((init, i) => (
                     <div key={i} className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white text-xs font-bold text-white shadow-sm"
@@ -329,7 +329,7 @@ export default async function OvMainPage() {
                     </div>
                   ))}
                 </div>
-                <div className="text-sm">
+                <div className="text-sm leading-relaxed">
                   <p className="font-bold text-slate-900">Đồng hành cùng doanh nghiệp Việt</p>
                   <p className="text-slate-500">sáng tạo, tận tâm và bền vững</p>
                 </div>
@@ -341,12 +341,18 @@ export default async function OvMainPage() {
 
       {/* ═══════════════════ TRUSTED BY / PLATFORM STRIP ════════════ */}
       <section className="border-y border-slate-200/60 bg-white py-5">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="flex flex-wrap items-center gap-x-10 gap-y-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 shrink-0">Hệ sinh thái Ong Vàng</p>
-            {["Branding","Marketing","Training","Traveling","Chuyển đổi số"].map((p) => (
-              <span key={p} className="cursor-default bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-base font-black uppercase text-transparent transition-opacity hover:opacity-70">{p}</span>
-            ))}
+        <div className="mb-3 px-6 text-center">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Hệ sinh thái Ong Vàng</p>
+        </div>
+        <div className="overflow-hidden">
+          <div className="marquee-track flex w-max gap-8 whitespace-nowrap">
+            {[...Array(4)].map((_, round) =>
+              ["Branding", "Marketing", "Training", "Traveling", "Chuyển đổi số"].map((p) => (
+                <span key={`${round}-${p}`} className="cursor-default bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-base font-black uppercase text-transparent transition-opacity hover:opacity-70">
+                  {p}
+                </span>
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -374,7 +380,7 @@ export default async function OvMainPage() {
 
       {/* ═══════════════════ COMPANY INTRO ══════════════════════════ */}
       <section id="about" className="ovmain-values-section relative scroll-mt-32 overflow-hidden py-20">
-        <div className="pointer-events-none absolute inset-x-0 top-2 flex justify-center overflow-hidden select-none" aria-hidden="true">
+        <div className="pointer-events-none absolute inset-x-0 top-2 hidden justify-center overflow-hidden select-none md:flex" aria-hidden="true">
           <span className="ovmain-solutions-ghost whitespace-nowrap text-[20vw] font-black uppercase leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
             ABOUT
           </span>
@@ -502,7 +508,7 @@ export default async function OvMainPage() {
 
       {/* ═══════════════════ PROJECTS FROM ONG VANG NEW ════════════ */}
       <section id="projects" className="relative scroll-mt-32 overflow-hidden bg-[#f8f6f2] py-24">
-        <div className="pointer-events-none absolute inset-x-0 top-2 flex justify-center overflow-hidden select-none" aria-hidden="true">
+        <div className="pointer-events-none absolute inset-x-0 top-2 hidden justify-center overflow-hidden select-none md:flex" aria-hidden="true">
           <span className="ovmain-solutions-ghost whitespace-nowrap text-[20vw] font-black uppercase leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
             PROJECT
           </span>
@@ -512,7 +518,7 @@ export default async function OvMainPage() {
             <div>
               <OvReveal><p className="mb-2 text-sm font-bold uppercase tracking-widest text-orange-500">Dự án tiêu biểu</p></OvReveal>
               <OvReveal delay={0.1}>
-                <h2 className="font-black text-slate-900">Giá trị khách hàng.<br /><span className="text-orange-500">Cam kết với uy tín.</span></h2>
+                <h2 className="ovmain-section-title font-black text-slate-900">Giá trị khách hàng.<br /><span className="text-orange-500">Cam kết với uy tín.</span></h2>
               </OvReveal>
             </div>
             <OvReveal direction="left">
@@ -532,7 +538,7 @@ export default async function OvMainPage() {
       </section>
 
       {/* ═══════════════════ MARQUEE ═════════════════════════════════ */}
-      <div className="overflow-hidden border-y border-slate-100 bg-[#EEF2FF] py-5">
+      <div className="hidden overflow-hidden border-y border-slate-100 bg-[#EEF2FF] py-5 md:block">
         <div className="marquee-track ovmain-topic-track flex gap-10 whitespace-nowrap">
           {[...Array(3)].map((_, ri) =>
             ["Quảng cáo Facebook","Quảng cáo Google","SEO & Nội dung","Quảng cáo TikTok","Tiếp thị Email","Đào tạo thực chiến","Zalo OA","CRM & Tự động hóa"].map((item) => (
@@ -547,7 +553,7 @@ export default async function OvMainPage() {
       {/* ═══════════════════ COURSES FROM DB ════════════════════════ */}
       {courses.length > 0 && (
         <section id="training" className="relative scroll-mt-32 overflow-hidden bg-[#f8f6f2] py-24">
-          <div className="pointer-events-none absolute inset-x-0 top-2 flex justify-center overflow-hidden select-none" aria-hidden="true">
+          <div className="pointer-events-none absolute inset-x-0 top-2 hidden justify-center overflow-hidden select-none md:flex" aria-hidden="true">
             <span className="ovmain-solutions-ghost ovmain-training-ghost whitespace-nowrap text-[18vw] font-black uppercase leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
               TRAINING
             </span>
@@ -556,7 +562,7 @@ export default async function OvMainPage() {
             <div className="mb-12 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <OvReveal><p className="mb-2 text-sm font-bold uppercase tracking-widest text-orange-500">Khóa học nổi bật</p></OvReveal>
-                <OvReveal delay={0.1}><h2 className="text-5xl font-black tracking-tight text-slate-900 sm:text-6xl lg:text-7xl">Học thông minh.<br />Ứng dụng hiệu quả.</h2></OvReveal>
+                <OvReveal delay={0.1}><h2 className="ovmain-section-title font-black tracking-tight text-slate-900">Học thông minh.<br />Ứng dụng hiệu quả.</h2></OvReveal>
               </div>
               <OvReveal direction="left">
                 <Link href="/ovmain/khoa-hoc" className="inline-flex items-center gap-2 rounded-full border border-orange-200 px-5 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-50 transition-all">
@@ -570,11 +576,52 @@ export default async function OvMainPage() {
                 <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-500">Lịch khai giảng</p>
-                    <h3 className="mt-1 text-2xl font-black text-slate-950">Các lớp mở trong {scheduleMonthLabel}</h3>
+                    <h3 className="mt-1 text-[28px] font-semibold leading-tight text-slate-950 sm:text-3xl md:font-black">Các lớp mở trong {scheduleMonthLabel}</h3>
                   </div>
                   <Link href="/ovmain/lien-he" className="text-sm font-bold text-orange-600 hover:text-orange-500">Giữ chỗ tư vấn →</Link>
                 </div>
-                <div className="overflow-hidden rounded-lg border border-orange-100 bg-white">
+                <div className="grid gap-3 md:hidden">
+                  {scheduleRows.map((item) => (
+                    <article key={`${item.title}-${item.schedule}-mobile`} className="rounded-2xl border border-orange-100 bg-white p-4 shadow-sm">
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl bg-orange-50 text-orange-600">
+                          <span className="text-[10px] font-black uppercase leading-none">{item.weekday}</span>
+                          <span className="mt-1 text-base font-black leading-none">{item.day}/{item.month}</span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-lg font-medium leading-snug text-slate-950">{item.title}</h4>
+                          <div className="mt-3 flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-600">
+                            {item.instructorImage ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={item.instructorImage} alt={item.instructor} className="h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-orange-100" />
+                            ) : (
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-50 text-[10px] font-black text-orange-600">{item.instructor.slice(0, 2).toUpperCase()}</span>
+                            )}
+                            <span className="min-w-0 truncate">{item.instructor}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-orange-50 pt-4 text-sm">
+                        <div>
+                          <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Ngày học</span>
+                          <strong className="mt-1 block text-orange-600">{item.schedule}</strong>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Thời gian</span>
+                          <strong className="mt-1 block text-slate-700">{item.time}</strong>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Học phí</span>
+                          <strong className="mt-1 block text-slate-950">{item.fee}</strong>
+                        </div>
+                        <Link href="/ovmain/lien-he" className="flex h-10 items-center justify-center self-end rounded-full bg-orange-50 px-4 text-sm font-black text-orange-600 ring-1 ring-orange-100 transition hover:bg-gradient-to-r hover:from-amber-500 hover:to-orange-600 hover:text-white" aria-label={`Đăng ký ${item.title}`}>
+                          Đăng ký →
+                        </Link>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+                <div className="hidden overflow-hidden rounded-lg border border-orange-100 bg-white md:block">
                   {scheduleRows.map((item) => (
                     <div key={`${item.title}-${item.schedule}`} className="grid gap-4 border-b border-orange-50 px-4 py-3 text-sm transition last:border-b-0 hover:bg-orange-50/45 md:grid-cols-[74px_minmax(0,1.55fr)_minmax(0,1.3fr)_120px_112px_120px_40px] md:items-center">
                       <div className="rounded-lg bg-orange-50 px-3 py-2 text-center text-orange-600">
@@ -612,7 +659,7 @@ export default async function OvMainPage() {
           <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <OvReveal><p className="mb-2 text-sm font-bold uppercase tracking-widest text-orange-500">Khách hàng nói gì</p></OvReveal>
-              <OvReveal delay={0.1}><h2 className="text-5xl font-black text-slate-900 sm:text-6xl lg:text-7xl">Lời cảm ơn là một lời động viên<br />dành cho chúng mình.</h2></OvReveal>
+              <OvReveal delay={0.1}><h2 className="ovmain-section-title text-slate-900">Lời cảm ơn là một lời động viên<br />dành cho chúng mình.</h2></OvReveal>
             </div>
             <OvReveal direction="left">
               <div className="flex items-center gap-1 text-sm font-semibold text-slate-500">
@@ -620,13 +667,13 @@ export default async function OvMainPage() {
               </div>
             </OvReveal>
           </div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <OvHorizontalCarousel>
             {[
               { name: "Nguyễn Thị Lan", role: "Quản lý Marketing", text: "Chiến dịch quảng cáo Facebook giúp chúng tôi tăng 3 lần doanh thu trong 2 tháng. Báo cáo rõ ràng, đội ngũ cực kỳ chuyên nghiệp.", avatar: "NL", stars: 5 },
               { name: "Trần Văn Minh", role: "Giám đốc doanh nghiệp", text: "Đã làm với nhiều đơn vị nhưng Ong Vàng là đội thực sự hiểu hoạt động kinh doanh và tạo ra kết quả đo lường được.", avatar: "TM", stars: 5 },
               { name: "Phạm Thu Hà", role: "Nhà sáng lập", text: "Khóa học thực chiến, áp dụng được ngay. Sau khóa tôi có thể tự chạy quảng cáo và tiết kiệm đáng kể chi phí thuê ngoài.", avatar: "PH", stars: 5 },
             ].map((item, i) => (
-              <OvReveal key={item.name} delay={i * 0.1}>
+              <OvReveal key={item.name} delay={i * 0.1} className="w-[82vw] max-w-[360px] shrink-0 snap-start sm:w-[calc((100%_-_40px)/3)] sm:max-w-none">
                 <div className="rounded-2xl border border-slate-100 bg-[#EEF2FF] p-6 hover:border-orange-100 transition-colors h-full flex flex-col">
                   <div className="mb-3 text-amber-400 text-sm">{"★".repeat(item.stars)}</div>
                   <p className="flex-1 text-sm text-slate-600 leading-relaxed italic mb-5">&ldquo;{item.text}&rdquo;</p>
@@ -642,17 +689,17 @@ export default async function OvMainPage() {
                 </div>
               </OvReveal>
             ))}
-          </div>
+          </OvHorizontalCarousel>
         </div>
       </section>
 
       {/* ═══════════════════ CTA BANNER ══════════════════════════════ */}
       <section className="relative overflow-hidden bg-[#171717] py-20">
         <div className="relative z-10 mx-auto max-w-7xl px-6">
-          <div className="flex flex-col items-center justify-between gap-8 lg:flex-row">
-            <div>
+          <div className="flex flex-col items-center justify-between gap-8 text-center lg:flex-row">
+            <div className="mx-auto max-w-4xl lg:mx-0">
               <OvReveal>
-                <h2 className="text-5xl font-black text-white sm:text-6xl lg:text-8xl">
+                <h2 className="ovmain-section-title text-white">
                   Khởi động nhanh. Tăng trưởng thông minh.<br />
                   <span className="bg-gradient-to-r from-amber-400 to-orange-500 bg-clip-text text-transparent">Hệ sinh thái giải pháp toàn diện.</span>
                 </h2>

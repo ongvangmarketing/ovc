@@ -100,7 +100,7 @@ export default async function OvCourseDetailPage({ params }: { params: Promise<{
             <Link href="/ovmain/khoa-hoc" className="mb-8 inline-flex items-center gap-2 text-sm font-normal text-orange-600 hover:text-orange-500"><ArrowLeft className="h-4 w-4" /> Khóa học</Link>
             <OvReveal>
               <p className="mb-3 text-sm font-normal uppercase tracking-widest text-orange-500">{levelLabels[course.level] ?? course.level}</p>
-              <h1 className="max-w-4xl text-5xl font-normal tracking-[0] text-slate-950 sm:text-6xl">{courseTitle(course.title)}</h1>
+              <h1 className="ovmain-page-title max-w-4xl tracking-[0] text-slate-950">{courseTitle(course.title)}</h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">{course.description || "Khóa học thực chiến giúp học viên áp dụng ngay vào công việc và đo lường kết quả rõ ràng."}</p>
             </OvReveal>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">

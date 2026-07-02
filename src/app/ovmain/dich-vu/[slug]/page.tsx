@@ -98,14 +98,14 @@ export default async function OvServiceDetailPage({ params }: { params: Promise<
   return (
     <>
       <section className="relative overflow-hidden bg-[#f8f6f2] pt-40 pb-20">
-        <div className="pointer-events-none absolute inset-x-0 top-2 flex justify-center overflow-hidden select-none" aria-hidden>
+        <div className="pointer-events-none absolute inset-x-0 top-2 hidden justify-center overflow-hidden select-none md:flex" aria-hidden>
           <span className="ovmain-solutions-ghost whitespace-nowrap text-[18vw] font-normal uppercase leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>DICH VU</span>
         </div>
         <div className="relative z-10 mx-auto max-w-7xl px-6">
           <Link href="/ovmain/dich-vu" className="mb-8 inline-flex items-center gap-2 text-sm font-normal text-orange-600 hover:text-orange-500"><ArrowLeft className="h-4 w-4" /> Dịch vụ</Link>
           <OvReveal>
             <p className="mb-3 text-sm font-normal uppercase tracking-widest text-orange-500">{service.category?.name || "Giải pháp Ong Vàng"}</p>
-            <h1 className="max-w-4xl text-5xl font-normal tracking-[0] text-slate-950 sm:text-6xl">{toVietnameseLabel(service.name)}</h1>
+            <h1 className="ovmain-page-title max-w-4xl tracking-[0] text-slate-950">{toVietnameseLabel(service.name)}</h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">{service.description || "Giải pháp được thiết kế để giúp doanh nghiệp triển khai nhanh, đo lường rõ và tối ưu theo mục tiêu kinh doanh."}</p>
           </OvReveal>
         </div>
@@ -120,7 +120,7 @@ export default async function OvServiceDetailPage({ params }: { params: Promise<
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="text-xs font-normal uppercase tracking-[0.16em] text-orange-500">Gói {index + 1}</p>
-                      <h2 className="mt-2 text-2xl font-normal text-slate-950">{toVietnameseLabel(option.name)}</h2>
+                      <h2 className="ovmain-card-title mt-2 text-slate-950">{toVietnameseLabel(option.name)}</h2>
                       {option.description ? <p className="mt-2 text-sm leading-6 text-slate-500">{option.description}</p> : null}
                     </div>
                     <div className="shrink-0 text-left sm:text-right">
@@ -140,7 +140,7 @@ export default async function OvServiceDetailPage({ params }: { params: Promise<
           </div>
           <aside className="h-fit rounded-2xl bg-[#f8f6f2] p-6 shadow-sm">
             <Sparkles className="h-8 w-8 text-orange-500" />
-            <h2 className="mt-4 text-2xl font-normal text-slate-950">Cần tư vấn gói phù hợp?</h2>
+            <h2 className="ovmain-card-title mt-4 text-slate-950">Cần tư vấn gói phù hợp?</h2>
             <p className="mt-3 text-sm leading-6 text-slate-500">Đội ngũ Ong Vàng sẽ rà soát mục tiêu, ngân sách và kênh triển khai để đề xuất lộ trình phù hợp.</p>
             <Link href="/ovmain/lien-he" className="mt-6 inline-flex w-full justify-center rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-3 text-sm font-normal uppercase text-white shadow-lg shadow-orange-200">Tư vấn miễn phí</Link>
           </aside>

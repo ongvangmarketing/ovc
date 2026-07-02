@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LogIn } from "lucide-react";
+import { LogIn, UserRound } from "lucide-react";
 import { OvLoginModal } from "./OvLoginModal";
 
 const navLinks = [
@@ -100,6 +100,14 @@ export function OvNavigation({ logoUrl, orgName = "Ong Vàng" }: OvNavigationPro
               <button type="button" onClick={() => setLoginOpen(true)} className="hidden h-11 items-center gap-2 rounded-full border border-orange-200 bg-white px-4 text-sm font-bold uppercase text-slate-700 transition hover:border-orange-400 hover:text-orange-600 md:inline-flex">
                 <LogIn className="h-4 w-4" />Đăng nhập
               </button>
+              <button
+                type="button"
+                onClick={() => setLoginOpen(true)}
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50 text-orange-600 ring-1 ring-orange-100 transition hover:bg-orange-100 md:hidden"
+                aria-label="Đăng nhập"
+              >
+                <UserRound className="h-5 w-5" />
+              </button>
               <Link
                 href="/ovmain/lien-he"
                 className="hidden h-11 md:inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-6 text-sm font-bold uppercase text-white shadow-md shadow-orange-200/60 transition-all hover:scale-105 hover:shadow-orange-300 active:scale-95"
@@ -149,16 +157,6 @@ export function OvNavigation({ logoUrl, orgName = "Ong Vàng" }: OvNavigationPro
                   </Link>
                 );
               })}
-              <button type="button" onClick={() => { setMenuOpen(false); setLoginOpen(true); }} className="flex items-center gap-2 rounded-xl px-4 py-3 text-left text-sm font-bold uppercase text-slate-600 hover:bg-orange-50 hover:text-orange-600">
-                <LogIn className="h-4 w-4" />Đăng nhập
-              </button>
-              <Link
-                href="/ovmain/lien-he"
-                onClick={() => setMenuOpen(false)}
-                className="mt-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-3 text-center text-sm font-bold uppercase text-white"
-              >
-                Tư vấn miễn phí
-              </Link>
             </nav>
           </motion.div>
         )}

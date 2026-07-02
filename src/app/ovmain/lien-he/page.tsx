@@ -24,7 +24,7 @@ export default async function OvLienHePage() {
   return (
     <>
       <section className="relative overflow-hidden bg-[#f8f6f2] pt-40 pb-20">
-        <div className="pointer-events-none absolute inset-x-0 top-10 flex justify-center overflow-hidden select-none" aria-hidden="true">
+        <div className="pointer-events-none absolute inset-x-0 top-10 hidden justify-center overflow-hidden select-none md:flex" aria-hidden="true">
           <span className="ovmain-solutions-ghost ovmain-contact-ghost whitespace-nowrap text-[18vw] font-black uppercase leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>
             CONTACT
           </span>
@@ -32,7 +32,7 @@ export default async function OvLienHePage() {
         <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-[0.9fr_1.1fr]">
           <OvReveal>
             <p className="mb-3 text-sm font-bold uppercase tracking-widest text-orange-500">Liên hệ Ong Vàng</p>
-            <h1 className="max-w-4xl text-5xl font-black tracking-[0] text-slate-950 sm:text-6xl">
+            <h1 className="ovmain-page-title max-w-4xl tracking-[0] text-slate-950">
               Cùng bắt đầu một kế hoạch tăng trưởng rõ ràng.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
@@ -53,10 +53,10 @@ export default async function OvLienHePage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950/55 via-slate-950/10 to-transparent" />
               </div>
-              <div className="absolute left-8 top-8 rounded-full bg-white/92 px-4 py-2 text-xs font-bold uppercase text-slate-800 shadow-lg backdrop-blur">
+              <div className="absolute left-8 top-8 hidden rounded-full bg-white/92 px-4 py-2 text-xs font-bold uppercase text-slate-800 shadow-lg backdrop-blur sm:block">
                 Tư vấn trong 24h
               </div>
-              <div className="absolute bottom-8 left-8 right-8 rounded-2xl bg-white/92 p-5 shadow-xl backdrop-blur">
+              <div className="absolute bottom-8 left-8 right-8 hidden rounded-2xl bg-white/92 p-5 shadow-xl backdrop-blur sm:block">
                 <p className="text-sm font-bold uppercase text-orange-500">Ong Vàng Support</p>
                 <p className="mt-1 text-lg font-semibold text-slate-950">Lắng nghe nhu cầu, đề xuất đúng giải pháp.</p>
               </div>
@@ -129,7 +129,7 @@ export default async function OvLienHePage() {
 
             <OvReveal className="lg:col-span-3" direction="left">
               <div className="rounded-3xl border border-orange-100 bg-white p-8 shadow-xl shadow-orange-100/40 lg:p-10">
-                <h2 className="mb-1 text-2xl font-black text-slate-900">Gửi yêu cầu tư vấn</h2>
+                <h2 className="ovmain-card-title mb-1 text-slate-900">Gửi yêu cầu tư vấn</h2>
                 <p className="mb-7 text-sm text-slate-400">Thông tin được bảo mật. Ong Vàng sẽ phản hồi trong 24 giờ.</p>
                 {org ? (
                   <OvContactForm organizationId={org.id} />
@@ -153,7 +153,7 @@ export default async function OvLienHePage() {
               <OvReveal key={item.title} delay={i * 0.1}>
                 <div className="text-center p-6">
                   <item.Icon className="mx-auto mb-3 h-8 w-8 text-orange-500" />
-                  <h3 className="mb-2 font-bold text-slate-900">{item.title}</h3>
+                  <h3 className="mb-2 text-2xl font-medium leading-tight text-slate-900 md:text-3xl">{item.title}</h3>
                   <p className="text-sm text-slate-500 leading-relaxed">{item.desc}</p>
                 </div>
               </OvReveal>

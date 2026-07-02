@@ -19,13 +19,13 @@ export default function OvProjectsPage() {
   return (
     <>
       <section className="relative overflow-hidden bg-[#f8f6f2] pt-40 pb-20">
-        <div className="pointer-events-none absolute inset-x-0 top-10 flex justify-center overflow-hidden select-none" aria-hidden>
+        <div className="pointer-events-none absolute inset-x-0 top-10 hidden justify-center overflow-hidden select-none md:flex" aria-hidden>
           <span className="ovmain-solutions-ghost whitespace-nowrap text-[18vw] font-black uppercase leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>PROJECT</span>
         </div>
         <div className="relative z-10 mx-auto max-w-7xl px-6">
           <OvReveal>
             <p className="mb-3 text-sm font-bold uppercase tracking-widest text-orange-500">Dự án tiêu biểu</p>
-            <h1 className="max-w-4xl text-5xl font-black tracking-[0] text-slate-950 sm:text-6xl">
+            <h1 className="ovmain-page-title max-w-4xl tracking-[0] text-slate-950">
               Giá trị khách hàng.<br /><span className="text-orange-500">Cam kết với uy tín.</span>
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">
@@ -46,11 +46,11 @@ export default function OvProjectsPage() {
               </p>
             </div>
           </OvReveal>
-          <div className="mt-12 rounded-2xl bg-white p-8 shadow-sm">
-            <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-              <div>
+          <div className="mt-12 rounded-2xl bg-white p-8 text-center shadow-sm">
+            <div className="flex flex-col items-center gap-5 lg:flex-row lg:justify-between lg:text-left">
+              <div className="max-w-2xl">
                 <p className="text-sm font-bold uppercase tracking-widest text-orange-500">Cùng bắt đầu dự án mới</p>
-                <h2 className="mt-2 text-3xl font-black text-slate-950">Bạn đang cần một đối tác chiến lược?</h2>
+                <h2 className="ovmain-card-title mt-2 font-normal text-slate-950">Bạn đang cần một đối tác chiến lược?</h2>
               </div>
               <Link href="/ovmain/lien-he" className="inline-flex shrink-0 justify-center rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-7 py-3 text-sm font-bold uppercase text-white shadow-lg shadow-orange-200">
                 Trao đổi dự án →

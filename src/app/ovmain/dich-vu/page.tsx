@@ -61,7 +61,7 @@ export default async function OvDichVuPage() {
   return (
     <>
       <section className="relative overflow-hidden bg-[#EEF2FF] pt-40 pb-20">
-        <div className="pointer-events-none absolute -top-4 inset-x-0 flex justify-center overflow-hidden select-none" aria-hidden="true">
+        <div className="pointer-events-none absolute -top-4 inset-x-0 hidden justify-center overflow-hidden select-none md:flex" aria-hidden="true">
           <span className="whitespace-nowrap text-[20vw] font-black uppercase leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif", color: "transparent", WebkitTextStroke: "2px rgba(99,102,241,0.07)" }}>
             DICH VU
           </span>
@@ -73,7 +73,7 @@ export default async function OvDichVuPage() {
             </div>
           </OvReveal>
           <OvReveal delay={0.1}>
-            <h1 className="max-w-3xl text-5xl font-black tracking-tight text-slate-900 sm:text-6xl lg:text-8xl">
+            <h1 className="ovmain-page-title max-w-3xl tracking-tight text-slate-900">
               Giải pháp đủ sâu<br />
               <span className="bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">để tăng trưởng bền vững</span>
             </h1>
@@ -113,7 +113,7 @@ export default async function OvDichVuPage() {
                               Dịch vụ trọng tâm
                             </span>
                           </div>
-                          <h3 className="text-4xl font-semibold leading-tight tracking-[0] text-slate-950 lg:text-5xl">{toVietnameseLabel(service.name)}</h3>
+                          <h3 className="ovmain-card-title tracking-[0] text-slate-950">{toVietnameseLabel(service.name)}</h3>
                           <p className="mt-5 text-base leading-7 text-slate-500">{service.description || "Giải pháp tối ưu hiệu quả đầu tư cho doanh nghiệp của bạn."}</p>
                           <Link href={`/ovmain/dich-vu/${service.slug}`} className="mt-auto hidden w-fit rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-600 lg:inline-flex">
                             Xem chi tiết →
@@ -173,7 +173,7 @@ export default async function OvDichVuPage() {
                           {(service.options ?? []).length || 1} lựa chọn
                         </span>
                       </div>
-                      <h3 className="text-3xl font-semibold leading-tight tracking-[0] text-slate-950">{toVietnameseLabel(service.name)}</h3>
+                      <h3 className="ovmain-card-title tracking-[0] text-slate-950">{toVietnameseLabel(service.name)}</h3>
                       <p className="mt-4 min-h-[78px] text-sm leading-6 text-slate-500">{service.description || "Giải pháp tối ưu hiệu quả đầu tư cho doanh nghiệp của bạn."}</p>
                       </div>
 
@@ -217,7 +217,7 @@ export default async function OvDichVuPage() {
 
       <section className="bg-[#EEF2FF] py-20">
         <div className="mx-auto max-w-7xl px-6">
-          <OvReveal><h2 className="mb-10 text-center text-4xl font-black text-slate-900">Vì sao chọn <span className="text-orange-500">Ong Vàng?</span></h2></OvReveal>
+          <OvReveal><h2 className="ovmain-section-title mb-10 text-center text-slate-900">Vì sao chọn <span className="text-orange-500">Ong Vàng?</span></h2></OvReveal>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {[
               { icon: "🎯", t: "Bám sát kết quả", d: "Mọi chiến dịch đều được đo lường và báo cáo rõ ràng mỗi tuần." },
@@ -238,7 +238,7 @@ export default async function OvDichVuPage() {
       </section>
 
       <section className="bg-white py-20 text-center">
-        <OvReveal><h2 className="text-4xl font-black text-slate-900">Sẵn sàng hợp tác?</h2></OvReveal>
+        <OvReveal><h2 className="ovmain-section-title text-slate-900">Sẵn sàng hợp tác?</h2></OvReveal>
         <OvReveal delay={0.1}><p className="mt-3 text-slate-500">Nhận báo giá và tư vấn chiến lược miễn phí ngay hôm nay.</p></OvReveal>
         <OvReveal delay={0.2}>
           <Link href="/ovmain/lien-he" className="mt-8 inline-flex rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-4 font-bold text-white shadow-xl shadow-orange-200 transition-all hover:scale-105">

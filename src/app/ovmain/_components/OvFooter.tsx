@@ -79,7 +79,12 @@ export function OvFooter({ logoUrl, orgName, description, phone, email, address,
         </div>
         <div className="mt-14 border-t border-slate-800 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-600">
           <p>© {new Date().getFullYear()} Ong Vàng Marketing. All rights reserved.</p>
-          <p>Powered by <span className="text-orange-600 font-medium">Ong Vàng Cloud</span></p>
+          <p>
+            Powered by{" "}
+            <Link href="/ovmain" className="font-medium text-orange-600 transition hover:text-orange-500">
+              Ong Vàng Marketing &amp; Training
+            </Link>
+          </p>
         </div>
       </div>
     </footer>

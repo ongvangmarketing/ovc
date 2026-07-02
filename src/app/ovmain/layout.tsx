@@ -109,8 +109,11 @@ export default async function OvMainLayout({ children }: { children: ReactNode }
         .ovmain-site h5 { font-size: 24px !important; }
         .ovmain-site h6 { font-size: 18px !important; }
         .ovmain-site .ovmain-hero-title { font-size: 78px !important; }
-        .ovmain-site .ovmain-feature-title { font-size: 40px !important; }
-        .ovmain-site .ovmain-solutions-title { font-size: 44px !important; }
+        .ovmain-site .ovmain-page-title { font-size: 64px !important; line-height: 1.08 !important; font-weight: 700 !important; }
+        .ovmain-site .ovmain-section-title { font-size: 48px !important; line-height: 1.08 !important; font-weight: 700 !important; }
+        .ovmain-site .ovmain-card-title { font-size: 36px !important; line-height: 1.12 !important; font-weight: 700 !important; }
+        .ovmain-site .ovmain-feature-title { font-size: 40px !important; font-weight: 700 !important; }
+        .ovmain-site .ovmain-solutions-title { font-size: 44px !important; font-weight: 700 !important; }
         .ovmain-values-section {
           background: linear-gradient(135deg, #f1f5f9 0%, #ffffff 34%, #fff7ed 68%, #ffffff 100%);
         }
@@ -205,14 +208,38 @@ export default async function OvMainLayout({ children }: { children: ReactNode }
           .ovmain-floating-badge { animation: none; }
         }
         @media (max-width: 767px) {
-          .ovmain-site .ovmain-hero-title { font-size: 46px !important; }
+          .ovmain-site .ovmain-solutions-ghost {
+            display: none !important;
+          }
+          .ovmain-site .ovmain-hero-title {
+            font-size: 30px !important;
+            line-height: 1.16 !important;
+          }
+          .ovmain-site .ovmain-page-title {
+            font-size: 31px !important;
+            line-height: 1.12 !important;
+            font-weight: 600 !important;
+            overflow-wrap: normal;
+          }
+          .ovmain-site .ovmain-section-title {
+            font-size: 30px !important;
+            line-height: 1.12 !important;
+            font-weight: 600 !important;
+            overflow-wrap: normal;
+          }
+          .ovmain-site .ovmain-card-title {
+            font-size: 24px !important;
+            line-height: 1.16 !important;
+            font-weight: 600 !important;
+          }
           .ovmain-site .ovmain-feature-title {
             font-size: 28px !important;
+            font-weight: 600 !important;
             line-height: 1.18 !important;
             overflow-wrap: anywhere;
             word-break: normal;
           }
-          .ovmain-site .ovmain-solutions-title { font-size: 38px !important; }
+          .ovmain-site .ovmain-solutions-title { font-size: 38px !important; font-weight: 600 !important; }
           .ovmain-site .ovmain-stat-value { font-size: 44px !important; }
           .ovmain-site .ovmain-stat-label { font-size: 14px !important; }
           .ovmain-site p {

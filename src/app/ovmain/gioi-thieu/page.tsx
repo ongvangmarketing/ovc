@@ -21,26 +21,29 @@ export default function OvAboutPage() {
   return (
     <>
       <section className="ovmain-values-section relative overflow-hidden pt-40 pb-24">
-        <div className="pointer-events-none absolute inset-x-0 top-16 flex justify-center overflow-hidden select-none" aria-hidden>
+        <div className="pointer-events-none absolute inset-x-0 top-16 hidden justify-center overflow-hidden select-none md:flex" aria-hidden>
           <span className="ovmain-solutions-ghost whitespace-nowrap text-[18vw] font-black uppercase leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>ABOUT</span>
         </div>
         <div className="relative z-10 mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div>
             <OvReveal>
               <p className="mb-3 text-sm font-bold uppercase tracking-widest text-orange-500">Giới thiệu Ong Vàng</p>
-              <h1 className="text-5xl font-black tracking-[0] text-slate-950 sm:text-6xl">Sáng tạo thực tiễn. Tăng trưởng bền vững.</h1>
+              <h1 className="ovmain-page-title ovmain-about-hero-title tracking-[0] text-slate-950">
+                Sáng tạo thực tiễn.<br />
+                <span className="bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">Tăng trưởng bền vững.</span>
+              </h1>
               <p className="mt-6 text-lg leading-8 text-slate-600">Ong Vàng đồng hành cùng doanh nghiệp Việt trong hành trình xây dựng thương hiệu, triển khai marketing, đào tạo đội ngũ và phát triển các dự án có giá trị dài hạn.</p>
             </OvReveal>
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4">
               {[
                 ["500+", "Dự án triển khai"],
                 ["300+", "Khách hàng đồng hành"],
                 ["100+", "Chiến dịch tối ưu"],
                 ["20+", "Đối tác chiến lược"],
               ].map(([value, label]) => (
-                <div key={label} className="rounded-lg border border-orange-100 bg-white/80 p-5 shadow-sm">
-                  <p className="text-3xl font-black text-orange-600">{value}</p>
-                  <p className="mt-1 text-sm font-semibold text-slate-500">{label}</p>
+                <div key={label} className="rounded-lg border border-orange-100 bg-white/80 p-4 shadow-sm sm:p-5">
+                  <p className="text-2xl font-black text-orange-600 sm:text-3xl">{value}</p>
+                  <p className="mt-1 text-xs font-semibold leading-snug text-slate-500 sm:text-sm">{label}</p>
                 </div>
               ))}
             </div>
@@ -60,7 +63,7 @@ export default function OvAboutPage() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="mb-10 max-w-2xl">
             <p className="text-sm font-bold uppercase tracking-widest text-orange-500">Giá trị cốt lõi</p>
-            <h2 className="mt-2 text-4xl font-black text-slate-950">Cách Ong Vàng làm việc</h2>
+            <h2 className="ovmain-section-title mt-2 text-slate-950">Cách Ong Vàng làm việc</h2>
           </div>
           <div className="grid gap-5 md:grid-cols-4">
             {[
@@ -71,7 +74,7 @@ export default function OvAboutPage() {
             ].map(({ Icon, title, desc }) => (
               <div key={title} className="rounded-2xl border border-orange-100 bg-[#f8f6f2] p-6">
                 <Icon className="h-8 w-8 text-orange-500" />
-                <h3 className="mt-4 font-black text-slate-950">{title}</h3>
+                <h3 className="ovmain-card-title mt-4 text-slate-950">{title}</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-500">{desc}</p>
               </div>
             ))}
