@@ -9,11 +9,62 @@ type SessionWithRole = {
   [key: string]: unknown;
 };
 
+type PublicDomainTarget = "marketing" | "training" | "homepage" | "portal";
+
+const defaultDomainTargets: Record<string, PublicDomainTarget> = {
+  "ongvang.com.vn": "marketing",
+  "www.ongvang.com.vn": "marketing",
+  "ongvangtraining.com": "training",
+  "www.ongvangtraining.com": "training",
+};
+
+function parseDomainTargets() {
+  const raw = process.env.PUBLIC_DOMAIN_TARGETS;
+  if (!raw) return defaultDomainTargets;
+
+  try {
+    const parsed = JSON.parse(raw) as Record<string, PublicDomainTarget>;
+    return { ...defaultDomainTargets, ...parsed };
+  } catch {
+    return defaultDomainTargets;
+  }
+}
+
+function mapPublicModulePath(target: PublicDomainTarget, pathname: string) {
+  if (pathname.startsWith("/ovmain")) return pathname;
+
+  if (target === "training") {
+    if (pathname === "/") return "/ovmain/khoa-hoc";
+    if (pathname === "/khoa-hoc" || pathname.startsWith("/khoa-hoc/")) return `/ovmain${pathname}`;
+    if (pathname === "/lien-he") return "/ovmain/lien-he";
+    if (pathname === "/gioi-thieu") return "/ovmain/gioi-thieu";
+    return `/ovmain/khoa-hoc${pathname === "/" ? "" : pathname}`;
+  }
+
+  if (target === "marketing" || target === "homepage") {
+    if (pathname === "/") return "/ovmain";
+    if (
+      pathname === "/dich-vu" ||
+      pathname.startsWith("/dich-vu/") ||
+      pathname === "/khoa-hoc" ||
+      pathname.startsWith("/khoa-hoc/") ||
+      pathname === "/gioi-thieu" ||
+      pathname === "/du-an" ||
+      pathname === "/lien-he"
+    ) {
+      return `/ovmain${pathname}`;
+    }
+    return pathname;
+  }
+
+  return pathname;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Protect specific routes
-  const protectedPaths = ["/admin", "/super-admin", "/workspace", "/portal", "/customer", "/instructor", "/student"];
+  const protectedPaths = ["/admin", "/super-admin", "/workspace", "/customer", "/instructor", "/student"];
   const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
 
   if (isProtected) {
@@ -24,52 +75,91 @@ export async function proxy(request: NextRequest) {
       "/api/auth/get-session",
       {
         baseURL: authBaseURL,
+        cache: "no-store",
         headers: {
           cookie: request.headers.get("cookie") || "",
+          host: request.headers.get("host") || "",
+          "x-forwarded-host": request.headers.get("x-forwarded-host") || request.headers.get("host") || "",
+          "x-forwarded-proto": request.headers.get("x-forwarded-proto") || request.nextUrl.protocol.replace(":", ""),
+          origin: request.nextUrl.origin,
         },
       },
     );
 
     if (!session) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      return response;
     }
 
     const role = session.user.role || "";
 
     if ((pathname.startsWith("/admin") || pathname.startsWith("/super-admin")) && role !== "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/workspace", request.url));
+      const response = NextResponse.redirect(new URL("/workspace", request.url));
+      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      return response;
     }
 
     if (pathname.startsWith("/workspace")) {
       const workspaceRoles = ["SUPER_ADMIN", "ADMIN", "MANAGER", "STAFF"];
       if (!workspaceRoles.includes(role)) {
-        return NextResponse.redirect(new URL(role === "CUSTOMER" ? "/portal" : "/login", request.url));
+        const response = NextResponse.redirect(new URL(role === "CUSTOMER" ? "/customer" : "/login", request.url));
+        response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+        return response;
       }
     }
 
-    const isCustomerPortal =
-      pathname.startsWith("/portal") &&
-      !pathname.startsWith("/portal/instructor") &&
-      !pathname.startsWith("/portal/student");
-
-    if (isCustomerPortal && role !== "CUSTOMER" && role !== "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/workspace", request.url));
-    }
-
     if (pathname.startsWith("/customer") && role !== "CUSTOMER" && role !== "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/login", request.url));
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      return response;
     }
 
     if (pathname.startsWith("/instructor") && role !== "INSTRUCTOR" && role !== "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/login", request.url));
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      return response;
     }
 
     if (pathname.startsWith("/student") && role !== "STUDENT" && role !== "SUPER_ADMIN") {
-      return NextResponse.redirect(new URL("/login", request.url));
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      return response;
     }
   }
 
-  return NextResponse.next();
+  const hostname = request.headers.get("host") || "localhost:3000";
+  const normalizedHostname = hostname.split(":")[0] ?? hostname;
+  const appDomains = new Set(["app.ovc.vn", "app.ongvang.com.vn"]);
+  const isAppDomain = hostname.includes("localhost") || appDomains.has(normalizedHostname);
+  const domainTargets = parseDomainTargets();
+  const publicTarget = domainTargets[normalizedHostname];
+
+  if (!isAppDomain && publicTarget && publicTarget !== "portal" && !pathname.startsWith("/api") && !pathname.startsWith("/builder")) {
+    if (normalizedHostname.startsWith("www.")) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.hostname = normalizedHostname.replace(/^www\./, "");
+      return NextResponse.redirect(redirectUrl, 308);
+    }
+
+    const rewriteUrl = request.nextUrl.clone();
+    rewriteUrl.pathname = mapPublicModulePath(publicTarget, pathname);
+    const response = NextResponse.rewrite(rewriteUrl);
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    return response;
+  }
+
+  if (!isAppDomain && !pathname.startsWith("/api") && !pathname.startsWith("/builder")) {
+    const response = NextResponse.rewrite(new URL(`/sites/${hostname}${pathname}`, request.url));
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    return response;
+  }
+
+  const response = NextResponse.next();
+  if (isProtected) {
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  }
+  return response;
 }
 
 export const config = {
