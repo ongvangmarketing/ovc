@@ -96,7 +96,7 @@ export function OvCoursesFilter({ courses }: { courses: Course[] }) {
                       <span className={`text-lg font-normal ${price > 0 ? "text-orange-600" : "text-emerald-600"}`}>
                         {fp}
                       </span>
-                      <Link href={`/ovmain/khoa-hoc/${course.slug}`} className="rounded-full bg-orange-50 px-4 py-2 text-xs font-normal text-orange-600 ring-1 ring-orange-200 hover:bg-orange-500 hover:text-white transition-all active:scale-95">
+                      <Link href={`/khoa-hoc/${course.slug}`} className="rounded-full bg-orange-50 px-4 py-2 text-xs font-normal text-orange-600 ring-1 ring-orange-200 hover:bg-orange-500 hover:text-white transition-all active:scale-95">
                         Chi tiết
                       </Link>
                     </div>

@@ -9,12 +9,12 @@ export const metadata: Metadata = {
   title: "Khóa học truyền thông, marketing & AI",
   description:
     "Các khóa học truyền thông, marketing và ứng dụng AI thực chiến giúp học viên áp dụng ngay vào công việc, tối ưu hiệu suất và đo lường kết quả rõ ràng.",
-  alternates: { canonical: "/ovmain/khoa-hoc" },
+  alternates: { canonical: "/khoa-hoc" },
   openGraph: {
     title: "Khóa học truyền thông, marketing & AI | Ong Vàng",
     description:
       "Đào tạo thực chiến về truyền thông, marketing và ứng dụng AI cho cá nhân, đội nhóm và doanh nghiệp.",
-    url: "/ovmain/khoa-hoc",
+    url: "/khoa-hoc",
   },
 };
 
@@ -101,7 +101,7 @@ export default async function OvKhoaHocPage() {
               <p className="text-5xl mb-4">🎓</p>
               <h2 className="text-2xl font-bold text-slate-900">Khóa học đang được chuẩn bị</h2>
               <p className="mt-2 text-slate-500">Các khóa học sẽ sớm ra mắt. Đăng ký để được thông báo!</p>
-              <Link href="/ovmain/lien-he" className="mt-6 inline-flex rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-3 font-bold text-white transition-all hover:scale-105">
+              <Link href="/lien-he" className="mt-6 inline-flex rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-3 font-bold text-white transition-all hover:scale-105">
                 Đăng ký nhận thông báo
               </Link>
             </div>
@@ -153,7 +153,7 @@ export default async function OvKhoaHocPage() {
         <OvReveal><h2 className="ovmain-section-title text-slate-900">Chưa biết chọn khóa nào?</h2></OvReveal>
         <OvReveal delay={0.1}><p className="mt-3 text-slate-500">Để lại thông tin — chuyên gia sẽ tư vấn lộ trình phù hợp nhất.</p></OvReveal>
         <OvReveal delay={0.2}>
-          <Link href="/ovmain/lien-he" className="mt-8 inline-flex rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-4 font-bold text-white shadow-xl shadow-orange-200 transition-all hover:scale-105">
+          <Link href="/lien-he" className="mt-8 inline-flex rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-4 font-bold text-white shadow-xl shadow-orange-200 transition-all hover:scale-105">
             Tư vấn lộ trình học →
           </Link>
         </OvReveal>

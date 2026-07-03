@@ -98,7 +98,7 @@ function OvServiceCard({ service, index }: { service: { name: string; descriptio
           })}
         </div>
       )}
-      <Link href="/ovmain/lien-he" className="mt-5 inline-flex w-full translate-y-0 items-center justify-between text-sm font-semibold text-slate-700 opacity-100 transition duration-200 hover:text-orange-600 md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 md:group-focus-within:translate-y-0 md:group-focus-within:opacity-100">
+      <Link href="/lien-he" className="mt-5 inline-flex w-full translate-y-0 items-center justify-between text-sm font-semibold text-slate-700 opacity-100 transition duration-200 hover:text-orange-600 md:translate-y-2 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100 md:group-focus-within:translate-y-0 md:group-focus-within:opacity-100">
         Tìm hiểu thêm
         <span aria-hidden className="flex h-8 w-8 items-center justify-center rounded-full border border-orange-200 text-orange-500 transition group-hover:bg-orange-500 group-hover:text-white">→</span>
       </Link>
@@ -133,7 +133,7 @@ function OvPlanningCard({ service }: { service: { name: string; description: str
           const price = Number(option.price);
           const formattedPrice = price > 0 ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: option.currency || "VND", maximumFractionDigits: 0 }).format(price) : "Liên hệ";
           return (
-            <Link key={option.id} href="/ovmain/lien-he" className="group rounded-lg border border-orange-100 bg-white p-5 transition hover:-translate-y-1 hover:border-orange-300 hover:shadow-lg">
+            <Link key={option.id} href="/lien-he" className="group rounded-lg border border-orange-100 bg-white p-5 transition hover:-translate-y-1 hover:border-orange-300 hover:shadow-lg">
               <span className="text-xs font-black uppercase tracking-[0.1em] text-orange-500">{optionCopy[index]?.tier}</span>
               <strong className="mt-2 block text-lg text-slate-900">{optionCopy[index]?.detail}</strong>
               <p className="mt-2 text-sm leading-6 text-slate-500">{optionCopy[index]?.description}</p>
@@ -308,11 +308,11 @@ export default async function OvMainPage() {
 
             <OvReveal delay={0.38}>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/ovmain/dich-vu" className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-7 py-3.5 font-bold uppercase text-white shadow-lg shadow-orange-200 transition-all hover:scale-105 hover:shadow-orange-300 active:scale-95">
+                <Link href="/dich-vu" className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-7 py-3.5 font-bold uppercase text-white shadow-lg shadow-orange-200 transition-all hover:scale-105 hover:shadow-orange-300 active:scale-95">
                   Khám phá dịch vụ
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                 </Link>
-                <Link href="/ovmain/lien-he" className="inline-flex items-center gap-2 rounded-full border-2 border-slate-200 bg-white px-7 py-3.5 font-semibold uppercase text-slate-700 transition-all hover:border-orange-300 hover:text-orange-600 active:scale-95">
+                <Link href="/lien-he" className="inline-flex items-center gap-2 rounded-full border-2 border-slate-200 bg-white px-7 py-3.5 font-semibold uppercase text-slate-700 transition-all hover:border-orange-300 hover:text-orange-600 active:scale-95">
                   Xem Case Study
                 </Link>
               </div>
@@ -417,7 +417,7 @@ export default async function OvMainPage() {
                 </div>
               </OvReveal>
               <OvReveal delay={0.4}>
-                <Link href="/ovmain/lien-he" className="mt-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-7 py-3.5 text-sm font-bold uppercase text-white shadow-lg shadow-orange-200 transition-all hover:scale-105 hover:shadow-orange-300 active:scale-95">
+                <Link href="/lien-he" className="mt-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-7 py-3.5 text-sm font-bold uppercase text-white shadow-lg shadow-orange-200 transition-all hover:scale-105 hover:shadow-orange-300 active:scale-95">
                   Tư vấn cùng Ong Vàng <span>→</span>
                 </Link>
               </OvReveal>
@@ -482,7 +482,7 @@ export default async function OvMainPage() {
                 </OvReveal>
               </div>
               <OvReveal direction="left">
-                <Link href="/ovmain/dich-vu" className="inline-flex items-center gap-2 rounded-full border border-orange-200 px-5 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-50 transition-all">
+                <Link href="/dich-vu" className="inline-flex items-center gap-2 rounded-full border border-orange-200 px-5 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-50 transition-all">
                   Xem tất cả dịch vụ →
                 </Link>
               </OvReveal>
@@ -522,7 +522,7 @@ export default async function OvMainPage() {
               </OvReveal>
             </div>
             <OvReveal direction="left">
-              <Link href="/ovmain/du-an" className="text-sm font-bold text-orange-600 hover:text-orange-500">Xem tất cả dự án →</Link>
+              <Link href="/du-an" className="text-sm font-bold text-orange-600 hover:text-orange-500">Xem tất cả dự án →</Link>
             </OvReveal>
           </div>
           <OvReveal>
@@ -565,7 +565,7 @@ export default async function OvMainPage() {
                 <OvReveal delay={0.1}><h2 className="ovmain-section-title font-black tracking-tight text-slate-900">Học thông minh.<br />Ứng dụng hiệu quả.</h2></OvReveal>
               </div>
               <OvReveal direction="left">
-                <Link href="/ovmain/khoa-hoc" className="inline-flex items-center gap-2 rounded-full border border-orange-200 px-5 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-50 transition-all">
+                <Link href="/khoa-hoc" className="inline-flex items-center gap-2 rounded-full border border-orange-200 px-5 py-2 text-sm font-semibold text-orange-600 hover:bg-orange-50 transition-all">
                   Xem tất cả khóa học →
                 </Link>
               </OvReveal>
@@ -578,7 +578,7 @@ export default async function OvMainPage() {
                     <p className="text-xs font-black uppercase tracking-[0.16em] text-orange-500">Lịch khai giảng</p>
                     <h3 className="mt-1 text-[28px] font-semibold leading-tight text-slate-950 sm:text-3xl md:font-black">Các lớp mở trong {scheduleMonthLabel}</h3>
                   </div>
-                  <Link href="/ovmain/lien-he" className="text-sm font-bold text-orange-600 hover:text-orange-500">Giữ chỗ tư vấn →</Link>
+                  <Link href="/lien-he" className="text-sm font-bold text-orange-600 hover:text-orange-500">Giữ chỗ tư vấn →</Link>
                 </div>
                 <div className="grid gap-3 md:hidden">
                   {scheduleRows.map((item) => (
@@ -614,7 +614,7 @@ export default async function OvMainPage() {
                           <span className="block text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Học phí</span>
                           <strong className="mt-1 block text-slate-950">{item.fee}</strong>
                         </div>
-                        <Link href="/ovmain/lien-he" className="flex h-10 items-center justify-center self-end rounded-full bg-orange-50 px-4 text-sm font-black text-orange-600 ring-1 ring-orange-100 transition hover:bg-gradient-to-r hover:from-amber-500 hover:to-orange-600 hover:text-white" aria-label={`Đăng ký ${item.title}`}>
+                        <Link href="/lien-he" className="flex h-10 items-center justify-center self-end rounded-full bg-orange-50 px-4 text-sm font-black text-orange-600 ring-1 ring-orange-100 transition hover:bg-gradient-to-r hover:from-amber-500 hover:to-orange-600 hover:text-white" aria-label={`Đăng ký ${item.title}`}>
                           Đăng ký →
                         </Link>
                       </div>
@@ -641,7 +641,7 @@ export default async function OvMainPage() {
                       <span className="text-xs font-bold text-orange-600">{item.schedule}</span>
                       <span className="text-xs font-semibold text-slate-500">{item.time}</span>
                       <span className="text-sm font-black text-slate-950">{item.fee}</span>
-                      <Link href="/ovmain/lien-he" aria-label={`Đăng ký ${item.title}`} className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-50 text-lg font-black text-orange-600 transition hover:bg-gradient-to-r hover:from-amber-500 hover:to-orange-600 hover:text-white">
+                      <Link href="/lien-he" aria-label={`Đăng ký ${item.title}`} className="flex h-9 w-9 items-center justify-center rounded-full bg-orange-50 text-lg font-black text-orange-600 transition hover:bg-gradient-to-r hover:from-amber-500 hover:to-orange-600 hover:text-white">
                         →
                       </Link>
                     </div>
@@ -706,7 +706,7 @@ export default async function OvMainPage() {
               </OvReveal>
             </div>
             <OvReveal direction="left" delay={0.2}>
-              <Link href="/ovmain/dich-vu" className="shrink-0 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-4 text-lg font-bold text-white shadow-xl shadow-orange-900/30 transition-all hover:scale-105 active:scale-95">
+              <Link href="/dich-vu" className="shrink-0 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-4 text-lg font-bold text-white shadow-xl shadow-orange-900/30 transition-all hover:scale-105 active:scale-95">
                 Khám phá Dịch vụ
               </Link>
             </OvReveal>

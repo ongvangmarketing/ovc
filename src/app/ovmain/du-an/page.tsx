@@ -6,12 +6,12 @@ export const metadata: Metadata = {
   title: "Dự án truyền thông & AI tiêu biểu",
   description:
     "Các dự án truyền thông, marketing, đào tạo và ứng dụng AI do Ong Vàng đồng hành triển khai để tạo tăng trưởng rõ ràng cho doanh nghiệp.",
-  alternates: { canonical: "/ovmain/du-an" },
+  alternates: { canonical: "/du-an" },
   openGraph: {
     title: "Dự án truyền thông & AI tiêu biểu | Ong Vàng",
     description:
       "Case study và dự án tiêu biểu về truyền thông, đào tạo và ứng dụng AI do Ong Vàng triển khai.",
-    url: "/ovmain/du-an",
+    url: "/du-an",
   },
 };
 
@@ -52,7 +52,7 @@ export default function OvProjectsPage() {
                 <p className="text-sm font-bold uppercase tracking-widest text-orange-500">Cùng bắt đầu dự án mới</p>
                 <h2 className="ovmain-card-title mt-2 font-normal text-slate-950">Bạn đang cần một đối tác chiến lược?</h2>
               </div>
-              <Link href="/ovmain/lien-he" className="inline-flex shrink-0 justify-center rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-7 py-3 text-sm font-bold uppercase text-white shadow-lg shadow-orange-200">
+              <Link href="/lien-he" className="inline-flex shrink-0 justify-center rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-7 py-3 text-sm font-bold uppercase text-white shadow-lg shadow-orange-200">
                 Trao đổi dự án →
               </Link>
             </div>

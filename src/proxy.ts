@@ -142,6 +142,12 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(redirectUrl, 308);
     }
 
+    if (pathname === "/ovmain" || pathname.startsWith("/ovmain/")) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = pathname.replace(/^\/ovmain/, "") || "/";
+      return NextResponse.redirect(redirectUrl, 308);
+    }
+
     const rewriteUrl = request.nextUrl.clone();
     rewriteUrl.pathname = mapPublicModulePath(publicTarget, pathname);
     const response = NextResponse.rewrite(rewriteUrl);

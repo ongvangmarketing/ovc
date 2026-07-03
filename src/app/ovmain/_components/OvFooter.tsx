@@ -3,9 +3,9 @@ import Link from "next/link";
 import { Globe2, Mail, MapPin, Phone } from "lucide-react";
 
 const companyLinks = [
-    { label: "Về chúng tôi", href: "/ovmain/gioi-thieu" },
-    { label: "Dự án tiêu biểu", href: "/ovmain/du-an" },
-    { label: "Liên hệ", href: "/ovmain/lien-he" },
+    { label: "Về chúng tôi", href: "/gioi-thieu" },
+    { label: "Dự án tiêu biểu", href: "/du-an" },
+    { label: "Liên hệ", href: "/lien-he" },
 ];
 
 export function OvFooter({ logoUrl, orgName, description, phone, email, address, website, services = [], courses = [] }: {
@@ -22,8 +22,8 @@ export function OvFooter({ logoUrl, orgName, description, phone, email, address,
   const logoSrc = logoUrl || "/brand/ong-vang-logo.svg";
   const brandName = orgName || "Ong Vàng Marketing";
   const links = {
-    "Dịch vụ": services.slice(0, 5).map((service) => ({ label: service.name, href: "/ovmain/dich-vu" })),
-    "Đào tạo": courses.slice(0, 5).map((course) => ({ label: course.title, href: "/ovmain/khoa-hoc" })),
+    "Dịch vụ": services.slice(0, 5).map((service) => ({ label: service.name, href: "/dich-vu" })),
+    "Đào tạo": courses.slice(0, 5).map((course) => ({ label: course.title, href: "/khoa-hoc" })),
     "Công ty": companyLinks,
   };
   return (
@@ -32,7 +32,7 @@ export function OvFooter({ logoUrl, orgName, description, phone, email, address,
       <div className="mx-auto max-w-7xl px-6 py-16 lg:py-20">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-5">
           <div className="lg:col-span-2">
-            <Link href="/ovmain" className="mb-5 inline-block">
+            <Link href="/" className="mb-5 inline-block">
               <Image
                 src={logoSrc}
                 alt={brandName}
@@ -81,7 +81,7 @@ export function OvFooter({ logoUrl, orgName, description, phone, email, address,
           <p>© {new Date().getFullYear()} Ong Vàng Marketing. All rights reserved.</p>
           <p>
             Powered by{" "}
-            <Link href="/ovmain" className="font-medium text-orange-600 transition hover:text-orange-500">
+            <Link href="/" className="font-medium text-orange-600 transition hover:text-orange-500">
               Ong Vàng Marketing &amp; Training
             </Link>
           </p>

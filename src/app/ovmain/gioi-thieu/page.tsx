@@ -8,12 +8,12 @@ export const metadata: Metadata = {
   title: "Giới thiệu Ong Vàng",
   description:
     "Ong Vàng là đối tác về truyền thông, đào tạo và ứng dụng AI, đồng hành cùng doanh nghiệp xây dựng thương hiệu, tối ưu vận hành và phát triển bền vững.",
-  alternates: { canonical: "/ovmain/gioi-thieu" },
+  alternates: { canonical: "/gioi-thieu" },
   openGraph: {
     title: "Giới thiệu Ong Vàng - Truyền thông, Đào tạo & Ứng dụng AI",
     description:
       "Tìm hiểu Ong Vàng và cách chúng tôi đồng hành cùng doanh nghiệp qua truyền thông, đào tạo thực chiến và ứng dụng AI.",
-    url: "/ovmain/gioi-thieu",
+    url: "/gioi-thieu",
   },
 };
 
@@ -79,7 +79,7 @@ export default function OvAboutPage() {
               </div>
             ))}
           </div>
-          <Link href="/ovmain/lien-he" className="mt-10 inline-flex rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-7 py-3 text-sm font-bold uppercase text-white shadow-lg shadow-orange-200">Trao đổi cùng Ong Vàng</Link>
+          <Link href="/lien-he" className="mt-10 inline-flex rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-7 py-3 text-sm font-bold uppercase text-white shadow-lg shadow-orange-200">Trao đổi cùng Ong Vàng</Link>
         </div>
       </section>
     </>

@@ -103,7 +103,7 @@ export function OvCoursesCarousel({ courses }: { courses: Course[] }) {
                     <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">Học phí</span>
                     <strong className="mt-1 block text-lg font-black text-orange-600">{formattedPrice}</strong>
                   </div>
-                  <Link href={`/ovmain/khoa-hoc/${course.slug}`} className="rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-2.5 text-xs font-bold uppercase text-white shadow-md shadow-orange-200/70 transition hover:scale-105 active:scale-95">Chi tiết</Link>
+                  <Link href={`/khoa-hoc/${course.slug}`} className="rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-2.5 text-xs font-bold uppercase text-white shadow-md shadow-orange-200/70 transition hover:scale-105 active:scale-95">Chi tiết</Link>
                 </div>
               </div>
             </article>

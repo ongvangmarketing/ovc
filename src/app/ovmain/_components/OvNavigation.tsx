@@ -9,12 +9,12 @@ import { LogIn, UserRound } from "lucide-react";
 import { OvLoginModal } from "./OvLoginModal";
 
 const navLinks = [
-  { href: "/ovmain", label: "Trang chủ" },
-  { href: "/ovmain/gioi-thieu", label: "Giới thiệu" },
-  { href: "/ovmain/dich-vu", label: "Dịch vụ" },
-  { href: "/ovmain/du-an", label: "Dự án" },
-  { href: "/ovmain/khoa-hoc", label: "Khóa học" },
-  { href: "/ovmain/lien-he", label: "Liên hệ" },
+  { href: "/", label: "Trang chủ" },
+  { href: "/gioi-thieu", label: "Giới thiệu" },
+  { href: "/dich-vu", label: "Dịch vụ" },
+  { href: "/du-an", label: "Dự án" },
+  { href: "/khoa-hoc", label: "Khóa học" },
+  { href: "/lien-he", label: "Liên hệ" },
 ];
 
 interface OvNavigationProps {
@@ -67,14 +67,14 @@ export function OvNavigation({ logoUrl, orgName = "Ong Vàng" }: OvNavigationPro
         >
           <div className="mx-auto flex h-[72px] max-w-7xl items-center justify-between px-5 md:h-20">
             {/* Logo */}
-            <Link href="/ovmain" className="flex items-center group">
+            <Link href="/" className="flex items-center group">
               {logoEl}
             </Link>
 
             {/* Desktop nav */}
             <nav className="hidden md:flex items-center gap-1">
               {navLinks.map((link) => {
-                const isActive = link.href === "/ovmain" ? pathname === "/ovmain" : pathname.startsWith(link.href);
+                const isActive = link.href === "/" ? pathname === "/" || pathname === "/ovmain" : pathname.startsWith(link.href) || pathname.startsWith(`/ovmain${link.href}`);
                 return (
                   <Link
                     key={link.href}
@@ -109,7 +109,7 @@ export function OvNavigation({ logoUrl, orgName = "Ong Vàng" }: OvNavigationPro
                 <UserRound className="h-5 w-5" />
               </button>
               <Link
-                href="/ovmain/lien-he"
+                href="/lien-he"
                 className="hidden h-11 md:inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-6 text-sm font-bold uppercase text-white shadow-md shadow-orange-200/60 transition-all hover:scale-105 hover:shadow-orange-300 active:scale-95"
               >
                 Tư vấn miễn phí
@@ -141,7 +141,7 @@ export function OvNavigation({ logoUrl, orgName = "Ong Vàng" }: OvNavigationPro
           >
             <nav className="flex flex-col gap-1">
               {navLinks.map((link) => {
-                const isActive = link.href === "/ovmain" ? pathname === "/ovmain" : pathname.startsWith(link.href);
+                const isActive = link.href === "/" ? pathname === "/" || pathname === "/ovmain" : pathname.startsWith(link.href) || pathname.startsWith(`/ovmain${link.href}`);
                 return (
                   <Link
                     key={link.href}

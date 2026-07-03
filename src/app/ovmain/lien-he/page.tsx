@@ -9,12 +9,12 @@ export const metadata: Metadata = {
   title: "Liên hệ tư vấn truyền thông & AI",
   description:
     "Liên hệ Ong Vàng để được tư vấn giải pháp truyền thông, đào tạo và ứng dụng AI phù hợp với mục tiêu tăng trưởng của doanh nghiệp.",
-  alternates: { canonical: "/ovmain/lien-he" },
+  alternates: { canonical: "/lien-he" },
   openGraph: {
     title: "Liên hệ tư vấn truyền thông & AI | Ong Vàng",
     description:
       "Gửi thông tin để Ong Vàng tư vấn lộ trình truyền thông, đào tạo và ứng dụng AI cho doanh nghiệp.",
-    url: "/ovmain/lien-he",
+    url: "/lien-he",
   },
 };
 

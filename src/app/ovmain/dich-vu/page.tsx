@@ -7,12 +7,12 @@ export const metadata: Metadata = {
   title: "Dịch vụ truyền thông & ứng dụng AI",
   description:
     "Các gói dịch vụ truyền thông, marketing tổng thể, nội dung, SEO và ứng dụng AI giúp doanh nghiệp xây dựng thương hiệu, tối ưu quy trình và tăng trưởng bền vững.",
-  alternates: { canonical: "/ovmain/dich-vu" },
+  alternates: { canonical: "/dich-vu" },
   openGraph: {
     title: "Dịch vụ truyền thông & ứng dụng AI | Ong Vàng",
     description:
       "Giải pháp truyền thông, marketing tổng thể và ứng dụng AI được thiết kế theo mục tiêu tăng trưởng của doanh nghiệp.",
-    url: "/ovmain/dich-vu",
+    url: "/dich-vu",
   },
 };
 
@@ -115,7 +115,7 @@ export default async function OvDichVuPage() {
                           </div>
                           <h3 className="ovmain-card-title tracking-[0] text-slate-950">{toVietnameseLabel(service.name)}</h3>
                           <p className="mt-5 text-base leading-7 text-slate-500">{service.description || "Giải pháp tối ưu hiệu quả đầu tư cho doanh nghiệp của bạn."}</p>
-                          <Link href={`/ovmain/dich-vu/${service.slug}`} className="mt-auto hidden w-fit rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-600 lg:inline-flex">
+                          <Link href={`/dich-vu/${service.slug}`} className="mt-auto hidden w-fit rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-600 lg:inline-flex">
                             Xem chi tiết →
                           </Link>
                         </div>
@@ -128,7 +128,7 @@ export default async function OvDichVuPage() {
                           const optionFeatures = extractFeatures(option.featuresJson, 3);
 
                           return (
-                            <Link key={option.id} href={`/ovmain/dich-vu/${service.slug}`} className="group/option flex min-h-[260px] flex-col rounded-lg border border-orange-100 bg-white p-5 transition hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-sm">
+                            <Link key={option.id} href={`/dich-vu/${service.slug}`} className="group/option flex min-h-[260px] flex-col rounded-lg border border-orange-100 bg-white p-5 transition hover:-translate-y-0.5 hover:border-orange-200 hover:shadow-sm">
                               <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-orange-500">
                                 {optionIndex === 0 ? "Tư vấn chiến lược" : "Triển khai thực thi"}
                               </span>
@@ -153,7 +153,7 @@ export default async function OvDichVuPage() {
                           );
                         })}
 
-                        <Link href={`/ovmain/dich-vu/${service.slug}`} className="inline-flex justify-center rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-600 lg:hidden">
+                        <Link href={`/dich-vu/${service.slug}`} className="inline-flex justify-center rounded-full bg-orange-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-orange-600 lg:hidden">
                           Xem chi tiết →
                         </Link>
                       </div>
@@ -192,7 +192,7 @@ export default async function OvDichVuPage() {
                           <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Từ</p>
                           <p className="mt-1 text-xl font-semibold text-orange-600">{startingPrice}</p>
                         </div>
-                        <Link href={`/ovmain/dich-vu/${service.slug}`} className="inline-flex h-11 items-center rounded-full border border-orange-200 px-5 text-sm font-semibold text-orange-600 transition hover:bg-orange-500 hover:text-white">
+                        <Link href={`/dich-vu/${service.slug}`} className="inline-flex h-11 items-center rounded-full border border-orange-200 px-5 text-sm font-semibold text-orange-600 transition hover:bg-orange-500 hover:text-white">
                           Chi tiết →
                         </Link>
                       </div>
@@ -207,7 +207,7 @@ export default async function OvDichVuPage() {
               <p className="text-5xl mb-4">🔧</p>
               <h2 className="text-2xl font-bold text-slate-900">Đang cập nhật dịch vụ</h2>
               <p className="mt-2 text-slate-500">Liên hệ trực tiếp để nhận báo giá.</p>
-              <Link href="/ovmain/lien-he" className="mt-6 inline-flex rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-3 font-bold text-white transition-all hover:scale-105">
+              <Link href="/lien-he" className="mt-6 inline-flex rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-6 py-3 font-bold text-white transition-all hover:scale-105">
                 Liên hệ ngay
               </Link>
             </div>
@@ -241,7 +241,7 @@ export default async function OvDichVuPage() {
         <OvReveal><h2 className="ovmain-section-title text-slate-900">Sẵn sàng hợp tác?</h2></OvReveal>
         <OvReveal delay={0.1}><p className="mt-3 text-slate-500">Nhận báo giá và tư vấn chiến lược miễn phí ngay hôm nay.</p></OvReveal>
         <OvReveal delay={0.2}>
-          <Link href="/ovmain/lien-he" className="mt-8 inline-flex rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-4 font-bold text-white shadow-xl shadow-orange-200 transition-all hover:scale-105">
+          <Link href="/lien-he" className="mt-8 inline-flex rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-8 py-4 font-bold text-white shadow-xl shadow-orange-200 transition-all hover:scale-105">
             Nhận tư vấn miễn phí →
           </Link>
         </OvReveal>

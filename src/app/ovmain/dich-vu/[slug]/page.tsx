@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const title = `${toVietnameseLabel(service.name)} - Truyền thông & AI`;
   const description = seoDescription(service.description);
-  const url = `/ovmain/dich-vu/${slug}`;
+  const url = `/dich-vu/${slug}`;
 
   return {
     title,
@@ -102,7 +102,7 @@ export default async function OvServiceDetailPage({ params }: { params: Promise<
           <span className="ovmain-solutions-ghost whitespace-nowrap text-[18vw] font-normal uppercase leading-none" style={{ fontFamily: "'Bebas Neue', sans-serif" }}>DICH VU</span>
         </div>
         <div className="relative z-10 mx-auto max-w-7xl px-6">
-          <Link href="/ovmain/dich-vu" className="mb-8 inline-flex items-center gap-2 text-sm font-normal text-orange-600 hover:text-orange-500"><ArrowLeft className="h-4 w-4" /> Dịch vụ</Link>
+          <Link href="/dich-vu" className="mb-8 inline-flex items-center gap-2 text-sm font-normal text-orange-600 hover:text-orange-500"><ArrowLeft className="h-4 w-4" /> Dịch vụ</Link>
           <OvReveal>
             <p className="mb-3 text-sm font-normal uppercase tracking-widest text-orange-500">{service.category?.name || "Giải pháp Ong Vàng"}</p>
             <h1 className="ovmain-page-title max-w-4xl tracking-[0] text-slate-950">{toVietnameseLabel(service.name)}</h1>
@@ -142,7 +142,7 @@ export default async function OvServiceDetailPage({ params }: { params: Promise<
             <Sparkles className="h-8 w-8 text-orange-500" />
             <h2 className="ovmain-card-title mt-4 text-slate-950">Cần tư vấn gói phù hợp?</h2>
             <p className="mt-3 text-sm leading-6 text-slate-500">Đội ngũ Ong Vàng sẽ rà soát mục tiêu, ngân sách và kênh triển khai để đề xuất lộ trình phù hợp.</p>
-            <Link href="/ovmain/lien-he" className="mt-6 inline-flex w-full justify-center rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-3 text-sm font-normal uppercase text-white shadow-lg shadow-orange-200">Tư vấn miễn phí</Link>
+            <Link href="/lien-he" className="mt-6 inline-flex w-full justify-center rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-3 text-sm font-normal uppercase text-white shadow-lg shadow-orange-200">Tư vấn miễn phí</Link>
           </aside>
         </div>
       </section>

@@ -56,7 +56,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const title = `${courseTitle(course.title)} - Đào tạo ứng dụng AI`;
   const description = seoDescription(course.description);
-  const url = `/ovmain/khoa-hoc/${slug}`;
+  const url = `/khoa-hoc/${slug}`;
 
   return {
     title,
@@ -97,7 +97,7 @@ export default async function OvCourseDetailPage({ params }: { params: Promise<{
       <section className="relative overflow-hidden bg-[#f8f6f2] pt-40 pb-20">
         <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-[1fr_460px] lg:items-center">
           <div>
-            <Link href="/ovmain/khoa-hoc" className="mb-8 inline-flex items-center gap-2 text-sm font-normal text-orange-600 hover:text-orange-500"><ArrowLeft className="h-4 w-4" /> Khóa học</Link>
+            <Link href="/khoa-hoc" className="mb-8 inline-flex items-center gap-2 text-sm font-normal text-orange-600 hover:text-orange-500"><ArrowLeft className="h-4 w-4" /> Khóa học</Link>
             <OvReveal>
               <p className="mb-3 text-sm font-normal uppercase tracking-widest text-orange-500">{levelLabels[course.level] ?? course.level}</p>
               <h1 className="ovmain-page-title max-w-4xl tracking-[0] text-slate-950">{courseTitle(course.title)}</h1>
@@ -125,7 +125,7 @@ export default async function OvCourseDetailPage({ params }: { params: Promise<{
                   <p className="mt-2 text-sm font-normal text-slate-950">{formatDate(nextClass?.startDate ?? null)}</p>
                   <p className="text-sm text-slate-500">{nextClass?.name || "Lớp khai giảng gần nhất"}</p>
                 </div>
-                <Link href="/ovmain/lien-he" className="mt-5 inline-flex w-full justify-center rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-3 text-sm font-normal uppercase text-white shadow-lg shadow-orange-200">Đăng ký tư vấn</Link>
+                <Link href="/lien-he" className="mt-5 inline-flex w-full justify-center rounded-full bg-gradient-to-r from-amber-500 to-orange-600 px-5 py-3 text-sm font-normal uppercase text-white shadow-lg shadow-orange-200">Đăng ký tư vấn</Link>
               </div>
             </div>
           </OvReveal>
