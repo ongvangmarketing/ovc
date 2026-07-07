@@ -30,6 +30,14 @@ export const defaultTemplates = [
     subject: 'Xác nhận Thanh toán Hóa đơn {{invoice_number}}',
     body: 'Cảm ơn Quý khách <strong>{{customer_name}}</strong> đã thực hiện thanh toán thành công số tiền {{payment_amount}}. Chúng tôi xin xác nhận hệ thống đã ghi nhận khoản thanh toán của Quý khách cho Hóa đơn <strong>{{invoice_number}}</strong>.<br><br>Biên lai thu tiền điện tử mã <strong>{{payment_transaction_id}}</strong> đã được tạo và đính kèm trong email này để Quý khách lưu trữ vào hồ sơ kế toán.<br><br>Chúng tôi sẽ tiếp tục triển khai dự án theo kế hoạch và cập nhật tiến độ thường xuyên đến Quý khách.<br><br><div style="text-align: center; margin: 30px 0;"><a href="{{receipt_link}}" style="background-color: #10b981; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Tải Biên Lai (PDF)</a></div>',
     variables: ['customer_name', 'payment_amount', 'invoice_number', 'payment_transaction_id', 'receipt_link', 'company_name']
+  },
+  {
+    code: 'DEAL_APPROVED_INTERNAL',
+    module: 'Deal',
+    name: 'Nội bộ - Khách hàng đã duyệt deal',
+    subject: '[Deal] Khách hàng đã duyệt {{deal_title}}',
+    body: 'Khách hàng <strong>{{customer_name}}</strong> đã xác nhận lựa chọn cho deal <strong>{{deal_title}}</strong>.<br><br>Giá trị đã chọn: <strong>{{deal_total}}</strong>.<br><br><strong>Dịch vụ đã chọn:</strong><br>{{selected_options}}<br><br><div style="text-align: center; margin: 30px 0;"><a href="{{deal_link}}" style="background-color: #f59e0b; color: #fff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Xem Deal</a></div>',
+    variables: ['customer_name', 'deal_title', 'deal_total', 'selected_options', 'deal_link', 'company_name']
   }
 ];
 
@@ -61,6 +69,11 @@ function getDetailsRows(module: string) {
       <tr><td style="padding:4px 0;font-weight:800;">Ngày thanh toán</td><td style="padding:4px 0;text-align:right;">{{payment_date}}</td></tr>
       <tr><td style="padding:5px 0;font-weight:800;">Số tiền</td><td style="padding:5px 0;text-align:right;color:#ea580c;font-size:18px;font-weight:900;">{{payment_amount}}</td></tr>
       <tr><td style="padding:4px 0;font-weight:800;">Trạng thái</td><td style="padding:4px 0;text-align:right;"><span style="display:inline-block;background:#fff7ed;color:#92400e;border:1px solid #fed7aa;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:900;">Đã thanh toán</span></td></tr>`;
+    case 'Deal': return `
+      <tr><td style="padding:4px 0;width:42%;font-weight:800;">Khách hàng</td><td style="padding:4px 0;text-align:right;color:#111827;font-weight:900;">{{customer_name}}</td></tr>
+      <tr><td style="padding:4px 0;font-weight:800;">Deal</td><td style="padding:4px 0;text-align:right;">{{deal_title}}</td></tr>
+      <tr><td style="padding:5px 0;font-weight:800;">Giá trị đã chọn</td><td style="padding:5px 0;text-align:right;color:#ea580c;font-size:18px;font-weight:900;">{{deal_total}}</td></tr>
+      <tr><td style="padding:4px 0;font-weight:800;">Trạng thái</td><td style="padding:4px 0;text-align:right;"><span style="display:inline-block;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;border-radius:999px;padding:3px 8px;font-size:11px;font-weight:900;">Đã duyệt</span></td></tr>`;
     default: return '';
   }
 }
@@ -71,6 +84,7 @@ function getDetailsTitle(module: string) {
     case 'Contract': return 'Thông tin hợp đồng';
     case 'Invoice': return 'Thông tin hóa đơn';
     case 'Payment': return 'Thông tin phiếu thu';
+    case 'Deal': return 'Thông tin deal';
     default: return 'Thông tin chi tiết';
   }
 }
@@ -81,6 +95,7 @@ function getEyebrow(module: string) {
     case 'Contract': return 'Thông báo hợp đồng';
     case 'Invoice': return 'Thông báo hóa đơn';
     case 'Payment': return 'Thông báo thanh toán';
+    case 'Deal': return 'Thông báo deal';
     default: return 'Thông báo từ Ong Vàng';
   }
 }
@@ -90,6 +105,7 @@ function getActionUrl(code: string) {
   if (code.includes('CONTRACT')) return '{{contract_link}}';
   if (code.includes('INVOICE_PAID')) return '{{receipt_link}}';
   if (code.includes('INVOICE')) return '{{invoice_link}}';
+  if (code.includes('DEAL')) return '{{deal_link}}';
   return '{{action_url}}';
 }
 
@@ -98,6 +114,7 @@ function getActionLabel(code: string) {
   if (code.includes('CONTRACT')) return 'Xem hợp đồng';
   if (code.includes('INVOICE_PAID')) return 'Xem phiếu thu';
   if (code.includes('INVOICE')) return 'Xem hóa đơn';
+  if (code.includes('DEAL')) return 'Xem deal';
   return 'Xem chi tiết';
 }
 
@@ -143,11 +160,11 @@ ${detailsRows}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="vertical-align:middle;">
-                    <div style="font-size:20px;font-weight:900;color:#1f2937;line-height:1.2;">Ong Vàng Workspace</div>
-                    <div style="font-size:12px;font-weight:700;color:#92400e;margin-top:4px;line-height:1.4;">Digital Business Platform</div>
+                    <div style="font-size:20px;font-weight:900;color:#1f2937;line-height:1.2;">{{company_name}}</div>
+                    <div style="font-size:12px;font-weight:700;color:#92400e;margin-top:4px;line-height:1.4;">{{company_workspace_name}}</div>
                   </td>
-                  <td align="right" style="vertical-align:middle;width:130px;">
-                    <img src="https://ongvang.com.vn/images/logo.png" alt="Ong Vàng" style="display:inline-block;max-width:118px;max-height:46px;width:auto;height:auto;object-fit:contain;">
+                  <td align="center" style="padding-bottom:18px;">
+                    <img src="{{company_logo_url}}" alt="{{company_name}}" style="display:inline-block;max-width:118px;max-height:46px;width:auto;height:auto;object-fit:contain;">
                   </td>
                 </tr>
               </table>
@@ -173,7 +190,7 @@ ${detailsBlock}
           </tr>
           <tr>
             <td style="padding:14px 20px;background:#f9fafb;border-top:1px solid #e5e7eb;">
-              <div style="font-size:11px;color:#4b5563;line-height:1.65;"><strong style="color:#111827;">Công ty Truyền thông Đào tạo Du lịch Ong Vàng</strong><br>Ong Vàng Marketing &amp; Training<br>MST: 3401252747<br>Số 2 Trương Vĩnh Ký, Phường Phan Thiết, Tỉnh Lâm Đồng, Việt Nam<br>0918 320 331 | info@ovc.vn | ongvang.com.vn</div>
+              <div style="font-size:11px;color:#4b5563;line-height:1.65;"><strong style="color:#111827;">{{company_name}}</strong><br>{{company_workspace_name}}<br>MST: {{company_tax_code}}<br>{{company_address}}<br>{{company_hotline}} | {{company_email}} | {{company_website}}</div>
             </td>
           </tr>
         </table>

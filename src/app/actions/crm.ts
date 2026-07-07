@@ -52,6 +52,70 @@ export async function getDeals() {
   }
 }
 
+export async function getDealsPipeline() {
+  const session = await requireCrmSession();
+  
+  try {
+    // Ensure default stages exist
+    const stageCount = await db.dealStage.count({
+      where: { organizationId: session.organizationId }
+    });
+    
+    if (stageCount === 0) {
+      await db.dealStage.createMany({
+        data: [
+          { organizationId: session.organizationId, name: "Mới (Lead)", probability: 10, color: "#94A3B8", order: 1, isDefault: true },
+          { organizationId: session.organizationId, name: "Tiếp cận (Contacted)", probability: 30, color: "#3B82F6", order: 2, isDefault: false },
+          { organizationId: session.organizationId, name: "Đề xuất (Proposal)", probability: 50, color: "#F59E0B", order: 3, isDefault: false },
+          { organizationId: session.organizationId, name: "Thương lượng", probability: 80, color: "#8B5CF6", order: 4, isDefault: false },
+          { organizationId: session.organizationId, name: "Chốt (Won)", probability: 100, color: "#10B981", order: 5, isDefault: false },
+        ]
+      });
+    }
+
+    const stages = await db.dealStage.findMany({
+      where: { organizationId: session.organizationId },
+      orderBy: { order: 'asc' }
+    });
+
+    const deals = await db.deal.findMany({
+      where: { organizationId: session.organizationId },
+      orderBy: { createdAt: "desc" },
+      include: {
+        company: true,
+        contact: true,
+        stage: true,
+        assignee: true,
+        serviceOptions: {
+          select: { status: true }
+        }
+      }
+    });
+    
+    // Auto-migrate old deals that don't have stageId to the first stage
+    const unassignedDeals = deals.filter(d => !d.stageId);
+    const firstStage = stages[0];
+    if (unassignedDeals.length > 0 && firstStage) {
+      const firstStageId = firstStage.id;
+      await db.deal.updateMany({
+        where: { id: { in: unassignedDeals.map(d => d.id) } },
+        data: { stageId: firstStageId }
+      });
+      for (const d of deals) {
+        if (!d.stageId) {
+          d.stageId = firstStageId;
+          d.stage = firstStage as any;
+        }
+      }
+    }
+
+    return toPlain({ deals, stages });
+  } catch (error) {
+    console.error("Error fetching deals pipeline:", error);
+    throw new Error("Failed to fetch deals pipeline");
+  }
+}
+
 export async function getContactById(id: string) {
   const session = await requireCrmSession();
 
@@ -191,12 +255,13 @@ export async function getContactAssignees() {
 
     return toPlain(
       members
-        .filter((member) => member.user.isActive)
+        .filter((member) => member.user.isActive && ["SUPER_ADMIN", "ADMIN", "MANAGER", "STAFF"].includes(member.user.role))
         .map((member) => ({
           id: member.user.id,
           name: member.user.name,
           email: member.user.email,
           role: member.role,
+          isCurrentUser: member.user.id === session.user.id,
         }))
     );
   } catch (error) {

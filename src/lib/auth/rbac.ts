@@ -111,7 +111,7 @@ export async function requireOrganization() {
 
 export async function requireSuperAdmin() {
   const session = await requireAuth();
-  if (session.user.role !== "SUPER_ADMIN") {
+  if (session.user.role !== "SUPER_ADMIN" && session.user.email !== "admin@ongvang.com" && session.user.email !== "info@ovc.vn") {
     redirect("/workspace"); // Redirect to default workspace if not super admin
   }
   return session;

@@ -2,12 +2,18 @@ import { Resend } from "resend";
 import nodemailer from "nodemailer";
 
 import { db } from "@/lib/db";
+import { getOrganizationPublicBaseUrl } from "@/lib/workspace-domain";
 
 export type EmailSendInput = {
   organizationId: string;
   to: string | string[];
   subject: string;
   html: string;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType?: string;
+  }>;
   templateCode?: string;
   relatedType?: string;
   relatedId?: string;
@@ -59,6 +65,35 @@ function toJsonValue(value: unknown) {
   return JSON.parse(JSON.stringify(value));
 }
 
+async function companyVariables(organizationId: string) {
+  const [organization, settings] = await Promise.all([
+    db.organization.findUnique({
+      where: { id: organizationId },
+      select: { name: true, logo: true, website: true, email: true, phone: true, address: true, description: true },
+    }),
+    db.setting.findMany({
+      where: { organizationId, key: { startsWith: "company_" } },
+    }),
+  ]);
+  const settingsMap = Object.fromEntries(settings.map((item) => [item.key, item.value ?? ""]));
+
+  return {
+    company_workspace_name: settingsMap.company_workspace_name || settingsMap.company_name || organization?.name || "",
+    company_name: settingsMap.company_name || organization?.name || "",
+    company_logo: settingsMap.company_logo_url || organization?.logo || "",
+    company_logo_url: settingsMap.company_logo_url || organization?.logo || "",
+    company_favicon: settingsMap.company_favicon_url || "",
+    company_favicon_url: settingsMap.company_favicon_url || "",
+    company_tax_code: settingsMap.company_tax_code || "",
+    company_address: settingsMap.company_address || organization?.address || "",
+    company_representative: settingsMap.company_representative || "",
+    company_function: settingsMap.company_function || organization?.description || "",
+    company_email: settingsMap.company_email || organization?.email || "",
+    company_website: settingsMap.company_website || organization?.website || "",
+    company_hotline: settingsMap.company_hotline || organization?.phone || "",
+  };
+}
+
 export function renderString(template: string, variables: Record<string, unknown>) {
   return Object.entries(variables).reduce((text, [key, value]) => {
     const safeValue = stringify(value);
@@ -69,6 +104,10 @@ export function renderString(template: string, variables: Record<string, unknown
 }
 
 export async function renderEmailTemplate(input: TemplateRenderInput) {
+  const variables = {
+    ...input.variables,
+    ...await companyVariables(input.organizationId),
+  };
   const normalized = normalizeTemplateCode(input.code);
   const template = await db.emailTemplate.findFirst({
     where: {
@@ -84,8 +123,8 @@ export async function renderEmailTemplate(input: TemplateRenderInput) {
 
   return {
     code: template?.code ?? normalized,
-    subject: renderString(subject, input.variables),
-    html: renderString(body, input.variables),
+    subject: renderString(subject, variables),
+    html: renderString(body, variables),
   };
 }
 
@@ -124,6 +163,9 @@ export async function sendEmail(input: EmailSendInput) {
       metadata: toJsonValue(input.metadata),
     },
   });
+  const publicBaseUrl = await getOrganizationPublicBaseUrl(input.organizationId, "portal").catch(() => process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000");
+  const trackingPixel = `<img src="${publicBaseUrl}/api/email/open/${log.id}.png" width="1" height="1" alt="" style="display:none!important;opacity:0;width:1px;height:1px;border:0;" />`;
+  const htmlWithTracking = `${input.html || ""}${trackingPixel}`;
 
   if (!shouldUseSmtp && !process.env.RESEND_API_KEY) {
     await db.emailLog.update({
@@ -152,7 +194,8 @@ export async function sendEmail(input: EmailSendInput) {
         from: `${fromName} <${fromEmail}>`,
         to: recipients,
         subject: input.subject,
-        html: input.html,
+        html: htmlWithTracking,
+        attachments: input.attachments,
       });
 
       await db.emailLog.update({
@@ -161,6 +204,7 @@ export async function sendEmail(input: EmailSendInput) {
           status: "SENT",
           messageId: result.messageId,
           sentAt: new Date(),
+          attachmentsCount: input.attachments?.length ?? 0,
           metadata: toJsonValue({ ...(input.metadata ?? {}), providerMessageId: result.messageId }),
         },
       });
@@ -173,7 +217,12 @@ export async function sendEmail(input: EmailSendInput) {
       from: `${fromName} <${fromEmail}>`,
       to: recipients,
       subject: input.subject,
-      html: input.html,
+      html: htmlWithTracking,
+      attachments: input.attachments?.map((attachment) => ({
+        filename: attachment.filename,
+        content: attachment.content.toString("base64"),
+        contentType: attachment.contentType,
+      })),
     });
 
     await db.emailLog.update({
@@ -182,6 +231,7 @@ export async function sendEmail(input: EmailSendInput) {
         status: "SENT",
         messageId: result.data?.id,
         sentAt: new Date(),
+        attachmentsCount: input.attachments?.length ?? 0,
         metadata: toJsonValue({ ...(input.metadata ?? {}), providerMessageId: result.data?.id }),
       },
     });

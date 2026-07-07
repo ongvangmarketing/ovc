@@ -24,12 +24,15 @@ import {
   adminRevokeSignature,
   adminSignDocument,
   deleteInvoice,
+  getDocumentEmailDraft,
   recordPayment,
   sendDocumentEmail,
+  type FinanceEmailSendPayload,
 } from "@/app/actions/finance-crud";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { getPaymentChannel, getVietQrUrl, normalizePaymentChannelKeys } from "@/lib/finance/payment-channels";
 import { AdminSignModal } from "./admin-sign-modal";
+import { EmailComposerModal, type FinanceEmailDraft } from "./email-composer-modal";
 import { InvoicePaymentModal } from "./invoice-payment-modal";
 import {
   ActivityTimeline,
@@ -46,6 +49,7 @@ type PaymentPayload = {
   reference?: string;
   notes?: string;
   paidAt: string;
+  sendCustomerEmail: boolean;
 };
 
 type InvoiceDetailData = {
@@ -70,6 +74,7 @@ type InvoiceDetailData = {
   token?: string | null;
   adminSignedAt?: string | Date | null;
   signedAt?: string | Date | null;
+  customerSignatureRequired?: boolean;
   createdAt: string | Date;
   activityLogs?: FinanceActivity[];
   files?: FinanceAttachment[];
@@ -188,9 +193,10 @@ function ActionButton({
   disabled?: boolean;
   title?: string;
 }) {
-  const className = `quote-detail-action ${danger ? "quote-detail-action-danger" : ""} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`;
-  if (href && !disabled) return <Link href={href} className={className} title={title}>{icon}{label}</Link>;
-  return <button type="button" onClick={onClick} className={className} disabled={disabled} title={title}>{icon}{label}</button>;
+  const isDisabled = disabled || (href !== undefined && !href);
+  const className = `quote-detail-action ${danger ? "quote-detail-action-danger" : ""} ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`;
+  if (href && !isDisabled) return <Link href={href} className={className} title={title}>{icon}{label}</Link>;
+  return <button type="button" onClick={onClick} className={className} disabled={isDisabled} title={title}>{icon}{label}</button>;
 }
 
 export function InvoiceDetailView({ data }: { data: InvoiceDetailData }) {
@@ -204,6 +210,9 @@ export function InvoiceDetailView({ data }: { data: InvoiceDetailData }) {
   const [isCustomerRevokeModalOpen, setIsCustomerRevokeModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [emailDraft, setEmailDraft] = useState<FinanceEmailDraft | null>(null);
+  const [isEmailDraftLoading, setIsEmailDraftLoading] = useState(false);
 
   const publicUrl = data.token ? `/document/${data.token}` : "";
   const fullPublicUrl = data.token && typeof window !== "undefined" ? `${window.location.origin}${publicUrl}` : "";
@@ -214,8 +223,9 @@ export function InvoiceDetailView({ data }: { data: InvoiceDetailData }) {
   const paymentContent = `Thanh toan ${data.number}`;
   const channelKeys = normalizePaymentChannelKeys(data.paymentChannels);
   const hasCustomerCancel = Boolean(data.activityLogs?.some((log) => log.action === "customer_signature_revoked")) || data.status === "CANCELLED";
-  const hasCustomerSignOrCancel = Boolean(data.signedAt) || hasCustomerCancel;
-  const customerDecisionLabel = data.signedAt ? "Ký kết" : "Hủy";
+  const customerSignatureRequired = data.customerSignatureRequired !== false;
+  const hasCustomerSignOrCancel = !customerSignatureRequired || Boolean(data.signedAt) || hasCustomerCancel;
+  const customerDecisionLabel = customerSignatureRequired ? (data.signedAt ? "Ký kết" : "Hủy") : "Không cần ký";
 
   const steps = useMemo(
     () => [
@@ -256,11 +266,20 @@ export function InvoiceDetailView({ data }: { data: InvoiceDetailData }) {
   });
 
   const paymentMutation = useMutation({
-    mutationFn: (paymentData: PaymentPayload) => recordPayment(data.id, paymentData),
-    onSuccess: () => {
+    mutationFn: (paymentData: PaymentPayload) =>
+      recordPayment(
+        data.id,
+        paymentData.amount,
+        paymentData.method,
+        paymentData.notes,
+        paymentData.paidAt,
+        paymentData.sendCustomerEmail
+      ),
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
       setIsPaymentModalOpen(false);
-      router.refresh();
+      router.push(`/workspace/finance/payments/${result.paymentId}`);
     },
   });
 
@@ -291,9 +310,24 @@ export function InvoiceDetailView({ data }: { data: InvoiceDetailData }) {
     },
   });
 
+  const openSendModal = async () => {
+    setIsSendModalOpen(true);
+    setEmailDraft(null);
+    setIsEmailDraftLoading(true);
+    try {
+      setEmailDraft(await getDocumentEmailDraft("invoice", data.id, window.location.origin));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không thể chuẩn bị email hóa đơn.");
+      setIsSendModalOpen(false);
+    } finally {
+      setIsEmailDraftLoading(false);
+    }
+  };
+
   const sendMutation = useMutation({
-    mutationFn: () => sendDocumentEmail("invoice", data.id, data.contact?.email || ""),
+    mutationFn: (payload: FinanceEmailSendPayload) => sendDocumentEmail("invoice", data.id, { ...payload, publicBaseUrl: window.location.origin }),
     onSuccess: () => {
+      setIsSendModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ["invoices"] });
       router.refresh();
     },
@@ -322,7 +356,7 @@ export function InvoiceDetailView({ data }: { data: InvoiceDetailData }) {
           icon: <ShieldCheck className="h-4 w-4" />,
           onClick: () => setIsSignModalOpen(true),
         },
-    ...(data.signedAt
+    ...(customerSignatureRequired && data.signedAt
       ? [
           {
             label: "Hủy ký khách",
@@ -334,8 +368,8 @@ export function InvoiceDetailView({ data }: { data: InvoiceDetailData }) {
     {
       label: sendMutation.isPending ? "Đang gửi" : "Gửi hóa đơn",
       icon: <Send className="h-4 w-4" />,
-      onClick: () => sendMutation.mutate(),
-      disabled: !data.adminSignedAt || sendMutation.isPending,
+      onClick: openSendModal,
+      disabled: !data.adminSignedAt || sendMutation.isPending || isEmailDraftLoading,
       title: !data.adminSignedAt ? "Admin cần ký hóa đơn trước khi gửi email." : undefined,
     },
     { label: "Ghi nhận thanh toán", icon: <Banknote className="h-4 w-4" />, onClick: () => setIsPaymentModalOpen(true) },
@@ -429,32 +463,76 @@ export function InvoiceDetailView({ data }: { data: InvoiceDetailData }) {
             </div>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Nội dung công việc</h2>
-            <div className="quote-detail-table contract-detail-table">
-              <div className="quote-detail-table-head">
-                <span>#</span><span>Sản phẩm / Dịch vụ</span><span>SL</span><span>Đơn giá</span><span>Thành tiền</span>
+          <section className="quote-panel">
+            <div className="quote-panel-header">
+              <h2>Nội dung công việc</h2>
+              <span>Danh sách các hạng mục dịch vụ.</span>
+            </div>
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mt-4">
+              <div className="overflow-x-auto w-full">
+                <table className="w-full text-sm text-left border-collapse">
+                  <thead className="bg-[#ee8f15] text-white">
+                    <tr>
+                      <th className="px-4 py-3 font-medium border-r border-[#fa9f2a] min-w-[280px]">Sản phẩm / Dịch vụ</th>
+                      <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#fa9f2a]">SL</th>
+                      <th className="px-4 py-3 font-medium text-right w-36 border-r border-[#fa9f2a]">Đơn giá</th>
+                      <th className="px-4 py-3 font-medium text-right w-40">Thành tiền</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {data.items?.length ? (
+                      data.items.map((item, index) => (
+                        <tr key={item.id} className="bg-white text-slate-700 transition-colors hover:bg-slate-50 group">
+                          <td className="px-4 py-5 align-top border-r border-slate-100">
+                            <div className="font-medium uppercase text-slate-800 mb-2">
+                              {String(index + 1).padStart(2, '0')} {item.name}
+                            </div>
+                            {item.description && <div className="text-slate-500 mt-1 whitespace-pre-wrap text-[14px]" dangerouslySetInnerHTML={{ __html: item.description }} />}
+                          </td>
+                          <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                            {asNumber(item.quantity)}
+                          </td>
+                          <td className="px-4 py-5 text-right align-top border-r border-slate-100">
+                            {formatMoney(item.unitPrice, data.currency)}
+                          </td>
+                          <td className="px-4 py-5 text-right align-top font-medium">
+                            {formatMoney(item.total, data.currency)}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-8 text-center text-slate-500">Chưa có hạng mục nào.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-              {data.items?.length ? data.items.map((item, index) => (
-                <div key={item.id} className="quote-detail-table-row">
-                  <span>{index + 1}</span>
-                  <div><strong>{item.name}</strong>{item.description ? <p>{plainDescription(item.description)}</p> : null}</div>
-                  <span>{asNumber(item.quantity)}</span>
-                  <span>{formatMoney(item.unitPrice, data.currency)}</span>
-                  <strong>{formatMoney(item.total, data.currency)}</strong>
-                </div>
-              )) : <div className="quote-detail-empty">Chưa có hạng mục nào.</div>}
             </div>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Điều khoản</h2>
-            <div className="contract-terms">{plainDescription(data.terms) || "Chưa có điều khoản."}</div>
+          <section className="quote-panel">
+            <div className="quote-panel-header">
+              <h2>Điều khoản</h2>
+              <span>Các thông tin gửi kèm cho khách hàng.</span>
+            </div>
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mt-4">
+              <div className="text-[14px] text-slate-600 leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: data.terms || "Chưa có điều khoản." }} />
+            </div>
           </section>
 
-          <nav className="quote-detail-tabs">
+          <nav className="flex gap-4 border-b border-slate-200 mt-6 mb-4">
             {detailTabs.map((tab) => (
-              <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={activeTab === tab.id ? "active" : ""}>
+              <button 
+                key={tab.id} 
+                type="button" 
+                onClick={() => setActiveTab(tab.id)} 
+                className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
+                  activeTab === tab.id 
+                    ? "border-orange-500 text-orange-600" 
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
+              >
                 {tab.label}
               </button>
             ))}
@@ -524,7 +602,7 @@ export function InvoiceDetailView({ data }: { data: InvoiceDetailData }) {
               <div><span>Hạn thanh toán</span><strong>{formatDate(data.dueDate)}</strong></div>
               <div><span>Trạng thái</span><strong>{statusLabel[data.status] || data.status}</strong></div>
               <div><span>Admin ký</span><strong>{formatDateTime(data.adminSignedAt)}</strong></div>
-              <div><span>Khách ký</span><strong>{formatDateTime(data.signedAt)}</strong></div>
+              <div><span>Khách ký</span><strong>{customerSignatureRequired ? formatDateTime(data.signedAt) : "Không cần ký"}</strong></div>
             </div>
           </section>
 
@@ -566,7 +644,7 @@ export function InvoiceDetailView({ data }: { data: InvoiceDetailData }) {
                   title={item.title}
                 />
               ))}
-              <ActionButton icon={<Eye className="h-4 w-4" />} label="Xem" href={publicUrl || "#"} />
+              <ActionButton icon={<Eye className="h-4 w-4" />} label="Xem" href={publicUrl} title={!publicUrl ? "Hóa đơn chưa có public link." : undefined} />
               <ActionButton icon={<Trash2 className="h-4 w-4" />} label="Xóa" onClick={() => setIsDeleteModalOpen(true)} danger />
             </div>
           </section>
@@ -587,6 +665,16 @@ export function InvoiceDetailView({ data }: { data: InvoiceDetailData }) {
         onConfirm={(signature) => signMutation.mutate(signature)}
         title={`Ký duyệt Hóa đơn ${data.number}`}
         isPending={signMutation.isPending}
+      />
+
+      <EmailComposerModal
+        isOpen={isSendModalOpen}
+        onClose={() => setIsSendModalOpen(false)}
+        onSend={(payload) => sendMutation.mutate(payload)}
+        title={`Gửi hóa đơn ${data.number}`}
+        draft={emailDraft}
+        isLoading={isEmailDraftLoading}
+        isPending={sendMutation.isPending}
       />
 
       <ConfirmModal

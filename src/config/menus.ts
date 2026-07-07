@@ -1,6 +1,6 @@
 import { PERMISSIONS, Permission } from "./permissions";
 import { UserRole } from "@prisma/client";
-import { LayoutDashboard, Users, FileText, Settings, BookOpen, GraduationCap, Building } from "lucide-react";
+import { LayoutDashboard, Users, FileText, Settings, BookOpen, GraduationCap, Building, Globe } from "lucide-react";
 
 export type MenuItem = {
   id: string;
@@ -38,6 +38,13 @@ export const WORKSPACE_MENU: MenuItem[] = [
     icon: BookOpen,
     href: "/workspace/education",
     requiredPermissions: [PERMISSIONS.EDUCATION_READ],
+  },
+  {
+    id: "website",
+    label: "Web Builder",
+    icon: Globe,
+    href: "/workspace/website",
+    requiredPermissions: [PERMISSIONS.WEBSITE_READ],
   },
   {
     id: "settings",

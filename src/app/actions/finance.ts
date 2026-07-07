@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { revalidatePath } from "next/cache";
 import { sendSignedDocumentEmails } from "@/lib/email/flows";
+import { notifyFinanceDocumentEvent } from "@/lib/notifications/finance";
 
 function toClientData<T>(data: T): T {
   return JSON.parse(JSON.stringify(data)) as T;
@@ -53,7 +54,10 @@ export async function getInvoices() {
   const session = await requireAuth();
   
   const invoices = await db.invoice.findMany({
-    where: { organizationId: session.organizationId },
+    where: {
+      organizationId: session.organizationId,
+      number: { not: { startsWith: "HP-" } },
+    },
     include: {
       contact: { include: { company: true } },
       project: true,
@@ -239,16 +243,23 @@ export async function convertContractToInvoice(contractId: string) {
       number: `INV-${Date.now()}`,
       title: `Hóa đơn Hợp đồng: ${contract.number}`,
       contactId: contract.contactId,
+      companyId: contract.companyId,
+      dealId: contract.dealId,
+      assigneeId: contract.assigneeId,
       contractId: contract.id,
       creatorId: session.user.id,
       currency: contract.currency,
       subtotal: contract.total, // For simplicity
       total: contract.total,
       amountDue: contract.total,
+      signedAt: contract.signedAt,
+      signatureId: contract.signatureId,
+      customerSignatureRequired: contract.customerSignatureRequired,
       items: {
         create: contract.items.map(item => ({
           name: item.name,
           description: item.description,
+          unit: item.unit,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           total: item.total,
@@ -267,7 +278,13 @@ export async function convertContractToInvoice(contractId: string) {
 /**
  * Khách hàng ký duyệt tài liệu (Public)
  */
-export async function signDocument(token: string, type: "quotation" | "contract" | "invoice", signatureData: string, ip: string, userAgent: string) {
+export async function signDocument(
+  token: string,
+  type: "quotation" | "contract" | "invoice",
+  signatureData: string | { signerName: string; signerEmail?: string; signerPhone?: string; signatureData: string },
+  ip: string,
+  userAgent: string,
+) {
   const includeData = type === "contract" ? { paymentInstallments: true } : undefined;
 
   const doc = await (db as any)[type].findUnique({
@@ -277,11 +294,23 @@ export async function signDocument(token: string, type: "quotation" | "contract"
 
   if (!doc) throw new Error("Document not found");
 
+  const payload = typeof signatureData === "string"
+    ? { signerName: "Khách hàng", signerEmail: "", signerPhone: "", signatureData }
+    : signatureData;
+
+  const signerName = payload.signerName?.trim() || "Khách hàng";
+  const signerEmail = payload.signerEmail?.trim() || null;
+  const signerPhone = payload.signerPhone?.trim() || "";
+  const finalSignatureData = signerPhone
+    ? JSON.stringify({ signatureData: payload.signatureData, signerPhone })
+    : payload.signatureData;
+
   const signature = await db.documentSignature.create({
     data: {
       organizationId: doc.organizationId,
-      signerName: "Khách hàng", // Should be captured from input
-      signatureData,
+      signerName,
+      signerEmail,
+      signatureData: finalSignatureData,
       ipAddress: ip,
       userAgent
     }
@@ -300,11 +329,26 @@ export async function signDocument(token: string, type: "quotation" | "contract"
     data: updateData
   });
 
-  await sendSignedDocumentEmails({
+  await notifyFinanceDocumentEvent({
     organizationId: doc.organizationId,
     type,
     id: doc.id,
-  });
+    number: doc.number,
+    customerName: signerName,
+    event: "signed",
+    metadata: { signatureId: signature.id, signerEmail, signerPhone },
+    dedupeMinutes: 60,
+  }).catch((error) => console.error("Không thể tạo thông báo khách ký tài liệu", error));
+
+  try {
+    await sendSignedDocumentEmails({
+      organizationId: doc.organizationId,
+      type,
+      id: doc.id,
+    });
+  } catch (emailError) {
+    console.error("Không thể gửi email sau khi khách ký tài liệu", emailError);
+  }
 
   if (type === "contract" && doc.paymentInstallments && doc.paymentInstallments.length > 0) {
     for (const [index, installment] of doc.paymentInstallments.entries()) {
@@ -329,6 +373,7 @@ export async function signDocument(token: string, type: "quotation" | "contract"
               {
                 name: installment.name,
                 description: `Thanh toán đợt ${index + 1} theo hợp đồng ${doc.number}`,
+                unit: "Đợt",
                 quantity: 1,
                 unitPrice: installment.amount,
                 total: installment.amount,

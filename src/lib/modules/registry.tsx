@@ -1,8 +1,6 @@
 import type { ReactNode } from "react";
 import {
   BarChart3,
-  CalendarDays,
-  CheckSquare,
   CircleDollarSign,
   Folder,
   GraduationCap,
@@ -10,6 +8,8 @@ import {
   Megaphone,
   Settings,
   Users,
+  Inbox,
+  Globe,
 } from "lucide-react";
 
 export type PlatformModuleCode =
@@ -23,17 +23,29 @@ export type PlatformModuleCode =
   | "REPORTS"
   | "SETTINGS"
   | "PORTAL"
+  | "WEBSITE"
   | "WEBSITE_BUILDER"
   | "LANDING_PAGES"
   | "AUTOMATION"
   | "AI_ASSISTANT"
-  | "SUPPORT";
+  | "SUPPORT"
+  | "HOTEL_BOOKING"
+  | "SERVICES"
+  | "LEAD_CENTER";
+
+export type ModuleNavChildAction = {
+  icon: ReactNode;
+  href: string;
+  title?: string;
+};
 
 export type ModuleNavChild = {
   label: string;
   href: string;
   feature?: string;
   available?: boolean;
+  requiredModule?: PlatformModuleCode;
+  action?: ModuleNavChildAction;
 };
 
 export type ModuleNavItem = {
@@ -69,23 +81,53 @@ export const moduleDefinitions: PlatformModuleDefinition[] = [
     sortOrder: 10,
   },
   {
+    code: "LEAD_CENTER",
+    name: "Trung tâm Lead",
+    version: "1.0.0",
+    category: "MARKETING",
+    description: "Tiếp nhận, làm sạch và phân bổ nguồn khách hàng tiềm năng.",
+    icon: "inbox",
+    dependencies: [],
+    sortOrder: 15,
+    nav: {
+      code: "LEAD_CENTER",
+      label: "Trung tâm Lead",
+      href: "/workspace/leads",
+      icon: <Inbox className="h-5 w-5" />,
+      children: [
+        { label: "Tổng quan", href: "/workspace/leads/dashboard", available: true },
+        { label: "Danh sách Lead", href: "/workspace/leads", available: true },
+        { label: "Trình tạo Form", href: "/workspace/leads/forms", available: true },
+        { label: "Webhooks", href: "/workspace/leads/webhooks", available: true },
+        { label: "Nguồn Lead", href: "/workspace/leads/sources", available: true },
+        { label: "Cấu hình", href: "/workspace/leads/settings", available: true },
+      ],
+    },
+  },
+  {
     code: "CRM",
-    name: "Khách hàng",
+    name: "CRM",
     version: "1.0.0",
     category: "CRM",
-    description: "Quản lý khách hàng, công ty, cá nhân, liên hệ và cơ hội.",
+    description: "Quản lý khách hàng, lead, cơ hội bán hàng và pipeline kinh doanh.",
     icon: "users",
     dependencies: [],
     sortOrder: 20,
     nav: {
       code: "CRM",
-      label: "Khách hàng",
-      href: "/workspace/customers",
+      label: "CRM",
+      href: "/workspace/crm",
       icon: <Users className="h-5 w-5" />,
       children: [
+        { label: "Tổng quan", href: "/workspace/crm", available: true },
         { label: "Khách hàng", href: "/workspace/crm/contacts", available: true },
-        { label: "Công ty", href: "/workspace/crm/companies" },
-        { label: "Cá nhân", href: "/workspace/customers" },
+        { 
+          label: "Cơ hội", 
+          href: "/workspace/crm/deals", 
+          available: true,
+          action: { icon: <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>, href: "/workspace/crm/deals/new", title: "Tạo Cơ hội mới" }
+        },
+        { label: "Cấu hình", href: "/workspace/crm/settings", available: true },
       ],
     },
   },
@@ -105,12 +147,9 @@ export const moduleDefinitions: PlatformModuleDefinition[] = [
       icon: <Folder className="h-5 w-5" />,
       children: [
         { label: "Tổng quan", href: "/workspace/projects", available: true },
-        { label: "Nhiệm vụ", href: "/workspace/projects/tasks", available: true },
-        { label: "Kanban", href: "/workspace/projects/kanban" },
-        { label: "Timeline", href: "/workspace/projects/timeline" },
-        { label: "Calendar", href: "/workspace/projects/calendar" },
-        { label: "Files", href: "/workspace/projects/files" },
-        { label: "Báo cáo", href: "/workspace/projects/reports" },
+        { label: "Công việc", href: "/workspace/tasks", available: true },
+        { label: "Timeline", href: "/workspace/timeline", available: true },
+        { label: "Calendar", href: "/workspace/calendar", available: true },
       ],
     },
   },
@@ -126,15 +165,15 @@ export const moduleDefinitions: PlatformModuleDefinition[] = [
     nav: {
       code: "FINANCE",
       label: "Tài chính",
-      href: "/workspace/finance",
+      href: "/workspace/finance/invoices",
       icon: <CircleDollarSign className="h-5 w-5" />,
       children: [
         { label: "Báo giá", href: "/workspace/finance/quotations", available: true },
         { label: "Hợp đồng", href: "/workspace/finance/contracts", available: true },
         { label: "Hóa đơn", href: "/workspace/finance/invoices", available: true },
         { label: "Thanh toán", href: "/workspace/finance/payments", available: true },
-        { label: "Học phí", href: "/workspace/finance/tuition" },
-        { label: "Chi phí", href: "/workspace/finance/expenses" },
+        { label: "Học phí", href: "/workspace/training/tuition", available: true, requiredModule: "EDUCATION" },
+        { label: "Cấu hình", href: "/workspace/finance/settings", available: true },
       ],
     },
   },
@@ -153,12 +192,14 @@ export const moduleDefinitions: PlatformModuleDefinition[] = [
       href: "/workspace/training",
       icon: <GraduationCap className="h-5 w-5" />,
       children: [
-        { label: "Học viên", href: "/workspace/training/students" },
+        { label: "Học viên", href: "/workspace/training/students", available: true },
+        { label: "Học viên tiềm năng", href: "/workspace/training/potential-students", available: true },
         { label: "Khóa học", href: "/workspace/courses", available: true },
-        { label: "Lớp học", href: "/workspace/training/classes" },
-        { label: "Giảng viên", href: "/workspace/training/instructors" },
-        { label: "Lịch học", href: "/workspace/training/calendar" },
-        { label: "Chứng chỉ", href: "/workspace/training/certificates" },
+        { label: "Lớp học", href: "/workspace/training/classes", available: true },
+        { label: "Giảng viên", href: "/workspace/training/instructors", available: true },
+        { label: "Lịch học", href: "/workspace/training/calendar", available: true },
+        { label: "Học phí", href: "/workspace/training/tuition", available: true },
+        { label: "Chứng chỉ", href: "/workspace/training/certificates", available: true },
       ],
     },
   },
@@ -235,6 +276,26 @@ export const moduleDefinitions: PlatformModuleDefinition[] = [
     sortOrder: 110,
   },
   {
+    code: "WEBSITE",
+    name: "Web Builder",
+    version: "1.0.0",
+    category: "WEBSITE",
+    description: "Kéo thả landing page, website với Business Blocks.",
+    icon: "globe",
+    dependencies: [],
+    sortOrder: 115,
+    nav: {
+      code: "WEBSITE",
+      label: "Web Builder",
+      href: "/workspace/website",
+      icon: <Globe className="h-5 w-5" />,
+      children: [
+        { label: "Trang", href: "/workspace/website/pages", available: true },
+        { label: "Cài đặt", href: "/workspace/website/settings", available: true },
+      ],
+    },
+  },
+  {
     code: "WEBSITE_BUILDER",
     name: "Website Builder",
     version: "1.0.0",
@@ -296,17 +357,34 @@ export const moduleDefinitions: PlatformModuleDefinition[] = [
     nav: {
       code: "SETTINGS",
       label: "Cài đặt",
-      href: "/workspace/settings",
+      href: "/workspace/settings/organization",
       icon: <Settings className="h-5 w-5" />,
+    },
+  },
+  {
+    code: "SERVICES",
+    name: "Dịch vụ (Catalog)",
+    version: "1.0.0",
+    category: "CRM",
+    description: "Quản lý danh mục dịch vụ, tùy chọn và cấu hình báo giá.",
+    icon: "layers-3",
+    dependencies: ["CRM"],
+    sortOrder: 25,
+    nav: {
+      code: "SERVICES",
+      label: "Dịch vụ",
+      href: "/workspace/services",
+      icon: <Folder className="h-5 w-5" />,
+      children: [
+        { label: "Danh mục", href: "/workspace/services", available: true },
+        { label: "Thêm mới", href: "/workspace/services/new", available: true },
+      ],
     },
   },
 ];
 
 export const workNavigation: ModuleNavItem[] = [
   { code: "WORKSPACE", label: "Tổng quan", href: "/workspace/dashboard", icon: <LayoutGrid className="h-5 w-5" /> },
-  { code: "WORKSPACE", label: "Công việc", href: "/workspace/tasks", icon: <CheckSquare className="h-5 w-5" /> },
-  { code: "WORKSPACE", label: "Timeline", href: "/workspace/timeline", icon: <BarChart3 className="h-5 w-5" /> },
-  { code: "WORKSPACE", label: "Calendar", href: "/workspace/calendar", icon: <CalendarDays className="h-5 w-5" /> },
 ];
 
 export const legacyModuleAliases: Record<string, PlatformModuleCode> = {
@@ -327,6 +405,10 @@ export const legacyModuleAliases: Record<string, PlatformModuleCode> = {
   SETTING: "SETTINGS",
   WORKSPACE: "WORKSPACE",
   PORTAL: "PORTAL",
+  WEBSITE: "WEBSITE",
+  HOTEL_BOOKING: "HOTEL_BOOKING",
+  SERVICES: "SERVICES",
+  LEAD_CENTER: "LEAD_CENTER",
 };
 
 export const defaultModuleCodes: PlatformModuleCode[] = [
@@ -339,6 +421,9 @@ export const defaultModuleCodes: PlatformModuleCode[] = [
   "REPORTS",
   "SETTINGS",
   "PORTAL",
+  "HOTEL_BOOKING",
+  "SERVICES",
+  "WEBSITE",
 ];
 
 export function normalizeModuleCode(code: string): PlatformModuleCode | null {

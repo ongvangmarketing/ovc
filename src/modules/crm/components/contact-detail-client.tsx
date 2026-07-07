@@ -9,6 +9,7 @@ import {
   CircleAlert,
   Edit3,
   FilePlus2,
+  GraduationCap,
   Mail,
   Phone,
   ReceiptText,
@@ -281,7 +282,11 @@ function statusText(status?: string | null) {
 function companyTaxCode(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return "";
   const taxCode = (value as Record<string, unknown>).taxCode;
-  return typeof taxCode === "string" ? taxCode : "";
+  return typeof taxCode === "string" ? taxCode.trim() : "";
+}
+
+function companyContactLine(company: ContactDetail["company"]) {
+  return [company?.email, company?.phone].filter(Boolean).join(" · ") || "Chưa có email / điện thoại công ty";
 }
 
 function statusName(kind: "quotation" | "contract" | "invoice" | "payment", status?: string | null) {
@@ -425,7 +430,7 @@ function MiniList({
   );
 }
 
-export function ContactDetailClient({ contact }: { contact: ContactDetail }) {
+export function ContactDetailClient({ contact, hasProjectsModule = true }: { contact: ContactDetail, hasProjectsModule?: boolean }) {
   const [activeTab, setActiveTab] = useState("notes");
   const [activeFinanceTab, setActiveFinanceTab] = useState("deals");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -526,7 +531,15 @@ export function ContactDetailClient({ contact }: { contact: ContactDetail }) {
     });
   };
 
+  const createStudentHref = `/workspace/training/students/create?${new URLSearchParams({
+    name: personalName || name,
+    email: contact.email || "",
+    phone: contact.phone || contact.mobile || "",
+    note: `Tạo từ CRM: ${contact.type || "CONTACT"}${contact.source ? ` · Nguồn: ${contact.source}` : ""}`,
+  }).toString()}`;
+
   const actionItems = [
+    { label: "Tạo học viên", icon: <GraduationCap className="h-4 w-4" />, href: createStudentHref },
     { label: "Tạo báo giá", icon: <FilePlus2 className="h-4 w-4" />, href: `/workspace/finance/quotations/create?contactId=${contact.id}` },
     { label: "Tạo hóa đơn", icon: <ReceiptText className="h-4 w-4" />, href: `/workspace/finance/invoices/create?contactId=${contact.id}` },
     { label: "Tạo dự án", icon: <BriefcaseBusiness className="h-4 w-4" />, onClick: () => alert("Tính năng tạo dự án từ khách hàng đang phát triển.") },
@@ -638,7 +651,8 @@ export function ContactDetailClient({ contact }: { contact: ContactDetail }) {
         <div>
           <span>Công ty</span>
           <strong>{contact.company?.name || "Chưa gắn công ty"}</strong>
-          <p>{[contact.company?.email, contact.company?.phone, companyTaxCode(contact.company?.customFields) ? `MST: ${companyTaxCode(contact.company?.customFields)}` : ""].filter(Boolean).join(" · ") || "Chưa có thông tin công ty"}</p>
+          <p>{companyTaxCode(contact.company?.customFields) ? `MST: ${companyTaxCode(contact.company?.customFields)}` : "Chưa có mã số thuế"}</p>
+          <p>{companyContactLine(contact.company)}</p>
         </div>
         <div>
           <span>Địa chỉ</span>
@@ -688,24 +702,28 @@ export function ContactDetailClient({ contact }: { contact: ContactDetail }) {
             </section>
           </div>
 
-          <section className="quote-detail-card">
-            <ProjectSummaryList projects={projects} />
-          </section>
+          {hasProjectsModule && (
+            <>
+              <section className="quote-detail-card">
+                <ProjectSummaryList projects={projects} />
+              </section>
 
-          <section className="quote-detail-card">
-            <MiniList
-              framed={false}
-              title="Nhiệm vụ"
-              empty="Chưa có nhiệm vụ theo dõi."
-              items={tasks.slice(0, 6).map((item) => ({
-                id: item.id,
-                title: item.title,
-                sub: [item.project?.name, item.assignee?.name, item.dueDate ? `Hạn: ${formatDate(item.dueDate)}` : ""].filter(Boolean).join(" · "),
-                right: statusText(item.status),
-                href: item.project?.id ? `/workspace/projects/${item.project.id}` : undefined,
-              }))}
-            />
-          </section>
+              <section className="quote-detail-card">
+                <MiniList
+                  framed={false}
+                  title="Nhiệm vụ"
+                  empty="Chưa có nhiệm vụ theo dõi."
+                  items={tasks.slice(0, 6).map((item) => ({
+                    id: item.id,
+                    title: item.title,
+                    sub: [item.project?.name, item.assignee?.name, item.dueDate ? `Hạn: ${formatDate(item.dueDate)}` : ""].filter(Boolean).join(" · "),
+                    right: statusText(item.status),
+                    href: item.project?.id ? `/workspace/projects/${item.project.id}` : undefined,
+                  }))}
+                />
+              </section>
+            </>
+          )}
 
           <section className="quote-detail-card">
             <div className="mb-3 flex items-start justify-between gap-3">

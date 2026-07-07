@@ -1,10 +1,11 @@
-import { access, readFile, unlink } from "fs/promises";
+import { access, mkdir, readFile, unlink } from "fs/promises";
 import { constants } from "fs";
-import { tmpdir } from "os";
 import path from "path";
 import { spawn } from "child_process";
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+
+import { db } from "@/lib/db";
 
 const chromeCandidates = [
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -13,6 +14,7 @@ const chromeCandidates = [
   "/usr/bin/google-chrome",
   "/usr/bin/chromium",
   "/usr/bin/chromium-browser",
+  "/snap/bin/chromium",
 ];
 
 async function findChrome() {
@@ -38,6 +40,7 @@ function runChrome(chromePath: string, url: string, outputPath: string) {
       "--virtual-time-budget=2500",
       `--print-to-pdf=${outputPath}`,
       "--print-to-pdf-no-header",
+      "--no-pdf-header-footer",
       url,
     ]);
 
@@ -53,6 +56,35 @@ function runChrome(chromePath: string, url: string, outputPath: string) {
   });
 }
 
+function publicOrigin(request: NextRequest) {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const host = forwardedHost || request.headers.get("host") || "";
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const proto = forwardedProto || (host.includes("localhost") || host.startsWith("127.") ? "http" : "https");
+  const origin = host ? `${proto}://${host}` : request.nextUrl.origin;
+  const configured = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+
+  if (origin.includes("localhost") || origin.includes("127.0.0.1")) {
+    if (configured && !configured.includes("localhost") && !configured.includes("127.0.0.1")) return configured;
+    return "https://app.ongvang.com.vn";
+  }
+
+  return origin.replace(/\/$/, "");
+}
+
+function safePdfFilename(value: string) {
+  return `${value || "tai-lieu"}`.replace(/[\\/:*?"<>|]+/g, "-").replace(/\s+/g, "-").replace(/-+/g, "-");
+}
+
+async function documentPdfFilename(token: string) {
+  const [quotation, contract, invoice] = await Promise.all([
+    db.quotation.findFirst({ where: { token }, select: { number: true } }),
+    db.contract.findFirst({ where: { token }, select: { number: true } }),
+    db.invoice.findFirst({ where: { token }, select: { number: true } }),
+  ]);
+  return `${safePdfFilename(quotation?.number || contract?.number || invoice?.number || token)}.pdf`;
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const chromePath = await findChrome();
@@ -61,11 +93,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ error: "Không tìm thấy Chrome/Chromium để render PDF." }, { status: 500 });
   }
 
-  const origin = request.nextUrl.origin;
+  const origin = publicOrigin(request);
   const printUrl = `${origin}/document/${encodeURIComponent(token)}/print`;
-  const outputPath = path.join(tmpdir(), `ongvang-${token}-${randomUUID()}.pdf`);
+  const outputDir = path.join(process.cwd(), ".tmp", "pdf");
+  const outputPath = path.join(outputDir, `ongvang-${token}-${randomUUID()}.pdf`);
+  const filename = await documentPdfFilename(token);
 
   try {
+    await mkdir(outputDir, { recursive: true });
     await runChrome(chromePath, printUrl, outputPath);
     const file = await readFile(outputPath);
     await unlink(outputPath).catch(() => {});
@@ -73,7 +108,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return new NextResponse(file, {
       headers: {
         "Content-Type": "application/pdf; charset=utf-8",
-        "Content-Disposition": `attachment; filename="ong-vang-${token}.pdf"`,
+        "Content-Disposition": `attachment; filename="${filename}"`,
         "Cache-Control": "no-store",
       },
     });

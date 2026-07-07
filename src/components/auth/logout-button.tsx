@@ -20,8 +20,7 @@ export function LogoutButton({ className, label = "Đăng xuất", iconOnly = fa
       await signOut();
       await fetch("/api/logout", { method: "POST", credentials: "include" });
     } finally {
-      router.replace("/login");
-      router.refresh();
+      window.location.href = "/login";
     }
   };
 

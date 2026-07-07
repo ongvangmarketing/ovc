@@ -7,7 +7,7 @@ const navItems = [
   { label: "Tổng quan", href: "/admin", icon: <Gauge className="h-4 w-4" /> },
   { label: "Tổ chức", href: "/admin/organizations", icon: <Building2 className="h-4 w-4" /> },
   { label: "Admins", href: "/admin/users", icon: <Users className="h-4 w-4" /> },
-  { label: "Licensing", href: "/admin/organizations", icon: <ShieldCheck className="h-4 w-4" /> },
+  { label: "Licensing", href: "/admin/licensing", icon: <ShieldCheck className="h-4 w-4" /> },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

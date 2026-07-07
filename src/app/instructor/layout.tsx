@@ -1,17 +1,19 @@
-export default function InstructorLayout({ children }: { children: React.ReactNode }) {
+import { requireInstructorPortal } from "@/lib/auth/rbac";
+import { PortalTopbar } from "@/components/training/portal-topbar";
+import { InstructorSidebar } from "./components/sidebar";
+
+export default async function InstructorLayout({ children }: { children: React.ReactNode }) {
+  const session = await requireInstructorPortal();
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <aside className="w-64 bg-emerald-900 text-white p-4">
-        <h2 className="text-xl font-bold mb-6">Instructor Portal</h2>
-        <nav className="space-y-2">
-          <div>Dashboard</div>
-          <div>Lớp học</div>
-          <div>Học viên</div>
-          <div>Bài giảng</div>
-        </nav>
-      </aside>
-      <main className="flex-1 p-8">
-        {children}
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <InstructorSidebar />
+
+      <main className="lg:pl-[280px]">
+        <PortalTopbar user={session.user} roleLabel="Instructor" homeHref="/instructor" accent="emerald" />
+        <div className="min-h-[calc(100vh-64px)]">
+          {children}
+        </div>
       </main>
     </div>
   );

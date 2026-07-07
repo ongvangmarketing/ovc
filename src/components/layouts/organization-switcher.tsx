@@ -11,6 +11,7 @@ type OrganizationOption = {
   id: string;
   name: string;
   slug?: string | null;
+  logo?: string | null;
 };
 
 export function OrganizationSwitcher({ 
@@ -73,7 +74,11 @@ export function OrganizationSwitcher({
           canSwitch ? "hover:bg-gray-50 cursor-pointer" : "cursor-default"
         )}
       >
-        <Building className="w-4 h-4 text-gray-500" />
+        {activeOrg?.logo ? (
+          <img src={activeOrg.logo} alt="" className="h-4 w-4 rounded object-contain" />
+        ) : (
+          <Building className="w-4 h-4 text-gray-500" />
+        )}
         <span className="text-sm font-medium text-gray-700 truncate max-w-[150px]">
           {activeOrg?.name || "Chọn Công ty"}
         </span>
@@ -91,13 +96,16 @@ export function OrganizationSwitcher({
               onClick={() => handleSwitch(org.id)}
               className="w-full text-left px-3 py-2 hover:bg-gray-50 flex items-center justify-between group"
             >
-              <div className="flex flex-col">
+              <div className="flex min-w-0 items-center gap-2">
+                {org.logo ? <img src={org.logo} alt="" className="h-7 w-7 shrink-0 rounded object-contain" /> : <Building className="h-5 w-5 shrink-0 text-gray-400" />}
+                <div className="min-w-0">
                 <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
                   {org.name}
                 </span>
-                <span className="text-xs text-gray-500 truncate max-w-[200px]">
+                <span className="block text-xs text-gray-500 truncate max-w-[200px]">
                   {org.slug}
                 </span>
+                </div>
               </div>
               {org.id === activeOrg?.id && (
                 <Check className="w-4 h-4 text-blue-600" />

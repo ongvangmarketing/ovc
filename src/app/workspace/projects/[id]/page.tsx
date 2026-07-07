@@ -1,5 +1,5 @@
 import { getProjectById } from "@/app/actions/projects";
-import { ProjectDetailClient } from "./project-detail-client";
+import { ProjectDetailWorkspace } from "./project-detail-workspace";
 import { notFound } from "next/navigation";
 
 export const metadata = {
@@ -8,12 +8,13 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function ProjectDetailPage({ params }: { params: { id: string } }) {
-  const project = await getProjectById(params.id);
+export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const project = await getProjectById(id);
   
   if (!project) {
     notFound();
   }
 
-  return <ProjectDetailClient key={project.id} project={project} />;
+  return <ProjectDetailWorkspace key={project.id} project={project as any} />;
 }

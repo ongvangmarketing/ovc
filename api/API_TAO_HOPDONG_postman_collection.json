@@ -1,0 +1,54 @@
+{
+  "info": {
+    "name": "API_TAO_HOPDONG - Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "API tạo hợp đồng",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"hopDong\": {\n    \"tenHopDong\": \"Nhập tên hợp đồng\",\n    \"boHSMauId\": 5396,\n    \"loaiTaiLieuId\": 33,\n    \"hieuLucTu\": null,\n    \"hieuLucDen\": null,\n    \"loaiChungThucId\": 1,\n    \"giaTriHD\": 1000000,\n    \"luongHDId\": null,\n    \"ghiChu\": \"\",\n    \"kieuHopDongId\": 1\n  },\n  \"danhSachBoHSMauCT\": [\n    {\n      \"boHsMauCtId\": 7294,\n      \"danhSachBien\": null\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/econtract-integration-service/vnpt-econtract/tao-hop-dong-tu-mau",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "econtract-integration-service",
+            "vnpt-econtract",
+            "tao-hop-dong-tu-mau"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

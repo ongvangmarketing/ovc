@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,10 +26,13 @@ import {
   adminSignDocument,
   createInvoiceFromQuotation,
   deleteQuotation,
+  getDocumentEmailDraft,
   sendDocumentEmail,
+  type FinanceEmailSendPayload,
 } from "@/app/actions/finance-crud";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { AdminSignModal } from "./admin-sign-modal";
+import { EmailComposerModal, type FinanceEmailDraft } from "./email-composer-modal";
 import {
   ActivityTimeline,
   AttachmentList,
@@ -56,6 +59,7 @@ type QuotationDetailData = {
   token?: string | null;
   adminSignedAt?: string | Date | null;
   signedAt?: string | Date | null;
+  customerSignatureRequired?: boolean;
   activityLogs?: FinanceActivity[];
   files?: FinanceAttachment[];
   previousDocument?: FinanceDocumentLink | null;
@@ -166,8 +170,9 @@ function ActionButton({
   disabled?: boolean;
   title?: string;
 }) {
-  const className = `quote-detail-action ${danger ? "quote-detail-action-danger" : ""} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`;
-  if (href && !disabled) {
+  const isDisabled = disabled || (href !== undefined && !href);
+  const className = `quote-detail-action ${danger ? "quote-detail-action-danger" : ""} ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`;
+  if (href && !isDisabled) {
     return (
       <Link href={href} className={className} title={title}>
         {icon}
@@ -176,7 +181,7 @@ function ActionButton({
     );
   }
   return (
-    <button type="button" onClick={onClick} className={className} disabled={disabled} title={title}>
+    <button type="button" onClick={onClick} className={className} disabled={isDisabled} title={title}>
       {icon}
       {label}
     </button>
@@ -188,25 +193,30 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("info");
   const [menuOpen, setMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const [copied, setCopied] = useState(false);
   const [isSignModalOpen, setIsSignModalOpen] = useState(false);
   const [isAdminRevokeModalOpen, setIsAdminRevokeModalOpen] = useState(false);
   const [isCustomerRevokeModalOpen, setIsCustomerRevokeModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [emailDraft, setEmailDraft] = useState<FinanceEmailDraft | null>(null);
+  const [isEmailDraftLoading, setIsEmailDraftLoading] = useState(false);
 
   const publicUrl = data.token ? `/document/${data.token}` : "";
   const fullPublicUrl = data.token && typeof window !== "undefined" ? `${window.location.origin}${publicUrl}` : "";
+  const customerSignatureRequired = data.customerSignatureRequired !== false;
   const hasCustomerCancel = Boolean(data.activityLogs?.some((log) => log.action === "customer_signature_revoked")) || data.status === "REJECTED";
-  const customerDecisionLabel = data.signedAt ? "Ký kết" : "Hủy";
+  const customerDecisionLabel = customerSignatureRequired ? (data.signedAt ? "Ký kết" : "Hủy") : "Không cần ký";
   const steps = useMemo(
     () => [
       { label: "Tạo báo giá", done: true },
       { label: "Đã ký", done: Boolean(data.adminSignedAt) },
       { label: "Đã gửi", done: Boolean(data.sentAt) || data.status === "SENT" },
-      { label: customerDecisionLabel, done: Boolean(data.signedAt) || hasCustomerCancel },
+      { label: customerDecisionLabel, done: !customerSignatureRequired || Boolean(data.signedAt) || hasCustomerCancel },
       { label: "Chuyển đổi", done: data.status === "CONVERTED" },
     ],
-    [data.adminSignedAt, data.sentAt, data.signedAt, data.status, hasCustomerCancel, customerDecisionLabel]
+    [customerSignatureRequired, data.adminSignedAt, data.sentAt, data.signedAt, data.status, hasCustomerCancel, customerDecisionLabel]
   );
   const fallbackActivities = useMemo(
     () => [
@@ -224,9 +234,24 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
     [data.adminSignedAt, data.createdAt, data.creator, data.number, data.sentAt, data.signedAt, data.status]
   );
 
+  const openSendModal = async () => {
+    setIsSendModalOpen(true);
+    setEmailDraft(null);
+    setIsEmailDraftLoading(true);
+    try {
+      setEmailDraft(await getDocumentEmailDraft("quotation", data.id, window.location.origin));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không thể chuẩn bị email báo giá.");
+      setIsSendModalOpen(false);
+    } finally {
+      setIsEmailDraftLoading(false);
+    }
+  };
+
   const sendMutation = useMutation({
-    mutationFn: () => sendDocumentEmail("quotation", data.id, data.contact?.email || ""),
+    mutationFn: (payload: FinanceEmailSendPayload) => sendDocumentEmail("quotation", data.id, { ...payload, publicBaseUrl: window.location.origin }),
     onSuccess: () => {
+      setIsSendModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ["quotations"] });
       router.refresh();
     },
@@ -299,7 +324,7 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
           icon: <ShieldCheck className="h-4 w-4" />,
           onClick: () => setIsSignModalOpen(true),
         },
-    ...(data.signedAt
+    ...(customerSignatureRequired && data.signedAt
       ? [
           {
             label: "Hủy ký khách",
@@ -311,8 +336,8 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
     {
       label: sendMutation.isPending ? "Đang gửi" : "Gửi báo giá",
       icon: <Send className="h-4 w-4" />,
-      onClick: () => sendMutation.mutate(),
-      disabled: !data.adminSignedAt || sendMutation.isPending,
+      onClick: openSendModal,
+      disabled: !data.adminSignedAt || sendMutation.isPending || isEmailDraftLoading,
       title: !data.adminSignedAt ? "Admin cần ký báo giá trước khi gửi email." : undefined,
     },
     {
@@ -339,47 +364,50 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
     },
   ];
 
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (moreMenuRef.current?.contains(event.target as Node)) return;
+      setMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [menuOpen]);
+
   return (
-    <div className="quote-detail-page">
-      <header className="quote-detail-hero">
-        <div className="quote-detail-title">
-          <div className="quote-detail-icon">
-            <FileText className="h-7 w-7" />
+    <div className="quote-page mx-auto max-w-[1440px] px-6 py-6 animate-in fade-in duration-300">
+      <div className="mb-5 flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="mb-2 flex items-center gap-2 text-[14px] font-light text-slate-500">
+            <FileText className="h-4 w-4 text-orange-500" />
+            Tài chính / Báo giá / Chi tiết báo giá
           </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1>{data.number}</h1>
-              <span className={`quote-status quote-status-${data.status.toLowerCase()}`}>
-                {statusLabel[data.status] || data.status}
-              </span>
-            </div>
-            <p>
-              Ngày tạo: {formatDate(data.createdAt)} · Hiệu lực đến: {formatDate(data.validUntil)}
-            </p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-[18px] font-medium text-slate-950">{data.number}</h1>
+            <span className={`quote-status quote-status-${data.status.toLowerCase()}`}>
+              {statusLabel[data.status] || data.status}
+            </span>
           </div>
         </div>
 
         <div className="quote-detail-top-actions">
           {publicUrl ? (
             <a href={publicUrl} target="_blank" className="quote-detail-top-button">
-              <Eye className="h-4 w-4" />
-              Xem
+              <Eye className="h-4 w-4" /> Xem public
             </a>
           ) : null}
           <Link href={`/workspace/finance/quotations/${data.id}/edit`} className="quote-detail-top-button">
-            <Edit3 className="h-4 w-4" />
-            Chỉnh sửa
+            <Edit3 className="h-4 w-4" /> Sửa
           </Link>
-          <button type="button" onClick={() => setIsDeleteModalOpen(true)} className="quote-detail-top-button quote-detail-delete">
-            <Trash2 className="h-4 w-4" />
-            Xóa
-          </button>
-          <div className="relative">
-            <button type="button" onClick={() => setMenuOpen((current) => !current)} className="quote-detail-more">
-              <Ellipsis className="h-4 w-4" />
+          
+          <div ref={moreMenuRef} className="relative">
+            <button type="button" onClick={() => setMenuOpen((current) => !current)} className="quote-detail-top-button">
+              <Ellipsis className="h-4 w-4" /> Thêm
             </button>
             {menuOpen ? (
-              <div className="quote-detail-menu">
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden z-10 flex flex-col py-1">
                 {actionItems.map((item) => (
                   <button
                     key={item.label}
@@ -390,7 +418,7 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
                       setMenuOpen(false);
                       item.onClick();
                     }}
-                    className={item.disabled ? "opacity-50 cursor-not-allowed" : undefined}
+                    className={`flex items-center gap-2 px-3 py-2 text-sm text-left ${item.disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-slate-50"}`}
                   >
                     {item.icon}
                     {item.label}
@@ -399,41 +427,27 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
               </div>
             ) : null}
           </div>
+          
+          <button type="button" onClick={() => setIsDeleteModalOpen(true)} className="quote-detail-top-button quote-detail-delete">
+            <Trash2 className="h-4 w-4" /> Xóa
+          </button>
         </div>
-      </header>
+      </div>
 
-      <section className="quote-detail-summary">
-        <div>
-          <span>Khách hàng</span>
-          <strong>{data.contact?.company?.name || contactName(data.contact)}</strong>
-          <p>{data.contact?.phone || "Chưa có số điện thoại"}</p>
-          <p>{data.contact?.email || "Chưa có email"}</p>
-        </div>
-        <div>
-          <span>Dự án</span>
-          <strong>{data.project?.name || data.deal?.title || data.deal?.name || "Không gắn dự án"}</strong>
-          <p>Báo giá {data.number}</p>
-        </div>
-        <div>
-          <span>Người tạo</span>
-          <strong>{data.creator?.name || "Administrator"}</strong>
-          <p>{data.creator?.email || "Administrator"}</p>
-        </div>
-        <div>
-          <DocumentNavigator
-            basePath="/workspace/finance/quotations"
-            currentNumber={data.number}
-            previous={data.previousDocument}
-            next={data.nextDocument}
-          />
-        </div>
-      </section>
-
-      <div className="quote-detail-layout">
-        <main className="space-y-5">
-          <nav className="quote-detail-tabs">
+      <div className="flex flex-col lg:flex-row gap-6">
+        <main className="flex-1 space-y-6">
+          <nav className="flex gap-4 border-b border-slate-200">
             {detailTabs.map((tab) => (
-              <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={activeTab === tab.id ? "active" : ""}>
+              <button 
+                key={tab.id} 
+                type="button" 
+                onClick={() => setActiveTab(tab.id)} 
+                className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
+                  activeTab === tab.id 
+                    ? "border-orange-500 text-orange-600" 
+                    : "border-transparent text-slate-500 hover:text-slate-800"
+                }`}
+              >
                 {tab.label}
               </button>
             ))}
@@ -441,9 +455,12 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
 
           {activeTab === "info" ? (
             <>
-              <section className="quote-detail-card">
-                <h2>Quy trình xử lý</h2>
-                <div className="quote-progress quote-progress-five">
+              <section className="quote-panel">
+                <div className="quote-panel-header">
+                  <h2>Quy trình xử lý</h2>
+                  <span>Tiến độ xử lý báo giá.</span>
+                </div>
+                <div className="quote-progress quote-progress-five mt-4">
                   {steps.map((step) => (
                     <div key={step.label} className={step.done ? "done" : ""}>
                       <span>✓</span>
@@ -453,79 +470,140 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
                 </div>
               </section>
 
-              <section className="quote-detail-card">
-                <h2>Sản phẩm & dịch vụ</h2>
-                <div className="quotation-items-list">
+              <section className="quote-panel">
+                <div className="quote-panel-header">
+                  <h2>Sản phẩm & dịch vụ</h2>
+                  <span>Danh sách các hạng mục trong báo giá.</span>
+                </div>
+                <div className="quotation-items-list mt-2">
                   {data.items?.length ? (
-                    data.items.map((item, index) => (
-                      <article key={item.id} className="quotation-item-card">
-                        <div>
-                          <div className="quotation-item-title">
-                            <span>{index + 1}</span>
-                            <strong>{item.name}</strong>
-                          </div>
-                          {item.description ? <p className="quotation-item-description">{plainDescription(item.description)}</p> : null}
-                        </div>
-                        <div className="quotation-item-meta">
-                          <span><small>Đơn vị</small>Lần</span>
-                          <span><small>SL</small>{asNumber(item.quantity)}</span>
-                          <span><small>Đơn giá</small>{formatMoney(item.unitPrice, data.currency)}</span>
-                          <span><small>Thuế</small>{asNumber(item.tax)}%</span>
-                          <strong>{formatMoney(item.total, data.currency)}</strong>
-                        </div>
-                      </article>
-                    ))
+                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mt-4">
+                      <div className="overflow-x-auto w-full">
+                        <table className="w-full text-sm text-left border-collapse">
+                          <thead className="bg-[#ee8f15] text-white">
+                            <tr>
+                              <th className="px-4 py-3 font-medium border-r border-[#fa9f2a] min-w-[280px]">Nội dung dịch vụ</th>
+                              <th className="px-4 py-3 font-medium text-center w-24 border-r border-[#fa9f2a]">Đơn vị</th>
+                              <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#fa9f2a]">SL</th>
+                              <th className="px-4 py-3 font-medium text-right w-36 border-r border-[#fa9f2a]">Đơn giá (VND)</th>
+                              <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#fa9f2a]">Thuế</th>
+                              <th className="px-4 py-3 font-medium text-right w-40">Thành tiền (VND)</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {data.items.map((item, index) => (
+                              <tr key={item.id} className="bg-white text-slate-700 transition-colors hover:bg-slate-50 group">
+                                <td className="px-4 py-5 align-top border-r border-slate-100">
+                                  <div className="font-medium uppercase text-slate-800 mb-2">
+                                    {String(index + 1).padStart(2, '0')} {item.name}
+                                  </div>
+                                  {item.description && <div className="text-slate-500 mt-1 whitespace-pre-wrap text-[14px]" dangerouslySetInnerHTML={{ __html: item.description }} />}
+                                </td>
+                                <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                                  Lần
+                                </td>
+                                <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                                  {asNumber(item.quantity)}
+                                </td>
+                                <td className="px-4 py-5 text-right align-top border-r border-slate-100">
+                                  {formatMoney(item.unitPrice, data.currency)}
+                                </td>
+                                <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                                  {asNumber(item.tax)}%
+                                </td>
+                                <td className="px-4 py-5 text-right align-top font-medium">
+                                  {formatMoney(item.total, data.currency)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   ) : (
                     <div className="quote-detail-empty">Chưa có hạng mục nào.</div>
                   )}
                 </div>
               </section>
 
-              <section className="quote-detail-card">
-                <h2>Ghi chú & điều khoản</h2>
-                <div className="grid gap-3">
-                  <div className="contract-terms">
-                    <strong>Ghi chú gửi khách</strong>
-                    <p>{plainDescription(data.notes) || "Chưa có ghi chú."}</p>
+              <section className="quote-panel">
+                <div className="quote-panel-header">
+                  <h2>Ghi chú & điều khoản</h2>
+                  <span>Các thông tin gửi kèm cho khách hàng.</span>
+                </div>
+                <div className="grid gap-4 mt-4">
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <strong className="text-sm font-semibold text-slate-800 block mb-2">Ghi chú gửi khách</strong>
+                    <div className="text-[14px] text-slate-600 leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: data.notes || "Chưa có ghi chú." }} />
                   </div>
-                  <div className="contract-terms">
-                    <strong>Điều khoản</strong>
-                    <p>{plainDescription(data.terms) || "Chưa có điều khoản."}</p>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <strong className="text-sm font-semibold text-slate-800 block mb-2">Điều khoản</strong>
+                    <div className="text-[14px] text-slate-600 leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: data.terms || "Chưa có điều khoản." }} />
                   </div>
                 </div>
               </section>
             </>
           ) : (
-            <section className="quote-detail-card">
-              <h2>{activeTab === "activity" ? "Lịch sử hoạt động" : "Tệp đính kèm"}</h2>
-              {activeTab === "activity" ? (
-                <ActivityTimeline logs={data.activityLogs} fallback={fallbackActivities} />
-              ) : (
-                <AttachmentList files={data.files} />
-              )}
+            <section className="quote-panel">
+              <div className="quote-panel-header">
+                <h2>{activeTab === "activity" ? "Lịch sử hoạt động" : "Tệp đính kèm"}</h2>
+              </div>
+              <div className="mt-4">
+                {activeTab === "activity" ? (
+                  <ActivityTimeline logs={data.activityLogs} fallback={fallbackActivities} />
+                ) : (
+                  <AttachmentList files={data.files} />
+                )}
+              </div>
             </section>
           )}
         </main>
 
-        <aside className="space-y-5">
-          <section className="quote-detail-card">
-            <h2>Thông tin báo giá</h2>
-            <div className="quote-side-list">
-              <div><span>Mã báo giá</span><strong>{data.number}</strong></div>
-              <div><span>Trạng thái</span><strong>{statusLabel[data.status] || data.status}</strong></div>
-              <div><span>Ngày tạo</span><strong>{formatDateTime(data.createdAt)}</strong></div>
-              <div><span>Hiệu lực đến</span><strong>{formatDate(data.validUntil)}</strong></div>
-              <div><span>Admin ký</span><strong>{formatDateTime(data.adminSignedAt)}</strong></div>
-              <div><span>Khách ký</span><strong>{formatDateTime(data.signedAt)}</strong></div>
+        <aside className="w-full lg:w-[340px] space-y-6">
+          <section className="quote-panel">
+            <div className="quote-panel-header">
+              <h2>Khách hàng & Dự án</h2>
+            </div>
+            <div className="flex flex-col gap-4 mt-4 text-sm">
+              <div>
+                <div className="text-slate-500 mb-1">Khách hàng</div>
+                <div className="font-medium text-slate-800">{data.contact?.company?.name || contactName(data.contact)}</div>
+                {data.contact?.phone && <div className="text-slate-600 mt-0.5">{data.contact.phone}</div>}
+                {data.contact?.email && <div className="text-slate-600 mt-0.5">{data.contact.email}</div>}
+              </div>
+              <div className="pt-3 border-t border-slate-100">
+                <div className="text-slate-500 mb-1">Dự án</div>
+                <div className="font-medium text-slate-800">{data.project?.name || data.deal?.title || data.deal?.name || "Không gắn dự án"}</div>
+              </div>
+              <div className="pt-3 border-t border-slate-100">
+                <div className="text-slate-500 mb-1">Người tạo</div>
+                <div className="font-medium text-slate-800">{data.creator?.name || "Administrator"}</div>
+              </div>
             </div>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Giá trị & thanh toán</h2>
-            <div className="quote-side-list">
-              <div><span>Tạm tính</span><strong>{formatMoney(data.subtotal, data.currency)}</strong></div>
-              <div><span>Thuế VAT</span><strong>{formatMoney(data.tax, data.currency)}</strong></div>
-              <div><span>Tổng giá trị</span><strong>{formatMoney(data.total, data.currency)}</strong></div>
+          <section className="quote-panel">
+            <div className="quote-panel-header">
+              <h2>Thông tin báo giá</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-sm mt-4">
+              <div className="text-slate-500">Mã báo giá</div><div className="font-medium text-right">{data.number}</div>
+              <div className="text-slate-500">Trạng thái</div><div className="font-medium text-right">{statusLabel[data.status] || data.status}</div>
+              <div className="text-slate-500">Ngày tạo</div><div className="font-medium text-right">{formatDateTime(data.createdAt)}</div>
+              <div className="text-slate-500">Hiệu lực đến</div><div className="font-medium text-right">{formatDate(data.validUntil)}</div>
+              <div className="text-slate-500">Admin ký</div><div className="font-medium text-right">{formatDateTime(data.adminSignedAt)}</div>
+              <div className="text-slate-500">Khách ký</div><div className="font-medium text-right">{customerSignatureRequired ? formatDateTime(data.signedAt) : "Không cần ký"}</div>
+            </div>
+          </section>
+
+          <section className="quote-panel">
+            <div className="quote-panel-header">
+              <h2>Giá trị & thanh toán</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-sm mt-4">
+              <div className="text-slate-500">Tạm tính</div><div className="font-medium text-right">{formatMoney(data.subtotal, data.currency)}</div>
+              <div className="text-slate-500">Thuế VAT</div><div className="font-medium text-right">{formatMoney(data.tax, data.currency)}</div>
+              <div className="text-slate-500 font-semibold mt-2">Tổng giá trị</div><div className="font-bold text-orange-600 text-lg text-right mt-2">{formatMoney(data.total, data.currency)}</div>
             </div>
           </section>
 
@@ -555,7 +633,7 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
                   title={item.title}
                 />
               ))}
-              <ActionButton icon={<Eye className="h-4 w-4" />} label="Xem" href={publicUrl || "#"} />
+              <ActionButton icon={<Eye className="h-4 w-4" />} label="Xem" href={publicUrl} title={!publicUrl ? "Báo giá chưa có public link." : undefined} />
               <ActionButton icon={<Trash2 className="h-4 w-4" />} label="Xóa" onClick={() => setIsDeleteModalOpen(true)} danger />
             </div>
           </section>
@@ -568,6 +646,16 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
         onConfirm={(signature) => signMutation.mutate(signature)}
         title={`Ký duyệt Báo giá ${data.number}`}
         isPending={signMutation.isPending}
+      />
+
+      <EmailComposerModal
+        isOpen={isSendModalOpen}
+        onClose={() => setIsSendModalOpen(false)}
+        onSend={(payload) => sendMutation.mutate(payload)}
+        title={`Gửi báo giá ${data.number}`}
+        draft={emailDraft}
+        isLoading={isEmailDraftLoading}
+        isPending={sendMutation.isPending}
       />
 
       <ConfirmModal

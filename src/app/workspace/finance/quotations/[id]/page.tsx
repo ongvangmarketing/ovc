@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { QuotationDetailView } from "@/modules/finance/components/quotation-detail";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function QuotationDetailPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   const session = await requireAuth();

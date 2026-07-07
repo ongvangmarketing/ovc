@@ -12,6 +12,8 @@ interface ConfirmModalProps {
   confirmText?: string;
   cancelText?: string;
   isDestructive?: boolean;
+  isPending?: boolean;
+  closeOnConfirm?: boolean;
 }
 
 export function ConfirmModal({
@@ -22,7 +24,9 @@ export function ConfirmModal({
   message,
   confirmText = "Xác nhận",
   cancelText = "Hủy",
-  isDestructive = false
+  isDestructive = false,
+  isPending = false,
+  closeOnConfirm = true
 }: ConfirmModalProps) {
   useEffect(() => {
     if (isOpen) {
@@ -42,7 +46,7 @@ export function ConfirmModal({
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors">
+          <button onClick={onClose} disabled={isPending} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors disabled:cursor-wait disabled:opacity-50">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -55,17 +59,19 @@ export function ConfirmModal({
           <button 
             type="button" 
             onClick={onClose} 
+            disabled={isPending}
             className="px-4 py-2 font-medium text-gray-700 hover:bg-gray-200 rounded-lg transition-colors text-sm"
           >
             {cancelText}
           </button>
           <button 
             type="button" 
+            disabled={isPending}
             onClick={() => {
               onConfirm();
-              onClose();
+              if (closeOnConfirm) onClose();
             }}
-            className={`px-4 py-2 font-medium text-white rounded-lg transition-colors text-sm ${
+            className={`px-4 py-2 font-medium text-white rounded-lg transition-colors text-sm disabled:cursor-wait disabled:opacity-70 ${
               isDestructive ? "bg-red-600 hover:bg-red-700" : "bg-emerald-600 hover:bg-emerald-700"
             }`}
           >

@@ -206,7 +206,10 @@ export async function getProjects() {
       },
       orderBy: { updatedAt: "desc" }
     });
-    return projects;
+    return projects.map((p: any) => ({
+      ...p,
+      budget: p.budget ? Number(p.budget) : 0,
+    }));
   } catch (error) {
     console.error("Error fetching projects:", error);
     return [];
@@ -665,9 +668,8 @@ export async function updateProjectSocialReportSetup(projectId: string, data: {
 
     revalidatePath("/workspace/projects", "layout");
     revalidatePath(`/workspace/projects/${projectId}`);
-    revalidatePath(`/workspace/projects/${projectId}/edit`);
-    revalidatePath("/portal", "layout");
-    revalidatePath("/portal/reports");
+    revalidatePath("/customer", "layout");
+    revalidatePath("/customer/reports");
     return {
       success: true,
       setup: {

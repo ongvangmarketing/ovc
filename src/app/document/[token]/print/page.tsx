@@ -11,7 +11,7 @@ export default async function PrintDocumentPage({ params }: { params: Promise<{ 
 
   const includeDocumentData = {
     items: true,
-    organization: true,
+    organization: { include: { settings: true } },
     contact: { include: { company: true } },
     signature: true,
   };

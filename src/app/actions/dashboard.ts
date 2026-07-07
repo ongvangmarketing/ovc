@@ -1,6 +1,6 @@
 "use server";
 
-import { endOfMonth, format, startOfDay, startOfMonth, subDays, subMonths } from "date-fns";
+import { differenceInCalendarDays, endOfMonth, format, startOfDay, startOfMonth, subDays, subMonths } from "date-fns";
 import { InvoiceStatus } from "@prisma/client";
 
 import { requireAuth } from "@/lib/auth/require-auth";
@@ -49,6 +49,24 @@ function progressFromCustomFields(value: unknown): number {
 
 export type WorkspaceDashboardData = Awaited<ReturnType<typeof getWorkspaceDashboard>>;
 
+function previousRange(range?: { from: Date; to: Date }) {
+  if (!range) {
+    const now = new Date();
+    return {
+      current: { from: startOfMonth(now), to: endOfMonth(now) },
+      previous: { from: startOfMonth(subMonths(now, 1)), to: endOfMonth(subMonths(now, 1)) },
+    };
+  }
+
+  const days = Math.max(1, differenceInCalendarDays(range.to, range.from) + 1);
+  const previousTo = subDays(startOfDay(range.from), 1);
+  const previousFrom = subDays(previousTo, days - 1);
+  return {
+    current: range,
+    previous: { from: previousFrom, to: previousTo },
+  };
+}
+
 export async function getWorkspaceDashboard(range?: { from: Date; to: Date }) {
   const session = await requireAuth();
   let orgId: string | undefined = session.organizationId;
@@ -75,13 +93,16 @@ export async function getWorkspaceDashboard(range?: { from: Date; to: Date }) {
   const rangeStart = range?.from;
   const rangeEnd = range?.to;
   const createdAtRange = rangeStart && rangeEnd ? { gte: rangeStart, lte: rangeEnd } : undefined;
-  const monthStart = startOfMonth(now);
-  const monthEnd = endOfMonth(now);
-  const previousMonthStart = startOfMonth(subMonths(now, 1));
-  const previousMonthEnd = endOfMonth(subMonths(now, 1));
-  const sevenDays = Array.from({ length: 7 }, (_, index) => startOfDay(subDays(now, 6 - index)));
-  const trendDays = Array.from({ length: 30 }, (_, index) => startOfDay(subDays(now, 29 - index)));
-  const trendMonths = Array.from({ length: 12 }, (_, index) => startOfMonth(subMonths(now, 11 - index)));
+  const comparison = previousRange(range);
+  const currentStart = comparison.current.from;
+  const currentEnd = comparison.current.to;
+  const previousStart = comparison.previous.from;
+  const previousEnd = comparison.previous.to;
+  const trendDayCount = rangeStart && rangeEnd ? Math.min(60, Math.max(1, differenceInCalendarDays(rangeEnd, rangeStart) + 1)) : 30;
+  const sevenDays = Array.from({ length: trendDayCount }, (_, index) => startOfDay(subDays(rangeEnd ?? now, trendDayCount - 1 - index)));
+  const trendDays = sevenDays;
+  const trendMonths = Array.from({ length: 12 }, (_, index) => startOfMonth(subMonths(rangeEnd ?? now, 11 - index)));
+  const projectTrendStart = rangeStart ?? trendMonths[0];
 
   const [
     customers,
@@ -109,12 +130,12 @@ export async function getWorkspaceDashboard(range?: { from: Date; to: Date }) {
     potentialCustomers,
   ] = await Promise.all([
     db.contact.count({ where: { organizationId: orgId, createdAt: createdAtRange } }),
-    db.contact.count({ where: { organizationId: orgId, createdAt: { lt: previousMonthStart } } }),
+    db.contact.count({ where: { organizationId: orgId, createdAt: { gte: previousStart, lte: previousEnd } } }),
     db.invoice.aggregate({
       where: {
         organizationId: orgId,
         status: { in: MONEY_STATUSES },
-        issuedAt: { gte: monthStart, lte: monthEnd },
+        issuedAt: { gte: currentStart, lte: currentEnd },
       },
       _sum: { total: true },
     }),
@@ -122,7 +143,7 @@ export async function getWorkspaceDashboard(range?: { from: Date; to: Date }) {
       where: {
         organizationId: orgId,
         status: { in: MONEY_STATUSES },
-        issuedAt: { gte: previousMonthStart, lte: previousMonthEnd },
+        issuedAt: { gte: previousStart, lte: previousEnd },
       },
       _sum: { total: true },
     }),
@@ -130,7 +151,7 @@ export async function getWorkspaceDashboard(range?: { from: Date; to: Date }) {
       where: {
         organizationId: orgId,
         status: "COMPLETED",
-        paidAt: { gte: monthStart, lte: monthEnd },
+        paidAt: { gte: currentStart, lte: currentEnd },
       },
       _sum: { amount: true },
     }),
@@ -138,7 +159,7 @@ export async function getWorkspaceDashboard(range?: { from: Date; to: Date }) {
       where: {
         organizationId: orgId,
         status: "COMPLETED",
-        paidAt: { gte: previousMonthStart, lte: previousMonthEnd },
+        paidAt: { gte: previousStart, lte: previousEnd },
       },
       _sum: { amount: true },
     }),
@@ -150,7 +171,7 @@ export async function getWorkspaceDashboard(range?: { from: Date; to: Date }) {
       where: {
         organizationId: orgId,
         status: { in: OPEN_INVOICE_STATUSES },
-        createdAt: { lt: monthStart },
+        createdAt: { gte: previousStart, lte: previousEnd },
       },
       _sum: { amountDue: true },
     }),
@@ -184,7 +205,7 @@ export async function getWorkspaceDashboard(range?: { from: Date; to: Date }) {
       select: { completedAt: true, dueDate: true },
     }),
     db.project.findMany({
-      where: { organizationId: orgId, createdAt: { gte: trendMonths[0] } },
+      where: { organizationId: orgId, createdAt: { gte: projectTrendStart, lte: rangeEnd } },
       select: { createdAt: true, completedAt: true, status: true },
       orderBy: { createdAt: "asc" },
     }),
@@ -192,49 +213,49 @@ export async function getWorkspaceDashboard(range?: { from: Date; to: Date }) {
       where: {
         organizationId: orgId,
         status: "COMPLETED",
-        paidAt: { gte: sevenDays[0] },
+        paidAt: { gte: sevenDays[0], lte: rangeEnd },
       },
       select: { amount: true, paidAt: true },
       orderBy: { paidAt: "asc" },
     }),
     db.payment.findMany({
-      where: { organizationId: orgId },
+      where: { organizationId: orgId, updatedAt: createdAtRange },
       include: { invoice: { include: { contact: { include: { company: true } } } } },
       orderBy: { updatedAt: "desc" },
       take: 4,
     }),
     db.invoice.findMany({
-      where: { organizationId: orgId },
+      where: { organizationId: orgId, updatedAt: createdAtRange },
       include: { contact: { include: { company: true } } },
       orderBy: { updatedAt: "desc" },
       take: 4,
     }),
     db.project.findMany({
-      where: { organizationId: orgId },
+      where: { organizationId: orgId, updatedAt: createdAtRange },
       select: { id: true, name: true, status: true, updatedAt: true },
       orderBy: { updatedAt: "desc" },
       take: 4,
     }),
     db.project.findMany({
-      where: { organizationId: orgId, status: { in: ["ACTIVE", "PLANNING"] } },
+      where: { organizationId: orgId, status: { in: ["ACTIVE", "PLANNING"] }, createdAt: createdAtRange },
       select: { id: true, name: true, budget: true, status: true, customFields: true, updatedAt: true },
       orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
       take: 6,
     }),
     db.invoice.findMany({
-      where: { organizationId: orgId },
+      where: { organizationId: orgId, issuedAt: createdAtRange },
       include: { contact: { include: { company: true } } },
       orderBy: [{ issuedAt: "desc" }, { createdAt: "desc" }],
       take: 5,
     }),
     db.invoice.findMany({
-      where: { organizationId: orgId, status: { in: OPEN_INVOICE_STATUSES } },
+      where: { organizationId: orgId, status: { in: OPEN_INVOICE_STATUSES }, issuedAt: createdAtRange },
       include: { contact: { include: { company: true } } },
       orderBy: [{ amountDue: "desc" }, { dueDate: "asc" }],
       take: 5,
     }),
     db.contact.findMany({
-      where: { organizationId: orgId, type: { in: ["LEAD", "PROSPECT"] } },
+      where: { organizationId: orgId, type: { in: ["LEAD", "PROSPECT"] }, updatedAt: createdAtRange },
       include: { company: true },
       orderBy: { updatedAt: "desc" },
       take: 4,

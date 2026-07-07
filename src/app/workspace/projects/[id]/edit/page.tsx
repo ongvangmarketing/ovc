@@ -8,8 +8,9 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function ProjectEditPage({ params }: { params: { id: string } }) {
-  const project = await getProjectById(params.id);
+export default async function ProjectEditPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const project = await getProjectById(id);
 
   if (!project) {
     notFound();

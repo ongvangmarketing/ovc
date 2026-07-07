@@ -18,23 +18,14 @@ import {
   SlidersHorizontal,
   Users,
   Wrench,
+  Building2,
 } from "lucide-react";
 
-import { sendPortalAccessEmailForUser, sendTestEmail, updateEmailTemplate, updateSettings } from "@/app/actions/settings";
+import { sendPortalAccessEmailForUser, sendTestEmail, updateSettings } from "@/app/actions/settings";
 import { cn } from "@/lib/utils/cn";
 import { formatDateTime } from "@/lib/utils/format";
 
 type SettingsMap = Record<string, string>;
-
-type EmailTemplateRecord = {
-  id: string;
-  code: string;
-  name: string;
-  subject: string;
-  body: string;
-  variables: string[];
-  isActive?: boolean;
-};
 
 type EmailLogRecord = {
   id: string;
@@ -78,13 +69,13 @@ type ActivityRecord = {
 
 type SettingsClientProps = {
   initialSettings: SettingsMap;
-  initialTemplates: EmailTemplateRecord[];
   initialEmailLogs: EmailLogRecord[];
   initialMembers: MemberRecord[];
   initialActivityLogs: ActivityRecord[];
 };
 
 const tabs = [
+  { id: "company", label: "Thông tin công ty", href: "/workspace/settings/company", icon: Building2, isExternal: true },
   { id: "security", label: "Bảo mật", href: "/workspace/settings?tab=security", icon: ShieldCheck },
   { id: "email", label: "Email", href: "/workspace/settings?tab=email", icon: Server },
   { id: "templates", label: "Mẫu Email", href: "/workspace/settings?tab=templates", icon: Mail },
@@ -158,7 +149,6 @@ function DevelopingPanel({ title, items }: { title: string; items: string[] }) {
 
 export function SettingsClient({
   initialSettings,
-  initialTemplates,
   initialEmailLogs,
   initialMembers,
   initialActivityLogs,
@@ -181,21 +171,9 @@ export function SettingsClient({
   const [testEmail, setTestEmail] = useState(initialSettings.smtp_from_email || "");
   const [isSendingTest, startTestEmailTransition] = useTransition();
 
-  const [templates, setTemplates] = useState(initialTemplates);
-  const [editingTemplate, setEditingTemplate] = useState<EmailTemplateRecord | null>(null);
-  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [isPortalPending, startPortalTransition] = useTransition();
 
-  const financeTemplates = useMemo(
-    () =>
-      templates
-        .filter((template) => emailFlow.includes(template.code))
-        .sort((a, b) => emailFlow.indexOf(a.code) - emailFlow.indexOf(b.code)),
-    [templates]
-  );
-
   const openTab = (tabId: string) => {
-    setEditingTemplate(null);
     router.push(`/workspace/settings?tab=${tabId}`, { scroll: false });
   };
 
@@ -228,27 +206,7 @@ export function SettingsClient({
     });
   };
 
-  const handleSaveTemplate = async () => {
-    if (!editingTemplate) return;
-    setIsSavingTemplate(true);
-    try {
-      await updateEmailTemplate(editingTemplate.code, {
-        name: editingTemplate.name,
-        subject: editingTemplate.subject,
-        body: editingTemplate.body,
-        variables: editingTemplate.variables,
-      });
-      setTemplates((current) =>
-        current.map((template) => (template.code === editingTemplate.code ? editingTemplate : template))
-      );
-      alert("Đã lưu mẫu email.");
-      setEditingTemplate(null);
-    } catch (error) {
-      alert(`Lỗi: ${error instanceof Error ? error.message : "Không thể lưu mẫu email"}`);
-    } finally {
-      setIsSavingTemplate(false);
-    }
-  };
+
 
   const handleSendPortalAccess = (userId: string) => {
     const password = window.prompt("Nhập mật khẩu Portal muốn cấp. Để trống để hệ thống tự sinh mật khẩu.");
@@ -274,29 +232,7 @@ export function SettingsClient({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-        <aside className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className="space-y-1">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => openTab(tab.id)}
-                  className={cn(
-                    "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-[15px] font-semibold transition-all",
-                    active ? "bg-slate-950 text-white shadow-sm" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
-                  )}
-                >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  <span className="truncate">{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </aside>
+      <div className="w-full">
 
         <section className="min-h-[620px] rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           {activeTab === "security" ? (
@@ -374,101 +310,9 @@ export function SettingsClient({
                   <input value={smtpSettings.smtp_from_name} onChange={(event) => setSmtpSettings({ ...smtpSettings, smtp_from_name: event.target.value })} className="settings-input" placeholder="Ong Vàng Workspace" />
                 </Field>
               </div>
-
-              <div className="mt-6 rounded-xl border border-orange-100 bg-orange-50 p-4">
-                <h4 className="font-bold text-orange-900">Luồng email ưu tiên từ ongvang.com.vn</h4>
-                <div className="mt-3 grid gap-2 md:grid-cols-2">
-                  {emailFlow.map((code) => (
-                    <button
-                      key={code}
-                      onClick={() => {
-                        openTab("templates");
-                        const template = templates.find((item) => item.code === code);
-                        if (template) setEditingTemplate({ ...template });
-                      }}
-                      className="rounded-lg border border-orange-100 bg-white px-3 py-2 text-left text-sm font-bold text-orange-700 hover:border-orange-300"
-                    >
-                      {code}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           ) : null}
 
-          {activeTab === "templates" && !editingTemplate ? (
-            <div>
-              <div className="mb-6 border-b border-slate-100 pb-4">
-                <h3 className="text-xl font-bold text-slate-950">Mẫu Email</h3>
-                <p className="mt-1 text-[15px] font-semibold text-slate-500">
-                  Đã import template legacy; nhóm tài chính được ưu tiên để setup luồng gửi.
-                </p>
-              </div>
-              <div className="space-y-3">
-                {(financeTemplates.length ? financeTemplates : templates).map((template) => (
-                  <div key={template.id} className="grid gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 md:grid-cols-[1fr_auto] md:items-center">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="font-bold text-slate-950">{template.name}</h4>
-                        {template.isActive === false ? <StatusPill status="SKIPPED" /> : <StatusPill status="ACTIVE" />}
-                      </div>
-                      <p className="mt-1 truncate text-sm font-bold text-slate-500">{template.code}</p>
-                      <p className="mt-1 truncate text-[15px] font-semibold text-slate-600">{template.subject}</p>
-                    </div>
-                    <button
-                      onClick={() => setEditingTemplate({ ...template })}
-                      className="h-10 rounded-lg border border-slate-200 bg-white px-4 text-[15px] font-bold text-slate-700 hover:bg-slate-950 hover:text-white"
-                    >
-                      Chỉnh sửa
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {activeTab === "templates" && editingTemplate ? (
-            <div>
-              <div className="mb-6 flex flex-col gap-4 border-b border-slate-100 pb-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <button onClick={() => setEditingTemplate(null)} className="mb-2 text-[15px] font-bold text-slate-500 hover:text-slate-950">
-                    ← Quay lại mẫu email
-                  </button>
-                  <h3 className="text-xl font-bold text-slate-950">{editingTemplate.name}</h3>
-                  <p className="mt-1 text-sm font-bold text-slate-500">{editingTemplate.code}</p>
-                </div>
-                <button
-                  onClick={handleSaveTemplate}
-                  disabled={isSavingTemplate}
-                  className="inline-flex h-10 min-w-[108px] items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 text-[15px] font-bold text-white hover:bg-slate-800 disabled:opacity-60"
-                >
-                  <Save className="h-4 w-4" />
-                  <span className="whitespace-nowrap">{isSavingTemplate ? "Đang lưu..." : "Lưu mẫu"}</span>
-                </button>
-              </div>
-              <div className="space-y-4">
-                <Field label="Tên mẫu">
-                  <input value={editingTemplate.name} onChange={(event) => setEditingTemplate({ ...editingTemplate, name: event.target.value })} className="settings-input" />
-                </Field>
-                <Field label="Tiêu đề email">
-                  <input value={editingTemplate.subject} onChange={(event) => setEditingTemplate({ ...editingTemplate, subject: event.target.value })} className="settings-input" />
-                </Field>
-                <Field label="Nội dung HTML">
-                  <textarea rows={14} value={editingTemplate.body} onChange={(event) => setEditingTemplate({ ...editingTemplate, body: event.target.value })} className="settings-input text-sm" />
-                </Field>
-                <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
-                  <h4 className="mb-2 font-bold text-blue-900">Biến hỗ trợ</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {editingTemplate.variables.map((variable) => (
-                      <span key={variable} className="rounded-lg border border-blue-100 bg-white px-2 py-1 text-sm font-bold text-blue-700">
-                        {`{{${variable}}}`}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null}
 
           {activeTab === "email-logs" ? (
             <div>

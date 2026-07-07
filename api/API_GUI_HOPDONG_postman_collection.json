@@ -1,0 +1,54 @@
+{
+  "info": {
+    "name": "API_GUI_HOPDONG - Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "API Gửi hợp đồng",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"p_hop_dong_id\": 421921,\n  \"p_ds_nguoi_ky\": [\n    {\n      \"p_hd_chitiet_id\": 427947,\n      \"p_ct_nk\": [\n        {\n          \"p_tk_kh_id\": 6,\n          \"p_ten_taikhoan\": \"Nhập tên tài khoản\",\n          \"p_email\": \"test@gmail.com\",\n          \"p_sdt\": \"0949896401\",\n          \"p_tinnhan\": \"\",\n          \"p_thoigian_xuly\": null,\n          \"p_flag_xacminh_nk\": 0,\n          \"p_flag_chuyenky\": 0,\n          \"p_flag_themky\": 0,\n          \"p_vaitro_ky_id\": 3,\n          \"p_ht_ky\": \"3,7,1,4,2,8,6,5\",\n          \"p_thutu_bb_ky\": 1,\n          \"p_luong_nguoiky_id\": null,\n          \"p_thutu_ky\": 1,\n          \"p_flag_ky_tuantu\": 1\n        }\n      ]\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{base_url}}/econtract-integration-service/vnpt-econtract/cap-nhat-nguoi-ky",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "econtract-integration-service",
+            "vnpt-econtract",
+            "cap-nhat-nguoi-ky"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

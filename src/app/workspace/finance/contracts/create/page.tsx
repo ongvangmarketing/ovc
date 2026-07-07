@@ -1,10 +1,12 @@
 import { ContractFormClient } from "@/modules/finance/components/contract-form-client";
+import { getNextContractNumber } from "@/app/actions/finance-crud";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth/require-auth";
 
 export default async function CreateContractPage(props: { searchParams: Promise<{ quotationId?: string }> }) {
   const searchParams = await props.searchParams;
-  let initialData = undefined;
+  const nextNumber = await getNextContractNumber();
+  let initialData: any = { number: nextNumber };
   
   if (searchParams.quotationId) {
     const session = await requireAuth();
@@ -15,9 +17,12 @@ export default async function CreateContractPage(props: { searchParams: Promise<
     
     if (quotation) {
       initialData = {
+        number: nextNumber,
         title: `Hợp đồng theo ${quotation.title}`,
         contactId: quotation.contactId,
+        companyId: quotation.companyId,
         dealId: quotation.dealId,
+        assigneeId: quotation.assigneeId,
         currency: quotation.currency,
         subtotal: Number(quotation.subtotal),
         discount: Number(quotation.discount),
@@ -31,6 +36,7 @@ export default async function CreateContractPage(props: { searchParams: Promise<
         items: quotation.items.map(i => ({
           name: i.name,
           description: i.description || "",
+          unit: i.unit || "",
           quantity: Number(i.quantity),
           unitPrice: Number(i.unitPrice),
           total: Number(i.total),

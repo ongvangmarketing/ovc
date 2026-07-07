@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Search, Plus, Download, Eye, Edit, MoreHorizontal, Trash2 } from "lucide-react";
+import { Search, Plus, Download, Eye, Edit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatDate, formatCurrency } from "@/lib/utils/format";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -38,6 +38,16 @@ type FinanceContact = {
   company?: { name?: string | null } | null;
 };
 
+type ContractRow = {
+  id: string;
+  number: string;
+  title?: string | null;
+  status: string;
+  total: number | string;
+  createdAt?: string | Date | null;
+  contact?: FinanceContact | null;
+};
+
 function getCustomerName(contact?: FinanceContact | null) {
   if (!contact) return "Không gắn khách hàng";
   const fullName = contact.name || `${contact.firstName || ""} ${contact.lastName || ""}`.trim();
@@ -65,7 +75,9 @@ export function ContractsClient() {
     }
   });
 
-  const filtered = contracts.filter((inv: any) => {
+  const contractRows = contracts as unknown as ContractRow[];
+
+  const filtered = contractRows.filter((inv) => {
     const customer = getCustomerName(inv.contact);
     const matchSearch = `${inv.number} ${inv.title} ${customer}`.toLowerCase().includes(search.toLowerCase());
     const matchStatus = selectedStatus === "all" || inv.status === selectedStatus;
@@ -73,10 +85,10 @@ export function ContractsClient() {
   });
 
   const summaryStats = [
-    { label: "Tổng hợp đồng", value: contracts.reduce((s: any, i: any) => s + Number(i.total), 0), color: "text-foreground" },
-    { label: "Đã gửi", value: contracts.filter((i: any) => i.status === "SENT").reduce((s: any, i: any) => s + Number(i.total), 0), color: "text-blue-600" },
-    { label: "Đã ký", value: contracts.filter((i: any) => i.status === "SIGNED").reduce((s: any, i: any) => s + Number(i.total), 0), color: "text-emerald-600" },
-    { label: "Đã chuyển đổi", value: contracts.filter((i: any) => i.status === "CONVERTED").reduce((s: any, i: any) => s + Number(i.total), 0), color: "text-purple-600" },
+    { label: "Tổng hợp đồng", value: contractRows.reduce((s, i) => s + Number(i.total), 0), color: "text-foreground" },
+    { label: "Đã gửi", value: contractRows.filter((i) => i.status === "SENT").reduce((s, i) => s + Number(i.total), 0), color: "text-blue-600" },
+    { label: "Đã ký", value: contractRows.filter((i) => i.status === "SIGNED").reduce((s, i) => s + Number(i.total), 0), color: "text-emerald-600" },
+    { label: "Đã chuyển đổi", value: contractRows.filter((i) => i.status === "CONVERTED").reduce((s, i) => s + Number(i.total), 0), color: "text-purple-600" },
   ];
 
 
@@ -125,7 +137,7 @@ export function ContractsClient() {
         </div>
 
         {/* Status Filter */}
-        <div className="flex items-center gap-1">
+        <div className="hidden items-center gap-1 sm:flex">
           {["all", "DRAFT", "SENT", "SIGNED", "CONVERTED", "CANCELLED"].map((s) => (
             <button
               key={s}
@@ -150,14 +162,14 @@ export function ContractsClient() {
       {/* Table */}
       <div className="card-base overflow-hidden">
         <div className="overflow-x-auto scrollable-x">
-          <table className="w-full min-w-[680px] text-sm [&_td]:!px-3 [&_td]:!py-2.5 [&_th]:!px-3 [&_th]:!py-2.5">
+          <table className="w-full min-w-[900px] table-fixed text-sm [&_td]:!px-3 [&_td]:!py-2.5 [&_th]:!px-3 [&_th]:!py-2.5">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Số HĐ</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Khách hàng</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Trạng thái</th>
-                <th className="text-left font-medium text-muted-foreground py-3 px-4 w-32">Tổng tiền</th>
-                <th className="text-left font-medium text-muted-foreground py-3 px-4 w-32">Ngày tạo</th>
+                <th className="w-[130px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Số HĐ</th>
+                <th className="w-[370px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Khách hàng</th>
+                <th className="w-[150px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Trạng thái</th>
+                <th className="w-[140px] whitespace-nowrap text-right font-medium text-muted-foreground py-3 px-4">Tổng tiền</th>
+                <th className="w-[120px] whitespace-nowrap text-left font-medium text-muted-foreground py-3 px-4">Ngày tạo</th>
                 <th className="py-3 px-4 w-24"></th>
               </tr>
             </thead>
@@ -174,20 +186,21 @@ export function ContractsClient() {
                         {inv.number}
                       </Link>
                     </td>
-                    <td className="whitespace-nowrap py-4 px-4 text-sm text-muted-foreground">{getCustomerName(inv.contact)}</td>
-                    <td className="py-3 px-4">
+                    <td className="py-4 px-4 text-sm text-muted-foreground">
+                      <span className="block truncate">{getCustomerName(inv.contact)}</span>
+                    </td>
+                    <td className="whitespace-nowrap py-3 px-4">
                       <span
-                        className="badge-status text-xs font-medium"
-                        style={{
-                          backgroundColor: statusColor + "20",
-                          color: statusColor,
-                        }}
+                        className={cn(
+                          "inline-flex min-w-[84px] items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold leading-none whitespace-nowrap",
+                          statusColor
+                        )}
                       >
                         {statusLabel}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-sm font-medium">{formatCurrency(Number(inv.total))}</td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">
+                    <td className="whitespace-nowrap py-3 px-4 text-right text-sm font-semibold tabular-nums">{formatCurrency(Number(inv.total))}</td>
+                    <td className="whitespace-nowrap py-3 px-4 text-xs text-muted-foreground">
                       <span className={""}>
                         {inv.createdAt ? formatDate(new Date(inv.createdAt)) : "N/A"}
                       </span>
@@ -206,9 +219,6 @@ export function ContractsClient() {
                           title="Xóa"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
-                          <MoreHorizontal className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>

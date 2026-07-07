@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 
 import { requireAuth } from "@/lib/auth/require-auth";
 import { db } from "@/lib/db";
-import { ReceiptPrintButton } from "./print-button";
 
 export const metadata = {
   title: "Phiếu thu | Ong Vàng Workspace",
@@ -91,7 +90,7 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
   const payment = await db.payment.findFirst({
     where: { id, organizationId: session.organizationId },
     include: {
-      organization: true,
+      organization: { include: { settings: true } },
       invoice: {
         include: {
           contact: { include: { company: true } },
@@ -104,6 +103,21 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
   if (!payment) return notFound();
 
   const organization = payment.organization;
+  const organizationSettings = Object.fromEntries(
+    (organization.settings ?? []).map((setting) => [setting.key, setting.value || ""]),
+  );
+  const organizationValue = (key: string, fallback = "") =>
+    organizationSettings[key]?.trim() || fallback;
+  const organizationName = organizationValue("company_name", organization.name);
+  const organizationLogo = organizationValue("company_logo_url", organization.logo || "");
+  const receiptLogo =
+    organizationLogo && !organizationLogo.toLowerCase().endsWith(".ico") ? organizationLogo : "/brand/ong-vang-logo.png";
+  const organizationTaxCode = organizationValue("company_tax_code");
+  const organizationAddress = organizationValue("company_address", organization.address || "");
+  const organizationEmail = organizationValue("company_email", organization.email || "");
+  const organizationWebsite = organizationValue("company_website", organization.website || "");
+  const organizationHotline = organizationValue("company_hotline", organization.phone || "");
+  const organizationFunction = organizationValue("company_function", "Người phụ trách");
   const invoice = payment.invoice;
   const contact = invoice?.contact;
   const company = contact?.company;
@@ -111,7 +125,7 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
   const customerName = company?.name || contactName || contact?.email || "Khách hàng";
   const customerPhone = company?.phone || contact?.phone || contact?.mobile || "";
   const customerEmail = company?.email || contact?.email || "";
-  const receiptCode = payment.reference || `PT-${payment.id.slice(-8).toUpperCase()}`;
+  const receiptCode = payment.number || payment.reference || `PT-${payment.id.slice(-8).toUpperCase()}`;
   const invoiceCode = invoice?.number || "--";
   const paidAt = payment.paidAt || payment.createdAt;
   const invoicePaid =
@@ -124,6 +138,10 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
   return (
     <main className="receipt-screen">
       <style>{`
+        @page {
+          size: A4;
+          margin: 9mm;
+        }
         .receipt-screen {
           inset: 0;
           min-height: 100vh;
@@ -135,92 +153,69 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
           padding: 40px 16px;
           z-index: 1000;
         }
-        .receipt-toolbar {
-          align-items: center;
-          display: flex;
-          justify-content: flex-end;
-          margin: 0 auto 16px;
-          max-width: 960px;
-        }
-        .receipt-print-button {
-          align-items: center;
-          background: #ffffff;
-          border: 1px solid #d9e1ec;
-          border-radius: 10px;
-          color: #334155;
-          cursor: pointer;
-          display: inline-flex;
-          font-size: 14px;
-          font-weight: 500;
-          gap: 8px;
-          height: 40px;
-          padding: 0 16px;
-        }
         .receipt-sheet {
           background: #fff;
           box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
           margin: 0 auto;
-          max-width: 960px;
-          min-height: 1180px;
-          padding: 4%;
+          min-height: 1123px;
+          padding: 48px;
+          width: 794px;
+          max-width: calc(100vw - 32px);
+          box-sizing: border-box;
         }
         .receipt-top {
           display: grid;
-          gap: 32px;
-          grid-template-columns: 1fr 1fr;
+          gap: 18px;
+          grid-template-columns: 60% 40%;
         }
         .receipt-brand {
           align-items: flex-start;
-          display: flex;
-          gap: 12px;
+          display: block;
         }
         .receipt-logo {
-          align-items: center;
-          background: #fff7ed;
-          border-radius: 16px;
-          color: #f97316;
-          display: flex;
-          font-size: 24px;
-          font-weight: 800;
-          height: 56px;
-          justify-content: center;
-          width: 56px;
+          background: transparent;
+          border-radius: 0;
+          display: block;
+          height: auto;
+          margin-bottom: 5px;
+          width: 118px;
         }
         .receipt-logo img {
-          max-height: 48px;
-          max-width: 48px;
+          display: block;
+          max-height: 38px;
+          max-width: 118px;
           object-fit: contain;
         }
         .receipt-company-name,
         .receipt-national-title {
           color: #111827;
-          font-size: 14px;
-          font-weight: 800;
-          line-height: 1.35;
+          font-size: 12.5px;
+          font-weight: 900;
+          line-height: 1.25;
           text-transform: uppercase;
         }
         .receipt-company-line,
         .receipt-meta {
           color: #475569;
-          font-size: 13px;
-          line-height: 1.55;
+          font-size: 11px;
+          line-height: 1.45;
         }
         .receipt-national {
           text-align: center;
         }
         .receipt-national-subtitle {
           color: #111827;
-          font-size: 13px;
+          font-size: 11px;
           font-weight: 700;
           margin-top: 2px;
         }
         .receipt-star {
           color: #f97316;
-          font-size: 13px;
+          font-size: 11px;
           margin: 6px 0;
         }
         .receipt-title {
-          margin: 44px 0 28px;
+          margin: 20px 0 18px;
           text-align: center;
         }
         .receipt-title h1 {
@@ -254,8 +249,16 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
         .receipt-box {
           border: 1px solid #f59e0b;
           border-radius: 0 10px 10px;
-          padding: 18px;
+          padding: 14px 16px;
           position: relative;
+        }
+        .receipt-box.compact {
+          padding: 6px 12px;
+        }
+        .receipt-box.sign-only {
+          border: 0;
+          border-radius: 0;
+          padding: 0;
         }
         .receipt-row {
           display: grid;
@@ -300,14 +303,13 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
         }
         .receipt-value-table {
           border-collapse: collapse;
-          margin-top: 14px;
           width: 100%;
         }
         .receipt-value-table td {
           border-bottom: 1px solid #fed7aa;
           color: #334155;
           font-size: 13px;
-          padding: 10px 8px;
+          padding: 5px 4px;
         }
         .receipt-value-table td:last-child {
           color: #111827;
@@ -316,12 +318,12 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
         }
         .receipt-value-table .grand td {
           color: #f97316;
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 800;
         }
         .receipt-sign-grid {
           display: grid;
-          gap: 24px;
+          gap: 30px;
           grid-template-columns: 1fr 1fr;
         }
         .receipt-sign-box {
@@ -359,7 +361,7 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
           line-height: 1.65;
           margin: 0 auto;
           max-width: 280px;
-          text-align: left;
+          text-align: center;
         }
         .receipt-footer {
           border-top: 1px solid #e2e8f0;
@@ -374,11 +376,22 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
           body * { visibility: hidden !important; }
           .receipt-screen, .receipt-screen * { visibility: visible !important; }
           .receipt-screen { background: #fff; padding: 0; }
-          .receipt-toolbar { display: none; }
-          .receipt-sheet { box-shadow: none; max-width: none; min-height: auto; position: absolute; inset: 0; }
+          .receipt-sheet {
+            box-shadow: none;
+            height: auto;
+            min-height: 0;
+            max-width: none;
+            position: absolute;
+            inset: 0;
+            width: auto;
+          }
         }
         @media (max-width: 760px) {
-          .receipt-sheet { padding: 24px; }
+          .receipt-sheet {
+            min-height: 0;
+            padding: 24px;
+            width: 100%;
+          }
           .receipt-top,
           .receipt-sign-grid { grid-template-columns: 1fr; }
           .receipt-national { text-align: left; }
@@ -388,21 +401,19 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
           .receipt-footer { display: block; }
         }
       `}</style>
-      <div className="receipt-toolbar">
-        <ReceiptPrintButton />
-      </div>
       <section className="receipt-sheet">
         <header className="receipt-top">
           <div className="receipt-brand">
             <div className="receipt-logo">
-              {organization.logo ? <img src={organization.logo} alt={organization.name} /> : "OV"}
+              {receiptLogo ? <img src={receiptLogo} alt={organizationName} /> : "OV"}
             </div>
             <div>
-              <div className="receipt-company-name">{organization.name}</div>
-              <div className="receipt-company-line">MST: Đang cập nhật</div>
-              <div className="receipt-company-line">{organization.address || "Đang cập nhật"}</div>
+              <div className="receipt-company-name">{organizationName}</div>
+              <div className="receipt-company-line">MST: {organizationTaxCode || "Đang cập nhật"}</div>
+              <div className="receipt-company-line">{organizationAddress || "Đang cập nhật"}</div>
               <div className="receipt-company-line">
-                {[organization.phone, organization.email, organization.website].filter(Boolean).join(" | ") || "Đang cập nhật"}
+                {[organizationHotline, organizationEmail, organizationWebsite].filter(Boolean).join(" | ") ||
+                  "Đang cập nhật"}
               </div>
             </div>
           </div>
@@ -440,7 +451,7 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
 
         <section className="receipt-section">
           <div className="receipt-section-label">Giá trị thanh toán</div>
-          <div className="receipt-box">
+          <div className="receipt-box compact">
             <table className="receipt-value-table">
               <tbody>
                 <tr><td>Tổng giá trị hóa đơn</td><td>{formatMoney(invoice?.total, payment.currency)}</td></tr>
@@ -452,8 +463,7 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
         </section>
 
         <section className="receipt-section">
-          <div className="receipt-section-label">Xác nhận</div>
-          <div className="receipt-box">
+          <div className="receipt-box sign-only">
             <div className="receipt-sign-grid">
               <div className="receipt-sign-box">
                 <div className="receipt-sign-party">Người lập phiếu</div>
@@ -461,7 +471,6 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
                 <div className="receipt-sign-status">Đã xác nhận</div>
                 <div className="receipt-sign-lines">
                   <div>Họ tên: {session.user?.name || "Super Admin"}</div>
-                  <div>Chức danh: Người phụ trách</div>
                   <div>Thời gian: {formatDateTime(payment.createdAt)}</div>
                 </div>
               </div>
@@ -480,7 +489,9 @@ export default async function PaymentReceiptPage({ params }: ReceiptPageProps) {
         </section>
 
         <footer className="receipt-footer">
-          <div>{organization.name} - {organization.email || "Đang cập nhật"} - {organization.phone || "Đang cập nhật"}</div>
+          <div>
+            {organizationName} - {organizationEmail || "Đang cập nhật"} - {organizationHotline || "Đang cập nhật"}
+          </div>
           <div>Phiếu thu {receiptCode}</div>
         </footer>
       </section>

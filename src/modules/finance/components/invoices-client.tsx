@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Download, Eye, Edit, MoreHorizontal, Trash2 } from "lucide-react";
+import { Plus, Download, Eye, Edit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatDate, formatCurrency } from "@/lib/utils/format";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -33,10 +33,14 @@ export function InvoicesClient() {
   const queryClient = useQueryClient();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const { data: invoices = [] } = useQuery({
+  const { data: invoices = [], error, isError, isFetching } = useQuery({
     queryKey: ["invoices"],
     queryFn: () => getInvoices(),
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnReconnect: "always",
   });
+  const isInitialFetching = isFetching && invoices.length === 0;
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteInvoice(id),
@@ -61,7 +65,7 @@ export function InvoicesClient() {
       <div className="page-header">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Hóa đơn</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">{invoices.length} hóa đơn</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{isInitialFetching ? "Đang tải hóa đơn..." : `${invoices.length} hóa đơn`}</p>
         </div>
         <div className="flex items-center gap-2">
           <button className="flex items-center gap-2 h-9 px-3 rounded-lg border border-border bg-background text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
@@ -90,15 +94,26 @@ export function InvoicesClient() {
       {/* Table */}
       <div className="card-base overflow-hidden">
         <div className="overflow-x-auto scrollable-x">
-          <table className="w-full min-w-[680px] text-sm [&_td]:!px-3 [&_td]:!py-2.5 [&_th]:!px-3 [&_th]:!py-2.5">
+          {isError ? (
+            <div className="border-b border-border bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              Không tải được danh sách hóa đơn. Vui lòng tải lại trang hoặc đăng nhập lại nếu phiên làm việc đã hết hạn.
+              {error instanceof Error ? ` (${error.message})` : null}
+            </div>
+          ) : null}
+          {isInitialFetching ? (
+            <div className="border-b border-border bg-slate-50 px-4 py-3 text-sm font-medium text-slate-500">
+              Đang tải danh sách hóa đơn...
+            </div>
+          ) : null}
+          <table className="w-full min-w-[900px] table-fixed text-sm [&_td]:!px-3 [&_td]:!py-2.5 [&_th]:!px-3 [&_th]:!py-2.5">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Số HĐ</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Khách hàng</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Trạng thái</th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-muted-foreground">Tổng tiền</th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-muted-foreground">Còn lại</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Hạn TT</th>
+                <th className="w-[120px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Số HĐ</th>
+                <th className="w-[360px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Khách hàng</th>
+                <th className="w-[130px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Trạng thái</th>
+                <th className="w-[130px] whitespace-nowrap text-right py-3 px-4 text-xs font-medium text-muted-foreground">Tổng tiền</th>
+                <th className="w-[130px] whitespace-nowrap text-right py-3 px-4 text-xs font-medium text-muted-foreground">Còn lại</th>
+                <th className="w-[110px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Hạn TT</th>
                 <th className="py-3 px-4 w-24"></th>
               </tr>
             </thead>
@@ -115,10 +130,12 @@ export function InvoicesClient() {
                         {inv.number}
                       </Link>
                     </td>
-                    <td className="whitespace-nowrap py-3 px-4 text-sm text-muted-foreground">{getCustomerName(inv.contact)}</td>
-                    <td className="py-3 px-4">
+                    <td className="whitespace-nowrap py-3 px-4 text-sm text-muted-foreground">
+                      <span className="block truncate">{getCustomerName(inv.contact)}</span>
+                    </td>
+                    <td className="whitespace-nowrap py-3 px-4">
                       <span
-                        className="badge-status text-xs font-medium"
+                        className="badge-status whitespace-nowrap text-xs font-medium"
                         style={{
                           backgroundColor: statusColor + "20",
                           color: statusColor,
@@ -127,15 +144,15 @@ export function InvoicesClient() {
                         {statusLabel}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right font-semibold tabular-nums text-sm">
+                    <td className="whitespace-nowrap py-3 px-4 text-right font-semibold tabular-nums text-sm">
                       {formatCurrency(Number(inv.total))}
                     </td>
-                    <td className="py-3 px-4 text-right tabular-nums text-sm">
+                    <td className="whitespace-nowrap py-3 px-4 text-right tabular-nums text-sm">
                       <span className={Number(inv.amountDue) > 0 ? (isOverdue ? "text-red-500 font-semibold" : "text-foreground") : "text-emerald-600"}>
                         {Number(inv.amountDue) > 0 ? formatCurrency(Number(inv.amountDue)) : "Đã TT"}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">
+                    <td className="whitespace-nowrap py-3 px-4 text-xs text-muted-foreground">
                       <span className={isOverdue ? "text-red-500 font-medium" : ""}>
                         {inv.dueDate ? formatDate(new Date(inv.dueDate)) : "N/A"}
                       </span>
@@ -154,9 +171,6 @@ export function InvoicesClient() {
                           title="Xóa"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
-                          <MoreHorizontal className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>

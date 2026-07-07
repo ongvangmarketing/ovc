@@ -31,18 +31,18 @@ function parseDomainTargets() {
 }
 
 function mapPublicModulePath(target: PublicDomainTarget, pathname: string) {
-  if (pathname.startsWith("/ovmain")) return pathname;
+  if (pathname.startsWith("/ongvangcomvn")) return pathname;
 
   if (target === "training") {
-    if (pathname === "/") return "/ovmain/khoa-hoc";
-    if (pathname === "/khoa-hoc" || pathname.startsWith("/khoa-hoc/")) return `/ovmain${pathname}`;
-    if (pathname === "/lien-he") return "/ovmain/lien-he";
-    if (pathname === "/gioi-thieu") return "/ovmain/gioi-thieu";
-    return `/ovmain/khoa-hoc${pathname === "/" ? "" : pathname}`;
+    if (pathname === "/") return "/ongvangcomvn/khoa-hoc";
+    if (pathname === "/khoa-hoc" || pathname.startsWith("/khoa-hoc/")) return `/ongvangcomvn${pathname}`;
+    if (pathname === "/lien-he") return "/ongvangcomvn/lien-he";
+    if (pathname === "/gioi-thieu") return "/ongvangcomvn/gioi-thieu";
+    return `/ongvangcomvn/khoa-hoc${pathname === "/" ? "" : pathname}`;
   }
 
   if (target === "marketing" || target === "homepage") {
-    if (pathname === "/") return "/ovmain";
+    if (pathname === "/") return "/ongvangcomvn";
     if (
       pathname === "/dich-vu" ||
       pathname.startsWith("/dich-vu/") ||
@@ -52,7 +52,7 @@ function mapPublicModulePath(target: PublicDomainTarget, pathname: string) {
       pathname === "/du-an" ||
       pathname === "/lien-he"
     ) {
-      return `/ovmain${pathname}`;
+      return `/ongvangcomvn${pathname}`;
     }
     return pathname;
   }
@@ -142,9 +142,9 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(redirectUrl, 308);
     }
 
-    if (pathname === "/ovmain" || pathname.startsWith("/ovmain/")) {
+    if (pathname === "/ongvangcomvn" || pathname.startsWith("/ongvangcomvn/")) {
       const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = pathname.replace(/^\/ovmain/, "") || "/";
+      redirectUrl.pathname = pathname.replace(/^\/ongvangcomvn/, "") || "/";
       return NextResponse.redirect(redirectUrl, 308);
     }
 

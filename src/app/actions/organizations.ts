@@ -6,6 +6,8 @@ import { defaultModuleCodes, normalizeModuleCode, type PlatformModuleCode } from
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { updateCompanySettings } from "./settings";
+import { OrganizationEvents } from "@/lib/events/organization.events";
 
 const LICENSE_STATUSES = ["ACTIVE", "TRIALING", "SUSPENDED", "EXPIRED", "CANCELLED"] as const;
 
@@ -221,15 +223,7 @@ export async function updateOrganization(orgId: string, formData: FormData) {
         description: textValue(formData, "description") || null,
         plan,
         isActive: formData.get("isActive") === "on",
-        activeModules: modules,
       },
-    });
-
-    await syncOrganizationModuleLicenses({
-      organizationId: orgId,
-      moduleCodes: modules,
-      planCode: plan,
-      formData,
     });
 
     revalidateOrganizationAdmin();
@@ -331,7 +325,7 @@ export async function toggleOrganizationModule(orgId: string, module: string) {
 export async function getPlatformProvisioningOptions() {
   await requireSuperAdmin();
 
-  const [modules, plans] = await Promise.all([
+  const [modules, rawPlans] = await Promise.all([
     db.platformModule.findMany({
       where: { status: "ACTIVE" },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -341,6 +335,11 @@ export async function getPlatformProvisioningOptions() {
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
   ]);
+
+  const plans = rawPlans.map(p => ({
+    ...p,
+    price: p.price ? Number(p.price) : 0,
+  }));
 
   return { modules, plans };
 }
@@ -382,5 +381,44 @@ export async function switchOrganization(orgId: string) {
 
   revalidatePath("/workspace");
   revalidatePath("/workspace/dashboard");
+  return { success: true };
+}
+
+export async function updateOrganizationProfile(formData: FormData) {
+  const session = await requireAuth();
+  const organizationId = session.organizationId;
+  if (!organizationId) {
+    throw new Error("Active organization is required");
+  }
+
+  // 1. Sync to legacy Setting table + base Organization (for email compatibility)
+  await updateCompanySettings(formData);
+
+  // 2. Sync to new OrganizationProfile table
+  const profileData = {
+    representativeName: textValue(formData, "company_representative") || null,
+    businessLicense: textValue(formData, "company_tax_code") || null,
+    address: textValue(formData, "company_address") || null,
+    logo: textValue(formData, "company_logo_url") || null,
+    favicon: textValue(formData, "company_favicon_url") || null,
+    representativePhone: textValue(formData, "company_hotline") || null,
+    representativeEmail: textValue(formData, "company_email") || null,
+    slogan: textValue(formData, "company_function") || null,
+  };
+
+  await db.organizationProfile.upsert({
+    where: { organizationId },
+    create: {
+      organizationId,
+      ...profileData,
+    },
+    update: {
+      ...profileData,
+    },
+  });
+
+  OrganizationEvents.profileUpdated(organizationId);
+  revalidatePath("/workspace/settings/organization");
+
   return { success: true };
 }

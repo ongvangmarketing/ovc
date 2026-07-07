@@ -11,7 +11,7 @@ if (!connectionString) {
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
-const workspaceModules = ["WORKSPACE", "CRM", "FINANCE", "EDUCATION", "PROJECTS", "MARKETING", "REPORTS", "SETTINGS", "PORTAL"];
+const workspaceModules = ["WORKSPACE", "CRM", "FINANCE", "EDUCATION", "PROJECTS", "MARKETING", "REPORTS", "SETTINGS", "PORTAL", "WEBSITE"];
 
 async function main() {
   console.log("Seeding database...");

@@ -8,6 +8,14 @@ export function DocumentA4Preview({ data, type }: { data: any, type: "quotation"
     // Computed values
     const company = data.organization || {};
     const customer = data.contact || data.customer || {};
+    const companySettings = Object.fromEntries(
+        (Array.isArray(company.settings) ? company.settings : []).map((item: any) => [item.key, item.value || ''])
+    );
+    const objectFields = (value: any) => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const firstText = (...values: any[]) => values.find((value) => String(value || '').trim()) || '';
+    const companyValue = (settingKey: string, organizationKey?: string) => (
+        companySettings[settingKey] || (organizationKey ? company[organizationKey] : '') || ''
+    );
     
     const formatDate = (val: any) => val ? new Date(val).toLocaleDateString('vi-VN') : '';
     const formatDateTime = (val: any) => val ? new Date(val).toLocaleString('vi-VN') : '';
@@ -37,26 +45,85 @@ export function DocumentA4Preview({ data, type }: { data: any, type: "quotation"
     
     const sellerSigned = !!data.adminSignedAt;
     const customerSigned = !!data.signedAt;
+    const customerSignatureRequired = data.customerSignatureRequired !== false;
     const customerSignature = data.signature || null;
+    const sellerSignatureId = data.adminSignatureId || data.adminSignature?.id || '';
+    const sellerIpAddress = data.adminSignature?.ipAddress || '';
     
-    const sellerSignerName = company.representative || 'Người phụ trách';
-    const sellerSignerPosition = 'Đại diện công ty';
+    const sellerSignerName = companyValue('company_representative', 'representative') || 'Người phụ trách';
+    const sellerSignerPosition = companyValue('company_function') || 'Đại diện công ty';
     const customerSignerName = customerSignature?.signerName || customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || '';
     const customerCompany =
         typeof customer.company === 'string'
             ? customer.company
             : customer.company?.name || '';
-    const customerPerson = customer.contactPerson || customer.name || '';
-    const customerPosition = customer.position || '';
-    const customerDisplayName = customerCompany || customerPerson || 'Khách hàng';
+    const customerPerson = customer.contactPerson || customer.name || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || '';
+    const customerPosition = customer.position || customer.jobTitle || '';
+    const customerCompanyObject = typeof customer.company === 'object' && customer.company ? customer.company : {};
+    const customerCompanyFields = objectFields(customerCompanyObject.customFields);
+    const customerFields = objectFields(customer.customFields);
+    const customerCompanyTaxCode = firstText(
+        customerCompanyFields.taxCode,
+        customerCompanyFields.tax_code,
+        customerCompanyFields.mst,
+        customerCompanyFields.businessLicense,
+        customerCompanyObject.taxCode,
+        customerCompanyObject.businessLicense,
+        customer.companyTaxCode,
+        customerFields.companyTaxCode,
+        customerFields.taxCode,
+        customerFields.tax_code,
+        customerFields.mst,
+        customerFields.businessLicense
+    );
+    const isCompanyCustomer = Boolean(customerCompany && (customerCompanyTaxCode || customerCompanyObject.address));
+    const customerAddress = isCompanyCustomer ? (customerCompanyObject.address || customer.address || '') : (customer.address || '');
+    const customerPhone = customerCompanyObject.phone || customer.phone || customer.mobile || '';
+    const customerEmail = customerCompanyObject.email || customer.email || '';
+    const customerDisplayName = isCompanyCustomer ? customerCompany : (customerPerson || customerCompany || 'Khách hàng');
+    const meaningfulText = (value: any) => {
+        const text = String(value || '').trim();
+        if (!text) return '';
+        if (/^ngày\s+lập\s*:\s*\d{4}-\d{2}-\d{2}$/i.test(text)) return '';
+        if (/^ngày\s+lập\s*:\s*\d{1,2}\/\d{1,2}\/\d{4}$/i.test(text)) return '';
+        return text;
+    };
+    const visibleNotes = meaningfulText(data.notes);
+    const visibleTerms = meaningfulText(data.terms);
+    const hasTermsInfo = Boolean(visibleNotes || visibleTerms);
     
-    const companyDisplayName = (company.name || '').toUpperCase();
-    const companyTaxCode = company.taxCode || 'Đang cập nhật';
-    const companyAddress = company.address || 'Đang cập nhật';
-    const logoSrc = company.logoUrl || '/brand/ong-vang-logo.png';
-    const companyWebsite = company.website || '';
+    const companyDisplayName = (companySettings.company_name || 'Đang cập nhật').toUpperCase();
+    const companyTaxCode = companySettings.company_tax_code || 'Đang cập nhật';
+    const companyAddress = companySettings.company_address || 'Đang cập nhật';
+    const configuredLogo = companyValue('company_logo_url', 'logo');
+    const logoSrc = configuredLogo && !configuredLogo.toLowerCase().endsWith('.ico') ? configuredLogo : '/brand/ong-vang-logo.png';
+    const companyPhone = companySettings.company_hotline || '';
+    const companyEmail = companySettings.company_email || '';
+    const companyWebsite = companySettings.company_website || '';
 
     const title = type === 'quotation' ? 'Báo Giá Dịch Vụ' : type === 'contract' ? 'Hợp Đồng Dịch Vụ' : 'Hóa Đơn';
+    const sellerSignatureMeta = [
+        sellerSigned ? `Thời gian ký: ${formatDateTime(data.adminSignedAt)}` : '',
+        sellerIpAddress ? `IP: ${sellerIpAddress}` : '',
+        sellerSignatureId ? `Signature ID: ${sellerSignatureId}` : '',
+    ].filter(Boolean).join(' · ');
+    const customerSignatureMeta = [
+        (customerSigned || customerSignature?.createdAt) ? `Thời gian ký: ${formatDateTime(data.signedAt || customerSignature?.createdAt)}` : '',
+        customerSignature?.ipAddress ? `IP: ${customerSignature.ipAddress}` : '',
+        customerSignature?.id ? `Signature ID: ${customerSignature.id}` : '',
+    ].filter(Boolean).join(' · ');
+    const customerSignaturePayload = (() => {
+        if (!customerSignature?.signatureData) return { image: '', phone: '' };
+        try {
+            const parsed = JSON.parse(customerSignature.signatureData);
+            return {
+                image: parsed.signatureData || '',
+                phone: parsed.signerPhone || '',
+            };
+        } catch {
+            return { image: customerSignature.signatureData, phone: '' };
+        }
+    })();
 
     return (
         <div className="document-a4-wrapper flex justify-center bg-gray-100 py-8">
@@ -79,7 +146,7 @@ export function DocumentA4Preview({ data, type }: { data: any, type: "quotation"
                             <div className="company-line">{companyAddress}</div>
                         )}
                         <div className="company-line">
-                            {company.phone || ''} | {company.email || ''}{companyWebsite ? ` | ${companyWebsite}` : ''}
+                            {companyPhone || ''} | {companyEmail || ''}{companyWebsite ? ` | ${companyWebsite}` : ''}
                         </div>
                     </section>
 
@@ -110,25 +177,36 @@ export function DocumentA4Preview({ data, type }: { data: any, type: "quotation"
                             <div className="info-row"><span>Chức danh</span><b>:</b><div>{sellerSignerPosition}</div></div>
                             <div className="info-row"><span>Mã số thuế</span><b>:</b><div>{companyTaxCode}</div></div>
                             <div className="info-row"><span>Địa chỉ</span><b>:</b><div>{companyAddress}</div></div>
-                            <div className="info-row"><span>Điện thoại</span><b>:</b><div>{company.phone || ''}</div></div>
-                            <div className="info-row"><span>Email</span><b>:</b><div>{company.email || ''}</div></div>
+                            <div className="info-row"><span>Điện thoại</span><b>:</b><div>{companyPhone || ''}</div></div>
+                            <div className="info-row"><span>Email</span><b>:</b><div>{companyEmail || ''}</div></div>
                         </div>
 
                         <div className="party-box light">
                             <h2>Bên B: Khách hàng</h2>
-                            {customerCompany ? (
+                            {isCompanyCustomer ? (
                                 <>
                                     <div className="info-row"><span>Tên công ty</span><b>:</b><div><strong>{customerCompany}</strong></div></div>
+                                    {customerAddress ? (
+                                        <div className="info-row"><span>Địa chỉ</span><b>:</b><div>{customerAddress}</div></div>
+                                    ) : null}
+                                    {customerCompanyTaxCode ? (
+                                        <div className="info-row"><span>Mã số thuế</span><b>:</b><div>{customerCompanyTaxCode}</div></div>
+                                    ) : null}
                                     <div className="info-row"><span>Người đại diện</span><b>:</b><div>{customerPerson}</div></div>
                                     {customerPosition && (
                                         <div className="info-row"><span>Chức danh</span><b>:</b><div>{customerPosition}</div></div>
                                     )}
+                                    <div className="info-row"><span>Điện thoại</span><b>:</b><div>{customerPhone}</div></div>
+                                    <div className="info-row"><span>Email</span><b>:</b><div>{customerEmail}</div></div>
                                 </>
                             ) : (
-                                <div className="info-row"><span>Tên khách hàng</span><b>:</b><div><strong>{customerPerson}</strong></div></div>
+                                <>
+                                    <div className="info-row"><span>Họ và tên khách hàng</span><b>:</b><div><strong>{customerPerson}</strong></div></div>
+                                    <div className="info-row"><span>Điện thoại</span><b>:</b><div>{customerPhone}</div></div>
+                                    <div className="info-row"><span>Địa chỉ</span><b>:</b><div>{customerAddress}</div></div>
+                                    <div className="info-row"><span>Email</span><b>:</b><div>{customerEmail}</div></div>
+                                </>
                             )}
-                            <div className="info-row"><span>Điện thoại</span><b>:</b><div>{customer.phone || ''}</div></div>
-                            <div className="info-row"><span>Email</span><b>:</b><div>{customer.email || ''}</div></div>
                         </div>
                     </div>
                 </section>
@@ -152,7 +230,7 @@ export function DocumentA4Preview({ data, type }: { data: any, type: "quotation"
                                     <tr key={index}>
                                         <td>{index + 1}</td>
                                         <td>
-                                            <strong>{item.description}</strong>
+                                            <strong>{item.name || item.description || '-'}</strong>
                                         </td>
                                         <td>{item.unit || '-'}</td>
                                         <td>{item.quantity || 1}</td>
@@ -179,14 +257,15 @@ export function DocumentA4Preview({ data, type }: { data: any, type: "quotation"
                         )}
                     </div>
 
-                    <div className="box terms-box">
-                        <div className="term-title">Ghi chú & Điều khoản</div>
-                        <div className="term-content">
-                            {data.notes && <div className="mb-2"><strong>Ghi chú:</strong><br/>{richText(data.notes)}</div>}
-                            {data.terms && <div><strong>Điều khoản:</strong><br/>{richText(data.terms)}</div>}
-                            {!data.notes && !data.terms && <span>Không có ghi chú.</span>}
+                    {hasTermsInfo ? (
+                        <div className="box terms-box">
+                            <div className="term-title">Ghi chú & Điều khoản</div>
+                            <div className="term-content">
+                                {visibleNotes && <div className="mb-2"><strong>Ghi chú:</strong><br/>{richText(visibleNotes)}</div>}
+                                {visibleTerms && <div><strong>Điều khoản:</strong><br/>{richText(visibleTerms)}</div>}
+                            </div>
                         </div>
-                    </div>
+                    ) : null}
                 </section>
 
                 {paymentChannelKeys.length ? (
@@ -227,28 +306,22 @@ export function DocumentA4Preview({ data, type }: { data: any, type: "quotation"
                                 <span>Họ tên: <strong>{sellerSigned ? sellerSignerName : ''}</strong></span>
                             </div>
                             <div className="job-title">Chức danh: {sellerSigned ? sellerSignerPosition : ''}</div>
-                            <div className="signature-id">Thời gian ký: {formatDateTime(data.adminSignedAt)}</div>
-                            <div className="signature-id">Signature ID: </div>
-                            <div className="signature-id">IP: </div>
-                            <div className="signature-id user-agent">UserAgent: </div>
+                            {sellerSignatureMeta ? <div className="signature-id">{sellerSignatureMeta}</div> : null}
                         </div>
 
                         <div className="sign-box">
                             <div className="sign-party">Bên B</div>
                             <div className="sign-sub">Khách hàng</div>
                             <div className={`esign ${customerSigned ? 'signed' : 'pending'}`}>
-                                {customerSigned ? 'Đã ký' : 'Chờ ký điện tử'}
+                                {customerSigned ? 'Đã ký' : customerSignatureRequired ? 'Chờ ký điện tử' : 'Không yêu cầu ký'}
                             </div>
                             <div className="signature-line">
                                 <span>Họ tên: <strong>{customerSigned ? customerSignerName : ''}</strong></span>
-                                {customerSignature?.signatureData?.startsWith('data:image') ? (
-                                    <img className="signature-thumb" src={customerSignature.signatureData} alt="Chữ ký khách hàng" />
+                                {customerSignaturePayload.image?.startsWith('data:image') ? (
+                                    <img className="signature-thumb" src={customerSignaturePayload.image} alt="Chữ ký khách hàng" />
                                 ) : null}
                             </div>
-                            <div className="signature-id">Thời gian ký: {formatDateTime(data.signedAt || customerSignature?.createdAt)}</div>
-                            <div className="signature-id">Signature ID: {customerSignature?.id || ''}</div>
-                            <div className="signature-id">IP: {customerSignature?.ipAddress || ''}</div>
-                            <div className="signature-id user-agent">UserAgent: {customerSignature?.userAgent || ''}</div>
+                            {customerSignatureMeta ? <div className="signature-id">{customerSignatureMeta}</div> : null}
                         </div>
                     </div>
                 </section>

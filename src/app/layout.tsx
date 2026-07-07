@@ -35,28 +35,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" suppressHydrationWarning>
-      <body className="font-sans antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <QueryProvider>
-            {children}
-            <Toaster
-              position="bottom-right"
-              richColors
-              closeButton
-              toastOptions={{
-                style: {
-                  borderRadius: "12px",
-                  fontFamily: "var(--font-sans)",
-                },
-              }}
-            />
-          </QueryProvider>
-        </ThemeProvider>
+      <body className="font-sans antialiased" suppressHydrationWarning>
+        <QueryProvider>
+          {children}
+          <Toaster
+            position="bottom-right"
+            richColors
+            closeButton
+            toastOptions={{
+              style: {
+                borderRadius: "12px",
+                fontFamily: "var(--font-sans)",
+              },
+            }}
+          />
+        </QueryProvider>
       </body>
     </html>
   );

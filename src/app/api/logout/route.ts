@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 const authCookies = [
   "better-auth.session_token",
@@ -6,10 +7,13 @@ const authCookies = [
   "better-auth.active_organization",
 ];
 
-export async function POST() {
-  const response = NextResponse.json({ success: true });
+function clearAuthCookies(response: NextResponse, request?: NextRequest) {
+  const cookieNames = new Set(authCookies);
+  request?.cookies.getAll().forEach((cookie) => {
+    if (cookie.name.includes("better-auth")) cookieNames.add(cookie.name);
+  });
 
-  for (const name of authCookies) {
+  for (const name of cookieNames) {
     response.cookies.set(name, "", {
       path: "/",
       maxAge: 0,
@@ -17,5 +21,15 @@ export async function POST() {
     });
   }
 
+  return response;
+}
+
+export async function GET(request: NextRequest) {
+  return clearAuthCookies(NextResponse.redirect(new URL("/login", request.url)), request);
+}
+
+export async function POST(request: NextRequest) {
+  const response = NextResponse.json({ success: true });
+  clearAuthCookies(response, request);
   return response;
 }

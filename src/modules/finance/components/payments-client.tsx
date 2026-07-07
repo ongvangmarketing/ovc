@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Download, Edit, Eye, MoreHorizontal, Plus, Search, Trash2 } from "lucide-react";
+import { Download, Edit, Eye, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { deletePayment } from "@/app/actions/finance-crud";
@@ -11,6 +11,7 @@ import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 type PaymentListItem = {
   id: string;
+  number?: string | null;
   amount: unknown;
   currency: string;
   method: string;
@@ -88,6 +89,7 @@ export function PaymentsClient({ initialData }: { initialData: PaymentListItem[]
     return initialData.filter((payment) =>
       [
         payment.id,
+        payment.number,
         payment.reference,
         payment.invoice?.number,
         payment.invoice?.title,
@@ -160,15 +162,15 @@ export function PaymentsClient({ initialData }: { initialData: PaymentListItem[]
 
       <div className="card-base overflow-hidden">
         <div className="overflow-x-auto scrollable-x">
-          <table className="w-full min-w-[760px] text-sm [&_td]:!px-3 [&_td]:!py-2.5 [&_th]:!px-3 [&_th]:!py-2.5">
+          <table className="w-full min-w-[980px] table-fixed text-sm [&_td]:!px-3 [&_td]:!py-2.5 [&_th]:!px-3 [&_th]:!py-2.5">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Mã phiếu</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Hóa đơn</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Khách hàng</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Trạng thái</th>
-                <th className="text-right py-3 px-4 text-xs font-medium text-muted-foreground">Số tiền</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-muted-foreground">Ngày thanh toán</th>
+                <th className="w-[138px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Mã phiếu</th>
+                <th className="w-[140px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Hóa đơn</th>
+                <th className="w-[310px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Khách hàng</th>
+                <th className="w-[128px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Trạng thái</th>
+                <th className="w-[140px] whitespace-nowrap text-right py-3 px-4 text-xs font-medium text-muted-foreground">Số tiền</th>
+                <th className="w-[140px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Ngày thanh toán</th>
                 <th className="py-3 px-4 w-24"></th>
               </tr>
             </thead>
@@ -181,7 +183,7 @@ export function PaymentsClient({ initialData }: { initialData: PaymentListItem[]
                   <tr key={payment.id} onClick={() => router.push(`/workspace/finance/payments/${payment.id}`)} className="cursor-pointer border-b border-border last:border-0 table-row-hover">
                     <td className="whitespace-nowrap py-3 px-4">
                       <Link href={`/workspace/finance/payments/${payment.id}`} className="whitespace-nowrap text-sm font-semibold text-blue-600 hover:underline">
-                        {payment.reference || payment.id.slice(-8).toUpperCase()}
+                        {payment.number || payment.reference || payment.id.slice(-8).toUpperCase()}
                       </Link>
                     </td>
                     <td className="whitespace-nowrap py-3 px-4">
@@ -193,14 +195,16 @@ export function PaymentsClient({ initialData }: { initialData: PaymentListItem[]
                         <span className="text-muted-foreground">Không gắn hóa đơn</span>
                       )}
                     </td>
-                    <td className="whitespace-nowrap py-3 px-4 text-sm text-muted-foreground">{customerName(payment)}</td>
-                    <td className="py-3 px-4">
-                      <span className="badge-status text-xs font-medium" style={{ backgroundColor: `${color.replace("rgb", "rgba").replace(")", ", 0.14)")}`, color }}>
+                    <td className="py-3 px-4 text-sm text-muted-foreground">
+                      <span className="block truncate">{customerName(payment)}</span>
+                    </td>
+                    <td className="whitespace-nowrap py-3 px-4">
+                      <span className="inline-flex min-w-[82px] items-center justify-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold leading-none" style={{ backgroundColor: `${color.replace("rgb", "rgba").replace(")", ", 0.14)")}`, color }}>
                         {label}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-right font-semibold tabular-nums text-sm">{formatMoney(payment.amount, payment.currency)}</td>
-                    <td className="py-3 px-4 text-xs text-muted-foreground">{formatDate(payment.paidAt || payment.createdAt)}</td>
+                    <td className="whitespace-nowrap py-3 px-4 text-right font-semibold tabular-nums text-sm">{formatMoney(payment.amount, payment.currency)}</td>
+                    <td className="whitespace-nowrap py-3 px-4 text-xs text-muted-foreground">{formatDate(payment.paidAt || payment.createdAt)}</td>
                     <td className="py-3 px-4" onClick={(event) => event.stopPropagation()}>
                       <div className="flex items-center gap-2 justify-end">
                         <Link href={`/workspace/finance/payments/${payment.id}`} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-all" title="Xem chi tiết">
@@ -211,9 +215,6 @@ export function PaymentsClient({ initialData }: { initialData: PaymentListItem[]
                         </Link>
                         <button type="button" className="w-7 h-7 flex items-center justify-center rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-all" onClick={() => setDeletingId(payment.id)} title="Xóa">
                           <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button type="button" className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
-                          <MoreHorizontal className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>

@@ -5,8 +5,14 @@ import { assertLicensedModule } from "@/lib/modules/guards";
 
 const requireFinanceSession = () => assertLicensedModule("FINANCE");
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { randomUUID } from "crypto";
-import { sendFinanceDocumentEmail, sendPaymentEmails } from "@/lib/email/flows";
+import {
+  renderFinanceDocumentEmailDraft,
+  renderPaymentEmailDraft,
+  sendFinanceDocumentEmail,
+  sendPaymentEmails,
+} from "@/lib/email/flows";
 
 function financeEntity(type: "quotation" | "contract" | "invoice") {
   if (type === "quotation") return { entity: "Quotation", label: "báo giá" };
@@ -14,20 +20,142 @@ function financeEntity(type: "quotation" | "contract" | "invoice") {
   return { entity: "Invoice", label: "hóa đơn" };
 }
 
+function safeFinanceEmailBaseUrl(baseUrl?: string) {
+  if (!baseUrl) return undefined;
+  try {
+    const url = new URL(baseUrl);
+    const allowedHosts = new Set(["app.ovc.vn", "app.ongvang.com.vn", "localhost", "127.0.0.1"]);
+    if (!["http:", "https:"].includes(url.protocol)) return undefined;
+    if (!allowedHosts.has(url.hostname)) return undefined;
+    return url.origin;
+  } catch {
+    return undefined;
+  }
+}
+
+export type FinanceEmailSendPayload = {
+  to: string | string[];
+  subject?: string;
+  html?: string;
+  attachPdf?: boolean;
+  publicBaseUrl?: string;
+};
+
+function normalizeEmailRecipients(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value : [value || ""];
+  return Array.from(
+    new Set(
+      raw
+        .flatMap((item) => String(item || "").split(/[\n,;]+/))
+        .map((item) => item.trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+import { generateAutoCode } from "@/lib/utils/auto-code";
+
+function itemUnitData(unit?: unknown) {
+  if (typeof unit !== "string") return {};
+  const value = unit.trim();
+  return value ? { unit: value } : {};
+}
+
 // ======================== QUOTATION ========================
+
+// --- Added Helper for Contact/Company cross-update ---
+async function handleTargetData(data: any, organizationId: string) {
+  let contactId = data.contactId || undefined;
+  let companyId = data.companyId || undefined;
+
+  // Handle Company
+  if (data.targetType === "company" || data.companyName) {
+    if (companyId) {
+      await db.company.update({
+        where: { id: companyId },
+        data: {
+          name: data.companyName || undefined,
+          phone: data.contactPhone || undefined,
+          email: data.contactEmail || undefined,
+          address: data.contactAddress || undefined,
+        }
+      });
+    } else if (data.companyName) {
+      const newCompany = await db.company.create({
+        data: {
+          organizationId,
+          name: data.companyName,
+          phone: data.contactPhone || null,
+          email: data.contactEmail || null,
+          address: data.contactAddress || null,
+        }
+      });
+      companyId = newCompany.id;
+    }
+  }
+
+  // Handle Contact
+  if (data.targetType !== "company" || data.contactName) {
+    if (contactId) {
+      await db.contact.update({
+        where: { id: contactId },
+        data: {
+          firstName: data.contactName || undefined,
+          lastName: "",
+          phone: data.contactPhone || undefined,
+          email: data.contactEmail || undefined,
+          address: data.contactAddress || undefined,
+          companyId: companyId || undefined,
+        }
+      });
+    } else if (data.contactName) {
+      const newContact = await db.contact.create({
+        data: {
+          organizationId,
+          firstName: data.contactName,
+          lastName: "",
+          phone: data.contactPhone || null,
+          email: data.contactEmail || null,
+          address: data.contactAddress || null,
+          companyId: companyId || undefined,
+        }
+      });
+      contactId = newContact.id;
+    }
+  }
+
+  return { contactId, companyId };
+}
+// -----------------------------------------------------
+
+export async function getNextQuotationNumber() {
+  const session = await requireFinanceSession();
+  return generateAutoCode(session.organizationId, "FORMAT_QUOTE", "BG-");
+}
+
 export async function createQuotation(data: any) {
   const session = await requireFinanceSession();
+  const { contactId, companyId } = await handleTargetData(data, session.organizationId);
+  const sourceDeal = data.dealId
+    ? await db.deal.findFirst({
+        where: { id: data.dealId, organizationId: session.organizationId },
+        select: { contactId: true, companyId: true, assigneeId: true },
+      })
+    : null;
+  const quoteCode = await generateAutoCode(session.organizationId, "FORMAT_QUOTE", "BG-");
   
   const quotation = await db.quotation.create({
     data: {
       organization: { connect: { id: session.organizationId } },
       token: randomUUID(),
-      number: data.number || `BG-${Date.now()}`,
+      number: data.number || quoteCode,
       title: data.title,
-      contact: data.contactId ? { connect: { id: data.contactId } } : undefined,
+      contact: contactId || sourceDeal?.contactId ? { connect: { id: contactId || sourceDeal!.contactId! } } : undefined,
+      company: companyId || sourceDeal?.companyId ? { connect: { id: companyId || sourceDeal!.companyId! } } : undefined,
       project: data.projectId ? { connect: { id: data.projectId } } : undefined,
-      deal: data.dealId ? { connect: { id: data.dealId } } : undefined,
       creator: { connect: { id: session.user.id } },
+      assignee: data.assigneeId || sourceDeal?.assigneeId ? { connect: { id: data.assigneeId || sourceDeal!.assigneeId! } } : undefined,
+      deal: data.dealId ? { connect: { id: data.dealId } } : undefined,
       currency: data.currency || "VND",
       status: data.status || "DRAFT",
       subtotal: data.subtotal || 0,
@@ -38,11 +166,13 @@ export async function createQuotation(data: any) {
       total: data.total || 0,
       notes: data.notes || null,
       terms: data.terms || null,
+      customerSignatureRequired: data.customerSignatureRequired !== false,
       validUntil: data.validUntil ? new Date(data.validUntil) : null,
       items: {
         create: data.items?.map((item: any) => ({
           name: item.name,
           description: item.description || null,
+          ...itemUnitData(item.unit),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           discount: item.discount || 0,
@@ -63,6 +193,7 @@ export async function createQuotation(data: any) {
 
 export async function updateQuotation(id: string, data: any) {
   const session = await requireFinanceSession();
+  const { contactId, companyId } = await handleTargetData(data, session.organizationId);
 
   const existing = await db.quotation.findFirst({
     where: { id, organizationId: session.organizationId },
@@ -79,9 +210,11 @@ export async function updateQuotation(id: string, data: any) {
     data: {
       number: data.number || existing.number,
       title: data.title,
-      contact: data.contactId ? { connect: { id: data.contactId } } : { disconnect: true },
+      contact: contactId ? { connect: { id: contactId } } : { disconnect: true },
+      company: companyId ? { connect: { id: companyId } } : { disconnect: true },
       project: data.projectId ? { connect: { id: data.projectId } } : { disconnect: true },
       deal: data.dealId ? { connect: { id: data.dealId } } : { disconnect: true },
+      assignee: data.assigneeId ? { connect: { id: data.assigneeId } } : { disconnect: true },
       currency: data.currency || "VND",
       status: data.status || existing.status,
       subtotal: data.subtotal || 0,
@@ -92,11 +225,13 @@ export async function updateQuotation(id: string, data: any) {
       total: data.total || 0,
       notes: data.notes || null,
       terms: data.terms || null,
+      customerSignatureRequired: data.customerSignatureRequired !== false,
       validUntil: data.validUntil ? new Date(data.validUntil) : null,
       items: {
         create: data.items?.map((item: any) => ({
           name: item.name,
           description: item.description || null,
+          ...itemUnitData(item.unit),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           discount: item.discount || 0,
@@ -119,16 +254,26 @@ export async function updateQuotation(id: string, data: any) {
 // ======================== CONTRACT ========================
 export async function createContract(data: any) {
   const session = await requireFinanceSession();
+  const { contactId, companyId } = await handleTargetData(data, session.organizationId);
+  const contractCode = await generateAutoCode(session.organizationId, "FORMAT_CONTRACT", "HD-");
+  const sourceQuotation = data.quotationId
+    ? await db.quotation.findFirst({
+        where: { id: data.quotationId, organizationId: session.organizationId },
+        select: { contactId: true, companyId: true, dealId: true, assigneeId: true },
+      })
+    : null;
   
   const contract = await db.contract.create({
     data: {
       organization: { connect: { id: session.organizationId } },
       token: randomUUID(),
-      number: data.number || `HD-${Date.now()}`,
+      number: data.number || contractCode,
       title: data.title,
       status: data.status || "DRAFT",
-      contact: data.contactId ? { connect: { id: data.contactId } } : undefined,
-      deal: data.dealId ? { connect: { id: data.dealId } } : undefined,
+      contact: contactId || sourceQuotation?.contactId ? { connect: { id: contactId || sourceQuotation!.contactId! } } : undefined,
+      deal: data.dealId || sourceQuotation?.dealId ? { connect: { id: data.dealId || sourceQuotation!.dealId! } } : undefined,
+      company: companyId || sourceQuotation?.companyId ? { connect: { id: companyId || sourceQuotation!.companyId! } } : undefined,
+      assignee: data.assigneeId || sourceQuotation?.assigneeId ? { connect: { id: data.assigneeId || sourceQuotation!.assigneeId! } } : undefined,
       creator: { connect: { id: session.user.id } },
       currency: data.currency || "VND",
       paymentChannels: data.paymentChannels || ["company"],
@@ -139,12 +284,14 @@ export async function createContract(data: any) {
       total: data.total || 0,
       notes: data.notes || null,
       terms: data.terms || null,
+      customerSignatureRequired: data.customerSignatureRequired !== false,
       validFrom: data.validFrom ? new Date(data.validFrom) : null,
       validUntil: data.validUntil ? new Date(data.validUntil) : null,
       items: {
         create: data.items?.map((item: any) => ({
           name: item.name,
           description: item.description || null,
+          ...itemUnitData(item.unit),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           total: item.total || 0,
@@ -184,6 +331,7 @@ export async function createContract(data: any) {
 
 export async function updateContract(id: string, data: any) {
   const session = await requireFinanceSession();
+  const { contactId, companyId } = await handleTargetData(data, session.organizationId);
 
   const existing = await db.contract.findFirst({
     where: { id, organizationId: session.organizationId },
@@ -205,6 +353,8 @@ export async function updateContract(id: string, data: any) {
       status: data.status || existing.status,
       contact: data.contactId ? { connect: { id: data.contactId } } : { disconnect: true },
       deal: data.dealId ? { connect: { id: data.dealId } } : { disconnect: true },
+      company: companyId ? { connect: { id: companyId } } : undefined,
+      assignee: data.assigneeId ? { connect: { id: data.assigneeId } } : undefined,
       currency: data.currency || "VND",
       paymentChannels: data.paymentChannels || ["company"],
       subtotal: data.subtotal || 0,
@@ -214,12 +364,14 @@ export async function updateContract(id: string, data: any) {
       total: data.total || 0,
       notes: data.notes || null,
       terms: data.terms || null,
+      customerSignatureRequired: data.customerSignatureRequired !== false,
       validFrom: data.validFrom ? new Date(data.validFrom) : null,
       validUntil: data.validUntil ? new Date(data.validUntil) : null,
       items: {
         create: data.items?.map((item: any) => ({
           name: item.name,
           description: item.description || null,
+          ...itemUnitData(item.unit),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           total: item.total || 0,
@@ -246,10 +398,88 @@ export async function updateContract(id: string, data: any) {
 }
 
 // ======================== INVOICE ========================
-export async function createInvoiceFromContract(contractId: string) {
+export async function getNextInvoiceNumber() {
+  const session = await requireFinanceSession();
+  return generateAutoCode(session.organizationId, "FORMAT_INVOICE", "HD-");
+}
+
+export async function getNextContractNumber() {
+  const session = await requireFinanceSession();
+  return generateAutoCode(session.organizationId, "FORMAT_CONTRACT", "HD-");
+}
+
+export async function getNextReceiptNumber() {
+  const session = await requireFinanceSession();
+  return generateAutoCode(session.organizationId, "FORMAT_RECEIPT", "PT-");
+}
+
+export async function createInvoice(data: any) {
+  const session = await requireFinanceSession();
+  const { contactId, companyId } = await handleTargetData(data, session.organizationId);
+  const sourceContract = data.contractId
+    ? await db.contract.findFirst({
+        where: { id: data.contractId, organizationId: session.organizationId },
+        select: { contactId: true, companyId: true, dealId: true, assigneeId: true },
+      })
+    : null;
+  const invoiceCode = await generateAutoCode(session.organizationId, "FORMAT_INVOICE", "HD-");
+
+  const invoice = await db.invoice.create({
+    data: {
+      organization: { connect: { id: session.organizationId } },
+      token: randomUUID(),
+      number: data.number || invoiceCode,
+      title: data.title,
+      status: data.status || "DRAFT",
+      contact: contactId || sourceContract?.contactId ? { connect: { id: contactId || sourceContract!.contactId! } } : undefined,
+      project: data.projectId ? { connect: { id: data.projectId } } : undefined,
+      company: companyId || sourceContract?.companyId ? { connect: { id: companyId || sourceContract!.companyId! } } : undefined,
+      assignee: data.assigneeId || sourceContract?.assigneeId ? { connect: { id: data.assigneeId || sourceContract!.assigneeId! } } : undefined,
+      deal: data.dealId || sourceContract?.dealId ? { connect: { id: data.dealId || sourceContract!.dealId! } } : undefined,
+      contract: data.contractId ? { connect: { id: data.contractId } } : undefined,
+      creator: { connect: { id: session.user.id } },
+      currency: data.currency || "VND",
+      paymentChannels: data.paymentChannels || ["company"],
+      subtotal: data.subtotal || 0,
+      discount: data.discount || 0,
+      discountType: data.discountType || "fixed",
+      tax: data.tax || 0,
+      taxRate: data.taxRate || 0,
+      total: Number(data.total || 0),
+      amountPaid: Number(data.amountPaid || 0),
+      amountDue: Math.max(0, Number(data.total || 0) - Number(data.amountPaid || 0)),
+      notes: data.notes || null,
+      terms: data.terms || null,
+      dueDate: data.dueDate ? new Date(data.dueDate) : null,
+      issuedAt: data.issuedAt ? new Date(data.issuedAt) : new Date(),
+      customerSignatureRequired: data.customerSignatureRequired !== false,
+      items: {
+        create: data.items?.map((item: any) => ({
+          name: item.name,
+          description: item.description || null,
+          ...itemUnitData(item.unit),
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discount: item.discount || 0,
+          tax: item.tax || 0,
+          total: item.total || 0,
+          order: item.order || 0,
+        })) || [],
+      },
+    },
+  });
+
+  revalidatePath("/workspace/finance/invoices");
+  revalidatePath(`/workspace/finance/invoices/${invoice.id}`);
+  revalidatePath(`/document/${invoice.token}`);
+  revalidatePath(`/document/${invoice.token}/print`);
+  return { success: true, id: invoice.id, token: invoice.token };
+}
+
+export async function convertContractToInvoice(contractId: string) {
   const session = await requireFinanceSession();
 
-  const contract = await db.contract.findFirst({
+  const contract = await db.contract.findUnique({
     where: { id: contractId, organizationId: session.organizationId },
     include: { items: { orderBy: { order: "asc" } } },
   });
@@ -257,14 +487,19 @@ export async function createInvoiceFromContract(contractId: string) {
   if (!contract) throw new Error("Contract not found");
   if (contract.status !== "SIGNED") throw new Error("Hợp đồng chưa được ký");
 
+  const invoiceCode = await generateAutoCode(session.organizationId, "FORMAT_INVOICE", "HD-");
+
   const invoice = await db.invoice.create({
     data: {
       organization: { connect: { id: session.organizationId } },
       token: randomUUID(),
-      number: `HD-${Date.now()}`,
+      number: invoiceCode,
       title: `Hóa đơn theo hợp đồng ${contract.number}`,
       status: "DRAFT",
       contact: contract.contactId ? { connect: { id: contract.contactId } } : undefined,
+      company: contract.companyId ? { connect: { id: contract.companyId } } : undefined,
+      deal: contract.dealId ? { connect: { id: contract.dealId } } : undefined,
+      assignee: contract.assigneeId ? { connect: { id: contract.assigneeId } } : undefined,
       contract: { connect: { id: contract.id } },
       creator: { connect: { id: session.user.id } },
       currency: contract.currency,
@@ -279,10 +514,14 @@ export async function createInvoiceFromContract(contractId: string) {
       terms: contract.terms || null,
       issuedAt: new Date(),
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      signedAt: contract.signedAt || null,
+      signature: contract.signatureId ? { connect: { id: contract.signatureId } } : undefined,
+      customerSignatureRequired: contract.customerSignatureRequired !== false,
       items: {
         create: contract.items.map((item) => ({
           name: item.name,
           description: item.description || null,
+          ...itemUnitData(item.unit),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           total: item.total || 0,
@@ -312,18 +551,20 @@ export async function createInvoiceFromQuotation(quotationId: string) {
   if (!quotation) throw new Error("Quotation not found");
 
   if (quotation.contract && quotation.contract.status === "SIGNED") {
-    return createInvoiceFromContract(quotation.contract.id);
+    return convertContractToInvoice(quotation.contract.id);
   }
 
   if (!["ACCEPTED", "CONVERTED"].includes(quotation.status)) {
     throw new Error("Báo giá chưa được ký duyệt/chấp nhận");
   }
 
+  const invoiceCode = await generateAutoCode(session.organizationId, "FORMAT_INVOICE", "HD-");
+
   const invoice = await db.invoice.create({
     data: {
       organization: { connect: { id: session.organizationId } },
       token: randomUUID(),
-      number: `HD-${Date.now()}`,
+      number: invoiceCode,
       title: `Hóa đơn theo báo giá ${quotation.number}`,
       status: "DRAFT",
       contact: quotation.contactId ? { connect: { id: quotation.contactId } } : undefined,
@@ -346,6 +587,7 @@ export async function createInvoiceFromQuotation(quotationId: string) {
         create: quotation.items.map((item) => ({
           name: item.name,
           description: item.description || null,
+          ...itemUnitData(item.unit),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           discount: item.discount || 0,
@@ -368,60 +610,9 @@ export async function createInvoiceFromQuotation(quotationId: string) {
   return { success: true, invoiceId: invoice.id, id: invoice.id };
 }
 
-export async function createInvoice(data: any) {
-  const session = await requireFinanceSession();
-
-  const total = Number(data.total || 0);
-  const amountPaid = Number(data.amountPaid || 0);
-  const invoice = await db.invoice.create({
-    data: {
-      organization: { connect: { id: session.organizationId } },
-      token: randomUUID(),
-      number: data.number || `HD-${Date.now()}`,
-      title: data.title,
-      status: data.status || "DRAFT",
-      contact: data.contactId ? { connect: { id: data.contactId } } : undefined,
-      project: data.projectId ? { connect: { id: data.projectId } } : undefined,
-      contract: data.contractId ? { connect: { id: data.contractId } } : undefined,
-      creator: { connect: { id: session.user.id } },
-      currency: data.currency || "VND",
-      paymentChannels: data.paymentChannels || ["company"],
-      subtotal: data.subtotal || 0,
-      discount: data.discount || 0,
-      discountType: data.discountType || "fixed",
-      tax: data.tax || 0,
-      taxRate: data.taxRate || 0,
-      total,
-      amountPaid,
-      amountDue: Math.max(0, total - amountPaid),
-      notes: data.notes || null,
-      terms: data.terms || null,
-      dueDate: data.dueDate ? new Date(data.dueDate) : null,
-      issuedAt: data.issuedAt ? new Date(data.issuedAt) : new Date(),
-      items: {
-        create: data.items?.map((item: any) => ({
-          name: item.name,
-          description: item.description || null,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          discount: item.discount || 0,
-          tax: item.tax || 0,
-          total: item.total || 0,
-          order: item.order || 0,
-        })) || [],
-      },
-    },
-  });
-
-  revalidatePath("/workspace/finance/invoices");
-  revalidatePath(`/workspace/finance/invoices/${invoice.id}`);
-  revalidatePath(`/document/${invoice.token}`);
-  revalidatePath(`/document/${invoice.token}/print`);
-  return { success: true, id: invoice.id, token: invoice.token };
-}
-
 export async function updateInvoice(id: string, data: any) {
   const session = await requireFinanceSession();
+  const { contactId, companyId } = await handleTargetData(data, session.organizationId);
 
   const existing = await db.invoice.findFirst({
     where: { id, organizationId: session.organizationId },
@@ -439,8 +630,11 @@ export async function updateInvoice(id: string, data: any) {
       number: data.number || existing.number,
       title: data.title,
       status: data.status || existing.status,
-      contact: data.contactId ? { connect: { id: data.contactId } } : { disconnect: true },
+      contact: contactId ? { connect: { id: contactId } } : { disconnect: true },
       project: data.projectId ? { connect: { id: data.projectId } } : { disconnect: true },
+      company: companyId ? { connect: { id: companyId } } : { disconnect: true },
+      assignee: data.assigneeId ? { connect: { id: data.assigneeId } } : { disconnect: true },
+      deal: data.dealId ? { connect: { id: data.dealId } } : { disconnect: true },
       contract: data.contractId ? { connect: { id: data.contractId } } : { disconnect: true },
       currency: data.currency || "VND",
       paymentChannels: data.paymentChannels || ["company"],
@@ -456,10 +650,12 @@ export async function updateInvoice(id: string, data: any) {
       terms: data.terms || null,
       dueDate: data.dueDate ? new Date(data.dueDate) : null,
       issuedAt: data.issuedAt ? new Date(data.issuedAt) : null,
+      customerSignatureRequired: data.customerSignatureRequired !== false,
       items: {
         create: data.items?.map((item: any) => ({
           name: item.name,
           description: item.description || null,
+          ...itemUnitData(item.unit),
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           discount: item.discount || 0,
@@ -495,11 +691,13 @@ export async function createInvoiceFromInstallment(installmentId: string) {
     throw new Error("Hóa đơn đã được tạo cho đợt này rồi");
   }
 
+  const invoiceCode = await generateAutoCode(session.organizationId, "FORMAT_INVOICE", "HD-");
+
   const invoice = await db.invoice.create({
     data: {
       organizationId: session.organizationId,
       token: randomUUID(),
-      number: `INV-${Date.now()}`,
+      number: invoiceCode,
       title: `Hóa đơn: ${installment.name} (${contract.number})`,
       contactId: contract.contactId,
       contractId: contract.id,
@@ -515,6 +713,7 @@ export async function createInvoiceFromInstallment(installmentId: string) {
         create: [{
           name: installment.name,
           description: `Thanh toán ${installment.name} cho hợp đồng ${contract.number}`,
+          ...itemUnitData("Đợt"),
           quantity: 1,
           unitPrice: installment.amount,
           total: installment.amount,
@@ -536,7 +735,7 @@ export async function createInvoiceFromInstallment(installmentId: string) {
 }
 
 // ======================== PAYMENT ========================
-export async function recordPayment(invoiceId: string, data: { amount: number, method: any, reference?: string, notes?: string, paidAt: string }) {
+export async function recordPayment(invoiceId: string, amount: number, method: any, notes?: string, date?: string, sendCustomerEmail = false) {
   const session = await requireFinanceSession();
   
   const invoice = await db.invoice.findFirst({
@@ -546,20 +745,23 @@ export async function recordPayment(invoiceId: string, data: { amount: number, m
 
   if (!invoice) throw new Error("Invoice not found");
 
+  const receiptCode = await generateAutoCode(session.organizationId, "FORMAT_RECEIPT", "PT-");
+
   const newPayment = await db.payment.create({
     data: {
       organizationId: session.organizationId,
       invoiceId: invoice.id,
-      amount: data.amount,
-      method: data.method,
-      reference: data.reference,
-      notes: data.notes,
-      paidAt: new Date(data.paidAt)
+      amount: amount,
+      method: method,
+      notes: notes,
+      paidAt: date ? new Date(date) : new Date(),
+      number: receiptCode,
+      status: "COMPLETED",
     }
   });
 
   // Calculate total paid
-  const totalPaid = invoice.payments.reduce((sum, p) => sum + Number(p.amount), 0) + Number(data.amount);
+  const totalPaid = invoice.payments.reduce((sum, p) => sum + Number(p.amount), 0) + Number(amount);
   const status = totalPaid >= Number(invoice.total) ? 'PAID' : 'PARTIAL';
 
   await db.invoice.update({
@@ -573,10 +775,18 @@ export async function recordPayment(invoiceId: string, data: { amount: number, m
     await db.paymentInstallment.update({ where: { id: installment.id }, data: { status: "PAID" } });
   }
 
-  await sendPaymentEmails({ organizationId: session.organizationId, paymentId: newPayment.id });
+  if (sendCustomerEmail) {
+    await sendPaymentEmails({
+      organizationId: session.organizationId,
+      paymentId: newPayment.id,
+      cookieHeader: (await cookies()).toString(),
+    });
+  }
 
   revalidatePath("/workspace/finance/invoices");
   revalidatePath("/workspace/finance/payments");
+  revalidatePath(`/workspace/finance/invoices/${invoice.id}`);
+  revalidatePath(`/workspace/finance/payments/${newPayment.id}`);
   return { success: true, paymentId: newPayment.id };
 }
 
@@ -625,6 +835,7 @@ async function recalculateInvoicePaymentStatus(invoiceId?: string | null) {
 }
 
 export async function createPayment(data: {
+  number?: string | null;
   invoiceId?: string | null;
   amount: number;
   currency?: string;
@@ -635,6 +846,7 @@ export async function createPayment(data: {
   paidAt?: string | null;
 }) {
   const session = await requireFinanceSession();
+  const receiptCode = await generateAutoCode(session.organizationId, "FORMAT_RECEIPT", "PT-");
   const invoice = data.invoiceId
     ? await db.invoice.findFirst({ where: { id: data.invoiceId, organizationId: session.organizationId } })
     : null;
@@ -644,6 +856,7 @@ export async function createPayment(data: {
   const payment = await db.payment.create({
     data: {
       organizationId: session.organizationId,
+      number: data.number || receiptCode,
       invoiceId: invoice?.id || null,
       amount: data.amount || 0,
       currency: data.currency || invoice?.currency || "VND",
@@ -664,6 +877,7 @@ export async function createPayment(data: {
 }
 
 export async function updatePayment(id: string, data: {
+  number?: string | null;
   invoiceId?: string | null;
   amount: number;
   currency?: string;
@@ -686,6 +900,7 @@ export async function updatePayment(id: string, data: {
   const payment = await db.payment.update({
     where: { id },
     data: {
+      number: data.number || existing.number,
       invoiceId: invoice?.id || null,
       amount: data.amount || 0,
       currency: data.currency || invoice?.currency || existing.currency,
@@ -708,8 +923,26 @@ export async function updatePayment(id: string, data: {
 }
 
 // ======================== EMAIL ========================
-export async function sendDocumentEmail(type: "quotation" | "contract" | "invoice", id: string, email: string) {
+export async function getDocumentEmailDraft(type: "quotation" | "contract" | "invoice", id: string, publicBaseUrl?: string) {
   const session = await requireFinanceSession();
+  return renderFinanceDocumentEmailDraft({
+    organizationId: session.organizationId,
+    type,
+    id,
+    publicBaseUrl: safeFinanceEmailBaseUrl(publicBaseUrl),
+  });
+}
+
+export async function sendDocumentEmail(
+  type: "quotation" | "contract" | "invoice",
+  id: string,
+  emailOrPayload: string | FinanceEmailSendPayload,
+  publicBaseUrl?: string
+) {
+  const session = await requireFinanceSession();
+  const payload: FinanceEmailSendPayload =
+    typeof emailOrPayload === "string" ? { to: emailOrPayload, publicBaseUrl } : emailOrPayload;
+  const recipients = normalizeEmailRecipients(payload.to);
 
   const doc =
     type === "quotation"
@@ -721,12 +954,17 @@ export async function sendDocumentEmail(type: "quotation" | "contract" | "invoic
   if (!doc) throw new Error("Document not found");
   if (!doc.token) throw new Error("Token không tồn tại, vui lòng tạo token public trước khi gửi");
   if (!doc.adminSignedAt) throw new Error("Admin cần ký tài liệu trước khi gửi email.");
+  if (!recipients.length) throw new Error("Vui lòng nhập ít nhất một email người nhận.");
 
   const emailResult = await sendFinanceDocumentEmail({
     organizationId: session.organizationId,
     type,
     id,
-    to: email,
+    to: recipients,
+    subject: payload.subject,
+    html: payload.html,
+    attachPdf: payload.attachPdf,
+    publicBaseUrl: safeFinanceEmailBaseUrl(payload.publicBaseUrl || publicBaseUrl),
   });
 
   if (!emailResult.sent) {
@@ -760,13 +998,67 @@ export async function sendDocumentEmail(type: "quotation" | "contract" | "invoic
       entity: financeEntity(type).entity,
       entityId: id,
       description: `Gửi ${financeEntity(type).label} qua email`,
-      metadata: { email },
+      metadata: { email: recipients, attachPdf: payload.attachPdf !== false },
     },
   });
 
   revalidatePath(`/workspace/finance/${type}s`);
   revalidatePath(`/workspace/finance/${type}s/${id}`);
   return { success: true, message: "Email đã được gửi thành công!" };
+}
+
+export async function getPaymentEmailDraft(id: string) {
+  const session = await requireFinanceSession();
+  const payment = await db.payment.findFirst({
+    where: { id, organizationId: session.organizationId },
+    include: { invoice: { include: { contact: true } } },
+  });
+
+  if (!payment) throw new Error("Không tìm thấy phiếu thanh toán.");
+  if (!payment.invoice) throw new Error("Phiếu thanh toán chưa liên kết hóa đơn.");
+  const draft = await renderPaymentEmailDraft({ organizationId: session.organizationId, paymentId: payment.id });
+  const { variables: _variables, ...safeDraft } = draft;
+  return safeDraft;
+}
+
+export async function sendPaymentEmail(id: string, payload?: FinanceEmailSendPayload) {
+  const session = await requireFinanceSession();
+  const payment = await db.payment.findFirst({
+    where: { id, organizationId: session.organizationId },
+    include: { invoice: { include: { contact: true } } },
+  });
+
+  if (!payment) throw new Error("Không tìm thấy phiếu thanh toán.");
+  if (!payment.invoice) throw new Error("Phiếu thanh toán chưa liên kết hóa đơn.");
+  const recipients = normalizeEmailRecipients(payload?.to || payment.invoice.contact?.email || "");
+  if (!recipients.length) throw new Error("Vui lòng nhập ít nhất một email người nhận.");
+
+  await sendPaymentEmails({
+    organizationId: session.organizationId,
+    paymentId: payment.id,
+    to: recipients,
+    subject: payload?.subject,
+    html: payload?.html,
+    attachPdf: payload?.attachPdf,
+    cookieHeader: (await cookies()).toString(),
+  });
+
+  await db.activityLog.create({
+    data: {
+      organizationId: session.organizationId,
+      userId: session.user.id,
+      action: "sent",
+      entity: "Payment",
+      entityId: id,
+      description: "Gửi xác nhận thanh toán qua email",
+      metadata: { email: recipients, attachPdf: payload?.attachPdf !== false },
+    },
+  });
+
+  revalidatePath("/workspace/finance/payments");
+  revalidatePath(`/workspace/finance/payments/${id}`);
+  if (payment.invoiceId) revalidatePath(`/workspace/finance/invoices/${payment.invoiceId}`);
+  return { success: true, message: "Email thanh toán đã được gửi." };
 }
 
 export async function updateQuotationStatus(id: string, status: "DRAFT" | "SENT" | "ACCEPTED" | "REJECTED" | "EXPIRED" | "CONVERTED") {
@@ -977,6 +1269,10 @@ export async function deleteQuotation(id: string) {
   if (!result.count) throw new Error("Quotation not found");
   revalidatePath("/workspace/finance/quotations");
   return { success: true };
+}
+
+export async function createInvoiceFromContract(contractId: string) {
+  return convertContractToInvoice(contractId);
 }
 
 export async function deleteContract(id: string) {

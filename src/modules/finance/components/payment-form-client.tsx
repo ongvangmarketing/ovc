@@ -20,6 +20,7 @@ type InvoiceOption = {
 
 type PaymentInitialData = {
   id: string;
+  number?: string | null;
   invoiceId?: string | null;
   amount: unknown;
   currency: string;
@@ -66,17 +67,20 @@ function formatMoney(value: unknown, currency = "VND") {
 
 function invoiceLabel(invoice: InvoiceOption) {
   const customer = invoice.contact?.company?.name || invoice.contact?.name || invoice.contact?.email || "Không gắn khách hàng";
-  return `${invoice.number} - ${customer}`;
+  return `${invoice.number} · ${invoice.title || customer}`;
 }
 
 export function PaymentFormClient({
   initialData,
   invoices,
+  initialNumber = "",
 }: {
   initialData?: PaymentInitialData | null;
   invoices: InvoiceOption[];
+  initialNumber?: string;
 }) {
   const router = useRouter();
+  const [number, setNumber] = useState(initialData?.number || initialData?.reference || initialNumber);
   const [invoiceId, setInvoiceId] = useState(initialData?.invoiceId || invoices[0]?.id || "");
   const selectedInvoice = useMemo(() => invoices.find((invoice) => invoice.id === invoiceId), [invoiceId, invoices]);
   const [amount, setAmount] = useState(String(asNumber(initialData?.amount ?? selectedInvoice?.amountDue ?? selectedInvoice?.total ?? 0)));
@@ -90,6 +94,7 @@ export function PaymentFormClient({
   const saveMutation = useMutation({
     mutationFn: () => {
       const payload = {
+        number: number.trim() || undefined,
         invoiceId: invoiceId || null,
         amount: asNumber(amount),
         currency,
@@ -141,6 +146,10 @@ export function PaymentFormClient({
             <span>Liên kết hóa đơn và số tiền thực thu</span>
           </div>
           <div className="quote-grid-3">
+            <label>
+              <span>Số phiếu thanh toán</span>
+              <input value={number} onChange={(event) => setNumber(event.target.value)} placeholder="Tự sinh nếu bỏ trống" />
+            </label>
             <label>
               <span>Hóa đơn</span>
               <select value={invoiceId} onChange={(event) => setInvoiceId(event.target.value)}>

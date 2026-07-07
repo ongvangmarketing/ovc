@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Layers3, Loader2, LockKeyhole } from "lucide-react";
+import { Eye, EyeOff, Layers3, Loader2 } from "lucide-react";
 import { signIn } from "@/lib/auth/client";
 import { cn } from "@/lib/utils/cn";
 
@@ -35,16 +35,8 @@ export function LoginForm() {
         return;
       }
 
-      const role = (result.data?.user as LoginUser | undefined)?.role;
-      if (role === "CUSTOMER") {
-        router.push("/portal");
-      } else if (role === "INSTRUCTOR") {
-        router.push("/portal/instructor/dashboard");
-      } else if (role === "STUDENT") {
-        router.push("/portal/student/dashboard");
-      } else {
-        router.push("/");
-      }
+      // All users go through the organization selection flow
+      router.push("/select-org");
       router.refresh();
     } catch {
       setError("Đã xảy ra lỗi. Vui lòng thử lại.");
@@ -54,31 +46,24 @@ export function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-[420px]">
+    <div className="w-full max-w-[400px]">
       {/* Mobile Logo */}
-      <div className="mb-10 flex items-center gap-3 lg:hidden">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 shadow-sm shadow-emerald-500/20">
+      <div className="mb-8 flex items-center gap-3 lg:hidden">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 shadow-sm shadow-emerald-500/20">
           <Layers3 className="h-5 w-5 text-white" />
         </div>
         <div>
           <span className="block text-sm font-semibold text-foreground">Business Workspace</span>
-          <span className="block text-xs text-muted-foreground">Secure access portal</span>
         </div>
       </div>
 
       {/* Header */}
-      <div className="mb-8">
-        <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-600">
-          <LockKeyhole className="h-5 w-5" />
-        </div>
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">Đăng nhập</h1>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
-          Sử dụng tài khoản của tổ chức để tiếp tục.
-        </p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Đăng nhập</h1>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* Error */}
         {error && (
           <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive animate-fade-in">
@@ -99,7 +84,7 @@ export function LoginForm() {
             placeholder="ban@congty.vn"
             required
             autoComplete="email"
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-800 shadow-sm shadow-slate-950/[0.02] transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
+            className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm text-slate-800 shadow-sm shadow-slate-950/[0.02] transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
           />
         </div>
 
@@ -125,7 +110,7 @@ export function LoginForm() {
               placeholder="••••••••"
               required
               autoComplete="current-password"
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 pr-11 text-sm text-slate-800 shadow-sm shadow-slate-950/[0.02] transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
+              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 pr-11 text-sm text-slate-800 shadow-sm shadow-slate-950/[0.02] transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
             />
             <button
               type="button"
@@ -171,7 +156,7 @@ export function LoginForm() {
       </form>
 
       {/* Footer */}
-      <p className="mt-8 text-center text-sm text-muted-foreground">
+      <p className="mt-6 text-center text-sm text-muted-foreground">
         Chưa có tài khoản?{" "}
         <Link href="/register" className="font-medium text-emerald-600 transition-colors hover:text-emerald-700">
           Đăng ký ngay

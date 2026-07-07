@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Search } from "lucide-react";
+import { Loader2, Search, X } from "lucide-react";
 
 import { createContact, lookupCompanyByTaxCode, updateContact, type ContactPayload } from "@/app/actions/crm";
 import { cn } from "@/lib/utils/cn";
@@ -13,6 +13,7 @@ type CompanyOption = {
   name: string;
   email?: string | null;
   phone?: string | null;
+  address?: string | null;
   customFields?: unknown | null;
 };
 
@@ -23,7 +24,7 @@ type AssigneeOption = {
   role?: string;
 };
 
-type ContactFormInitial = ContactPayload & {
+type ContactFormInitial = Partial<ContactPayload> & {
   id?: string;
   companyId?: string | null;
   company?: CompanyOption | null;
@@ -103,7 +104,6 @@ function Field({
 function CompanyCombo({
   value,
   search,
-  selectedTitle,
   options,
   onSearchChange,
   onSelect,
@@ -122,16 +122,30 @@ function CompanyCombo({
       <div className="quote-combo">
         <Search className="quote-input-icon quote-input-icon-left top-[21px]" />
         <input
-          value={search || selectedTitle || ""}
+          value={search}
           onChange={(event) => {
             onSearchChange(event.target.value);
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          className="quote-input quote-input-with-left-icon"
+          className={cn("quote-input quote-input-with-left-icon", (search || value) && "quote-input-with-right-icon")}
           placeholder="Gõ tên công ty, email hoặc mã số thuế..."
           type="search"
         />
+        {search || value ? (
+          <button
+            type="button"
+            aria-label="Xóa công ty"
+            onClick={() => {
+              onSelect(null);
+              onSearchChange("");
+              setOpen(false);
+            }}
+            className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
         {open ? (
           <div className="quote-combo-menu">
             <button
@@ -153,7 +167,6 @@ function CompanyCombo({
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => {
                   onSelect(company);
-                  onSearchChange(company.name);
                   setOpen(false);
                 }}
                 className={cn("quote-combo-option", company.id === value && "quote-combo-option-active")}
@@ -163,6 +176,93 @@ function CompanyCombo({
               </button>
             ))}
             {!options.length ? <div className="quote-detail-empty">Nhập tên mới để tự tạo công ty khi lưu.</div> : null}
+          </div>
+        ) : null}
+      </div>
+    </Field>
+  );
+}
+
+function assigneeSubtitle(assignee: AssigneeOption) {
+  return [assignee.role, assignee.email].filter(Boolean).join(" · ");
+}
+
+function AssigneeCombo({
+  value,
+  search,
+  options,
+  onSearchChange,
+  onSelect,
+}: {
+  value: string;
+  search: string;
+  selectedTitle?: string;
+  options: AssigneeOption[];
+  onSearchChange: (value: string) => void;
+  onSelect: (assignee: AssigneeOption | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Field label="Người phụ trách">
+      <div className="quote-combo">
+        <Search className="quote-input-icon quote-input-icon-left top-[21px]" />
+        <input
+          value={search}
+          onChange={(event) => {
+            onSearchChange(event.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          className={cn("quote-input quote-input-with-left-icon", value && "quote-input-with-right-icon")}
+          placeholder="Tìm theo tên, email hoặc vai trò..."
+          type="search"
+        />
+        {value ? (
+          <button
+            type="button"
+            aria-label="Xóa người phụ trách"
+            onClick={() => {
+              onSelect(null);
+              onSearchChange("");
+              setOpen(false);
+            }}
+            className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
+        {open ? (
+          <div className="quote-combo-menu">
+            <button
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                onSelect(null);
+                onSearchChange("");
+                setOpen(false);
+              }}
+              className={cn("quote-combo-option", !value && "quote-combo-option-active")}
+            >
+              Chưa gán
+              <small>Xóa người phụ trách khỏi khách hàng này</small>
+            </button>
+            {options.slice(0, 9).map((assignee) => (
+              <button
+                key={assignee.id}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onSelect(assignee);
+                  setOpen(false);
+                }}
+                className={cn("quote-combo-option", assignee.id === value && "quote-combo-option-active")}
+              >
+                <span>{assignee.name}</span>
+                <small>{assigneeSubtitle(assignee) || "Chưa có email"}</small>
+              </button>
+            ))}
+            {!options.length ? <div className="quote-detail-empty">Không tìm thấy người phụ trách phù hợp.</div> : null}
           </div>
         ) : null}
       </div>
@@ -208,6 +308,7 @@ export function ContactFormClient({
     assigneeId: initial?.assigneeId || null,
   });
   const [companySearch, setCompanySearch] = useState(initialCompanyName);
+  const [assigneeSearch, setAssigneeSearch] = useState(initial?.assignee?.name || "");
   const [tagText, setTagText] = useState(splitTags(initial?.tags));
   const [error, setError] = useState<string | null>(null);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
@@ -215,6 +316,7 @@ export function ContactFormClient({
 
   const title = useMemo(() => mode === "create" ? "Tạo khách hàng" : "Chỉnh sửa khách hàng", [mode]);
   const selectedCompany = useMemo(() => companies.find((company) => company.id === form.companyId), [companies, form.companyId]);
+  const selectedAssignee = useMemo(() => assignees.find((assignee) => assignee.id === form.assigneeId), [assignees, form.assigneeId]);
   const filteredCompanies = useMemo(() => {
     const keyword = companySearch.trim().toLowerCase();
     if (!keyword) return companies;
@@ -225,6 +327,16 @@ export function ContactFormClient({
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
   }, [companies, companySearch]);
+  const filteredAssignees = useMemo(() => {
+    const keyword = assigneeSearch.trim().toLowerCase();
+    if (!keyword) return assignees;
+
+    return assignees.filter((assignee) =>
+      [assignee.name, assignee.email, assignee.role]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [assignees, assigneeSearch]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -280,6 +392,7 @@ export function ContactFormClient({
   const handleCompanySelect = (company: CompanyOption | null) => {
     if (!company) {
       setForm((current) => ({ ...current, companyId: null, companyName: "", companyEmail: "", companyTaxCode: "" }));
+      setCompanySearch("");
       return;
     }
 
@@ -290,6 +403,17 @@ export function ContactFormClient({
       companyEmail: company.email || current.companyEmail || "",
       companyTaxCode: companyTaxCode(company) || current.companyTaxCode || "",
     }));
+    setCompanySearch(company.name);
+  };
+
+  const handleAssigneeSearch = (value: string) => {
+    setAssigneeSearch(value);
+    setForm((current) => ({ ...current, assigneeId: null }));
+  };
+
+  const handleAssigneeSelect = (assignee: AssigneeOption | null) => {
+    setForm((current) => ({ ...current, assigneeId: assignee?.id || null }));
+    setAssigneeSearch(assignee?.name || "");
   };
 
   const handleCompanyTaxCodeChange = (value: string) => {
@@ -384,12 +508,14 @@ export function ContactFormClient({
             <Field label="Di động">
               <input value={form.mobile || ""} onChange={(event) => update("mobile", event.target.value)} className="quote-input" placeholder="Số phụ nếu có" />
             </Field>
-            <Field label="Người phụ trách">
-              <select value={form.assigneeId || ""} onChange={(event) => update("assigneeId", event.target.value || null)} className="quote-input">
-                <option value="">Chưa gán</option>
-                {assignees.map((assignee) => <option key={assignee.id} value={assignee.id}>{assignee.name} · {assignee.email}</option>)}
-              </select>
-            </Field>
+            <AssigneeCombo
+              value={form.assigneeId || ""}
+              search={assigneeSearch}
+              selectedTitle={selectedAssignee?.name || initial?.assignee?.name}
+              options={filteredAssignees}
+              onSearchChange={handleAssigneeSearch}
+              onSelect={handleAssigneeSelect}
+            />
             <div className="lg:col-span-2">
               <CompanyCombo
                 value={form.companyId || ""}

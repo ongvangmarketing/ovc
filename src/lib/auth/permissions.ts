@@ -168,7 +168,7 @@ export const ROLE_DEFAULT_ROUTES: Record<UserRole, string> = {
   ADMIN: "/workspace/dashboard",
   MANAGER: "/workspace/dashboard",
   STAFF: "/workspace/dashboard",
-  CUSTOMER: "/portal",
-  INSTRUCTOR: "/portal/instructor/dashboard",
-  STUDENT: "/portal/student/dashboard",
+  CUSTOMER: "/customer",
+  INSTRUCTOR: "/instructor",
+  STUDENT: "/student",
 };

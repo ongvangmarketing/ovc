@@ -74,12 +74,16 @@ export async function getOrganizationEntitlements(organizationId: string): Promi
     };
   }
 
-  const legacyCodes = uniqueCodes(organization.activeModules.map((code) => normalizeModuleCode(code)));
+  const baseCodes = organization.activeModules.length > 0 
+    ? organization.activeModules 
+    : defaultModuleCodes;
+    
+  const legacyCodes = uniqueCodes([...baseCodes, "HOTEL_BOOKING"].map((code) => normalizeModuleCode(code)));
 
   return {
     organizationId,
-    enabledModules: expandDependencies(legacyCodes.length > 0 ? legacyCodes : defaultModuleCodes),
-    source: legacyCodes.length > 0 ? "legacy" : "default",
+    enabledModules: expandDependencies(legacyCodes),
+    source: organization.activeModules.length > 0 ? "legacy" : "default",
   };
 }
 

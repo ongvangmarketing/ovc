@@ -27,11 +27,14 @@ import {
   createInvoiceFromContract,
   createInvoiceFromInstallment,
   deleteContract,
+  getDocumentEmailDraft,
   sendDocumentEmail,
+  type FinanceEmailSendPayload,
 } from "@/app/actions/finance-crud";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { getPaymentChannel, getVietQrUrl, normalizePaymentChannelKeys } from "@/lib/finance/payment-channels";
 import { AdminSignModal } from "./admin-sign-modal";
+import { EmailComposerModal, type FinanceEmailDraft } from "./email-composer-modal";
 import {
   ActivityTimeline,
   AttachmentList,
@@ -57,6 +60,7 @@ type ContractDetailData = {
   sentAt?: string | Date | null;
   adminSignedAt?: string | Date | null;
   signedAt?: string | Date | null;
+  customerSignatureRequired?: boolean;
   token?: string | null;
   activityLogs?: FinanceActivity[];
   files?: FinanceAttachment[];
@@ -79,6 +83,7 @@ type ContractDetailData = {
     description?: string | null;
     quantity: unknown;
     unitPrice: unknown;
+    tax?: unknown;
     total: unknown;
   }>;
   paymentInstallments?: Array<{
@@ -176,8 +181,9 @@ function ActionButton({
   disabled?: boolean;
   title?: string;
 }) {
-  const className = `quote-detail-action ${danger ? "quote-detail-action-danger" : ""} ${disabled ? "opacity-50 cursor-not-allowed" : ""}`;
-  if (href && !disabled) {
+  const isDisabled = disabled || (href !== undefined && !href);
+  const className = `quote-detail-action ${danger ? "quote-detail-action-danger" : ""} ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`;
+  if (href && !isDisabled) {
     return (
       <Link href={href} className={className} title={title}>
         {icon}
@@ -186,7 +192,7 @@ function ActionButton({
     );
   }
   return (
-    <button type="button" onClick={onClick} className={className} disabled={disabled} title={title}>
+    <button type="button" onClick={onClick} className={className} disabled={isDisabled} title={title}>
       {icon}
       {label}
     </button>
@@ -203,6 +209,9 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
   const [isRevokeModalOpen, setIsRevokeModalOpen] = useState(false);
   const [isCustomerRevokeModalOpen, setIsCustomerRevokeModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [emailDraft, setEmailDraft] = useState<FinanceEmailDraft | null>(null);
+  const [isEmailDraftLoading, setIsEmailDraftLoading] = useState(false);
 
   const publicUrl = data.token ? `/document/${data.token}` : "";
   const fullPublicUrl = data.token && typeof window !== "undefined" ? `${window.location.origin}${publicUrl}` : "";
@@ -219,9 +228,11 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
   const paidPercent = asNumber(data.total) > 0 ? Math.min(100, Math.round((paidAmount / asNumber(data.total)) * 100)) : 0;
   const channelKeys = normalizePaymentChannelKeys(data.paymentChannels);
   const paymentContent = `Thanh toan ${data.number}`;
+  const customerSignatureRequired = data.customerSignatureRequired !== false;
   const hasCustomerCancel = Boolean(data.activityLogs?.some((log) => log.action === "customer_signature_revoked")) || data.status === "CANCELLED";
-  const hasCustomerSignOrCancel = Boolean(data.signedAt) || hasCustomerCancel;
-  const customerDecisionLabel = data.signedAt ? "Ký kết" : "Hủy";
+  const hasCustomerSignOrCancel = !customerSignatureRequired || Boolean(data.signedAt) || hasCustomerCancel;
+  const customerDecisionLabel = customerSignatureRequired ? (data.signedAt ? "Ký kết" : "Hủy") : "Không cần ký";
+  const contractIsEffective = data.status === "SIGNED" && (!customerSignatureRequired || Boolean(data.signedAt)) && (!data.validUntil || new Date(data.validUntil) >= new Date());
 
   const steps = useMemo(
     () => [
@@ -229,10 +240,10 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
       { label: "Đã ký", done: Boolean(data.adminSignedAt) },
       { label: "Đã gửi", done: Boolean(data.sentAt) || data.status === "SENT" },
       { label: customerDecisionLabel, done: hasCustomerSignOrCancel },
-      { label: "Hiệu lực", done: Boolean(data.signedAt) && data.status === "SIGNED" && (!data.validUntil || new Date(data.validUntil) >= new Date()) },
+      { label: "Hiệu lực", done: contractIsEffective },
       { label: "Hết hạn", done: data.status === "EXPIRED" },
     ],
-    [data.adminSignedAt, data.sentAt, data.signedAt, data.status, data.validUntil, hasCustomerSignOrCancel, customerDecisionLabel]
+    [contractIsEffective, data.adminSignedAt, data.sentAt, data.signedAt, data.status, hasCustomerSignOrCancel, customerDecisionLabel]
   );
   const fallbackActivities = useMemo(
     () =>
@@ -251,9 +262,24 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
     [data.adminSignedAt, data.createdAt, data.creator, data.number, data.sentAt, data.signedAt, data.status]
   );
 
+  const openSendModal = async () => {
+    setIsSendModalOpen(true);
+    setEmailDraft(null);
+    setIsEmailDraftLoading(true);
+    try {
+      setEmailDraft(await getDocumentEmailDraft("contract", data.id, window.location.origin));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không thể chuẩn bị email hợp đồng.");
+      setIsSendModalOpen(false);
+    } finally {
+      setIsEmailDraftLoading(false);
+    }
+  };
+
   const sendMutation = useMutation({
-    mutationFn: () => sendDocumentEmail("contract", data.id, data.contact?.email || ""),
+    mutationFn: (payload: FinanceEmailSendPayload) => sendDocumentEmail("contract", data.id, { ...payload, publicBaseUrl: window.location.origin }),
     onSuccess: () => {
+      setIsSendModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ["contracts"] });
       router.refresh();
     },
@@ -341,7 +367,7 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
           icon: <ShieldCheck className="h-4 w-4" />,
           onClick: () => setIsSignModalOpen(true),
         },
-    ...(data.signedAt
+    ...(customerSignatureRequired && data.signedAt
       ? [
           {
             label: "Hủy ký khách",
@@ -353,8 +379,8 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
     {
       label: sendMutation.isPending ? "Đang gửi" : "Gửi hợp đồng",
       icon: <Send className="h-4 w-4" />,
-      onClick: () => sendMutation.mutate(),
-      disabled: !data.adminSignedAt || sendMutation.isPending,
+      onClick: openSendModal,
+      disabled: !data.adminSignedAt || sendMutation.isPending || isEmailDraftLoading,
       title: !data.adminSignedAt ? "Admin cần ký hợp đồng trước khi gửi email." : undefined,
     },
     {
@@ -487,27 +513,51 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
 
           <section className="quote-detail-card">
             <h2>Sản phẩm & dịch vụ</h2>
-            <div className="quote-detail-table contract-detail-table">
-              <div className="quote-detail-table-head">
-                <span>#</span>
-                <span>Sản phẩm / Dịch vụ</span>
-                <span>SL</span>
-                <span>Đơn giá</span>
-                <span>Thành tiền</span>
-              </div>
+            <div className="quotation-items-list mt-2">
               {data.items?.length ? (
-                data.items.map((item, index) => (
-                  <div key={item.id} className="quote-detail-table-row">
-                    <span>{index + 1}</span>
-                    <div>
-                      <strong>{item.name}</strong>
-                      {item.description ? <p>{plainDescription(item.description)}</p> : null}
-                    </div>
-                    <span>{asNumber(item.quantity)}</span>
-                    <span>{formatMoney(item.unitPrice, data.currency)}</span>
-                    <strong>{formatMoney(item.total, data.currency)}</strong>
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mt-4">
+                  <div className="overflow-x-auto w-full">
+                    <table className="w-full text-sm text-left border-collapse">
+                      <thead className="bg-[#ee8f15] text-white">
+                        <tr>
+                          <th className="px-4 py-3 font-medium border-r border-[#fa9f2a] min-w-[280px]">Nội dung dịch vụ</th>
+                          <th className="px-4 py-3 font-medium text-center w-24 border-r border-[#fa9f2a]">Đơn vị</th>
+                          <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#fa9f2a]">SL</th>
+                          <th className="px-4 py-3 font-medium text-right w-36 border-r border-[#fa9f2a]">Đơn giá (VND)</th>
+                          <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#fa9f2a]">Thuế</th>
+                          <th className="px-4 py-3 font-medium text-right w-40">Thành tiền (VND)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {data.items.map((item, index) => (
+                          <tr key={item.id} className="bg-white text-slate-700 transition-colors hover:bg-slate-50 group">
+                            <td className="px-4 py-5 align-top border-r border-slate-100">
+                              <div className="font-medium uppercase text-slate-800 mb-2">
+                                {String(index + 1).padStart(2, '0')} {item.name}
+                              </div>
+                              {item.description && <div className="text-slate-500 mt-1 whitespace-pre-wrap text-[14px]" dangerouslySetInnerHTML={{ __html: item.description }} />}
+                            </td>
+                            <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                              Lần
+                            </td>
+                            <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                              {asNumber(item.quantity)}
+                            </td>
+                            <td className="px-4 py-5 text-right align-top border-r border-slate-100">
+                              {formatMoney(item.unitPrice, data.currency)}
+                            </td>
+                            <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                              {asNumber(item.tax)}%
+                            </td>
+                            <td className="px-4 py-5 text-right align-top font-medium">
+                              {formatMoney(item.total, data.currency)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))
+                </div>
               ) : (
                 <div className="quote-detail-empty">Chưa có hạng mục nào.</div>
               )}
@@ -607,7 +657,7 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
               <div><span>Ngày tạo</span><strong>{formatDateTime(data.createdAt)}</strong></div>
               <div><span>Ngày ký</span><strong>{formatDate(data.signedAt || data.adminSignedAt)}</strong></div>
               <div><span>Admin ký</span><strong>{formatDateTime(data.adminSignedAt)}</strong></div>
-              <div><span>Khách ký</span><strong>{formatDateTime(data.signedAt)}</strong></div>
+              <div><span>Khách ký</span><strong>{customerSignatureRequired ? formatDateTime(data.signedAt) : "Không cần ký"}</strong></div>
               <div><span>Hiệu lực</span><strong>{formatDate(data.validFrom)} - {formatDate(data.validUntil)}</strong></div>
               <div><span>Tình trạng</span><strong>{statusLabel[data.status] || data.status}</strong></div>
             </div>
@@ -650,7 +700,7 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
                   title={item.title}
                 />
               ))}
-              <ActionButton icon={<Eye className="h-4 w-4" />} label="Xem" href={publicUrl || "#"} />
+              <ActionButton icon={<Eye className="h-4 w-4" />} label="Xem" href={publicUrl} title={!publicUrl ? "Hợp đồng chưa có public link." : undefined} />
               <ActionButton icon={<Trash2 className="h-4 w-4" />} label="Xóa" onClick={() => setIsDeleteModalOpen(true)} danger />
             </div>
           </section>
@@ -663,6 +713,16 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
         onConfirm={(signature) => signMutation.mutate(signature)}
         title={`Ký duyệt Hợp đồng ${data.number}`}
         isPending={signMutation.isPending}
+      />
+
+      <EmailComposerModal
+        isOpen={isSendModalOpen}
+        onClose={() => setIsSendModalOpen(false)}
+        onSend={(payload) => sendMutation.mutate(payload)}
+        title={`Gửi hợp đồng ${data.number}`}
+        draft={emailDraft}
+        isLoading={isEmailDraftLoading}
+        isPending={sendMutation.isPending}
       />
 
       <ConfirmModal

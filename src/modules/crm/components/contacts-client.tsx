@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Plus, Filter, MoreHorizontal, Mail, Phone, Building2, Columns3 } from "lucide-react";
+import { Search, Plus, Filter, MoreHorizontal, Mail, Phone, Building2, Columns3, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { getInitials, stringToColor, formatRelative } from "@/lib/utils/format";
 import { ViewSwitcher } from "@/components/ui/view-switcher";
@@ -172,6 +172,12 @@ export function ContactsClient() {
                   const type = typeConfig[contact.type as keyof typeof typeConfig];
                   const priority = priorityConfig[contact.priority as keyof typeof priorityConfig];
                   const isSelected = selectedIds.includes(contact.id);
+                  const createStudentHref = `/workspace/training/students/create?${new URLSearchParams({
+                    name: fullName.trim(),
+                    email: contact.email || "",
+                    phone: contact.phone || "",
+                    note: `Tạo từ CRM: ${contact.type || "CONTACT"}`,
+                  }).toString()}`;
 
                   return (
                     <tr
@@ -246,9 +252,14 @@ export function ContactsClient() {
                         </td>
                       ) : null}
                       <td className="py-3 px-4">
+                        <div className="flex items-center justify-end gap-1">
+                        <Link href={createStudentHref} className="flex items-center justify-center w-7 h-7 rounded-md text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 transition-all" title="Tạo học viên">
+                          <GraduationCap className="w-4 h-4" />
+                        </Link>
                         <button className="flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -264,6 +275,12 @@ export function ContactsClient() {
             const fullName = `${contact.firstName} ${contact.lastName}`;
             const color = stringToColor(fullName);
             const type = typeConfig[contact.type as keyof typeof typeConfig];
+            const createStudentHref = `/workspace/training/students/create?${new URLSearchParams({
+              name: fullName.trim(),
+              email: contact.email || "",
+              phone: contact.phone || "",
+              note: `Tạo từ CRM: ${contact.type || "CONTACT"}`,
+            }).toString()}`;
 
             return (
               <div key={contact.id} className="card-base p-4 hover:shadow-md transition-all duration-200 cursor-pointer group">
@@ -302,6 +319,10 @@ export function ContactsClient() {
                     </span>
                   ))}
                 </div>
+                <Link href={createStudentHref} className="mt-3 inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
+                  <GraduationCap className="h-3.5 w-3.5" />
+                  Tạo học viên
+                </Link>
               </div>
             );
           })}

@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowDownLeft, Copy, Download, Edit3, Eye, FileText, ReceiptText, Trash2 } from "lucide-react";
+import { ArrowDownLeft, Copy, Download, Edit3, Eye, FileText, Mail, ReceiptText, Trash2 } from "lucide-react";
 
-import { deletePayment } from "@/app/actions/finance-crud";
+import { deletePayment, getPaymentEmailDraft, sendPaymentEmail, type FinanceEmailSendPayload } from "@/app/actions/finance-crud";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { EmailComposerModal, type FinanceEmailDraft } from "./email-composer-modal";
 import { useState } from "react";
 
 type PaymentDetailData = {
   id: string;
+  number?: string | null;
   amount: unknown;
   currency: string;
   method: string;
@@ -83,9 +85,13 @@ export function PaymentDetailView({ data }: { data: PaymentDetailData }) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [emailDraft, setEmailDraft] = useState<FinanceEmailDraft | null>(null);
+  const [isEmailDraftLoading, setIsEmailDraftLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const paymentNumber = data.reference || data.id.slice(-8).toUpperCase();
+  const paymentNumber = data.number || data.reference || data.id.slice(-8).toUpperCase();
   const receiptUrl = `/workspace/finance/payments/${data.id}/receipt`;
+  const receiptPdfUrl = `${receiptUrl}/pdf`;
 
   const deleteMutation = useMutation({
     mutationFn: () => deletePayment(data.id),
@@ -94,6 +100,29 @@ export function PaymentDetailView({ data }: { data: PaymentDetailData }) {
       router.push("/workspace/finance/payments");
     },
   });
+
+  const sendEmailMutation = useMutation({
+    mutationFn: (payload: FinanceEmailSendPayload) => sendPaymentEmail(data.id, payload),
+    onSuccess: () => {
+      setIsSendModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["payments"] });
+    },
+    onError: (error) => alert(error instanceof Error ? error.message : "Không thể gửi email phiếu thu."),
+  });
+
+  const openSendModal = async () => {
+    setIsSendModalOpen(true);
+    setEmailDraft(null);
+    setIsEmailDraftLoading(true);
+    try {
+      setEmailDraft(await getPaymentEmailDraft(data.id));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Không thể chuẩn bị email phiếu thu.");
+      setIsSendModalOpen(false);
+    } finally {
+      setIsEmailDraftLoading(false);
+    }
+  };
 
   const copyId = async () => {
     await navigator.clipboard.writeText(paymentNumber);
@@ -117,10 +146,14 @@ export function PaymentDetailView({ data }: { data: PaymentDetailData }) {
           </div>
         </div>
         <div className="quote-detail-top-actions">
-          <Link href={receiptUrl} target="_blank" className="quote-detail-top-button">
-            <Eye className="h-4 w-4" />
-            Xem
+          <Link href={receiptPdfUrl} target="_blank" className="quote-detail-top-button">
+            <FileText className="h-4 w-4" />
+            Xem PDF
           </Link>
+          <button type="button" onClick={openSendModal} disabled={sendEmailMutation.isPending || isEmailDraftLoading} className="quote-detail-top-button">
+            <Mail className="h-4 w-4" />
+            {sendEmailMutation.isPending ? "Đang gửi" : "Gửi email"}
+          </button>
           <Link href={`/workspace/finance/payments/${data.id}/edit`} className="quote-detail-top-button">
             <Edit3 className="h-4 w-4" />
             Chỉnh sửa
@@ -184,7 +217,7 @@ export function PaymentDetailView({ data }: { data: PaymentDetailData }) {
               <strong>{paymentNumber}</strong>
               <span>{formatMoney(data.amount, data.currency)}</span>
             </div>
-            <Link href={receiptUrl} target="_blank" className="quote-detail-action w-full mt-3">
+            <Link href={receiptPdfUrl} target="_blank" className="quote-detail-action w-full mt-3">
               <Download className="h-4 w-4" />
               Tải xuống
             </Link>
@@ -238,6 +271,15 @@ export function PaymentDetailView({ data }: { data: PaymentDetailData }) {
         message="Bạn có chắc chắn muốn xóa phiếu thanh toán này không? Dữ liệu đã xóa không thể khôi phục."
         confirmText="Xóa phiếu"
         isDestructive
+      />
+      <EmailComposerModal
+        isOpen={isSendModalOpen}
+        onClose={() => setIsSendModalOpen(false)}
+        onSend={(payload) => sendEmailMutation.mutate(payload)}
+        title={`Gửi phiếu thu ${paymentNumber}`}
+        draft={emailDraft}
+        isLoading={isEmailDraftLoading}
+        isPending={sendEmailMutation.isPending}
       />
     </div>
   );

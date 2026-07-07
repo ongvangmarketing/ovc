@@ -12,7 +12,7 @@ export function InvoicePaymentModal({
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
-  onConfirm: (data: { amount: number, method: string, reference: string, paidAt: string }) => void;
+  onConfirm: (data: { amount: number, method: string, reference: string, paidAt: string, sendCustomerEmail: boolean }) => void;
   amountDue: number;
   isPending: boolean;
 }) {
@@ -20,6 +20,7 @@ export function InvoicePaymentModal({
   const [method, setMethod] = useState("BANK_TRANSFER");
   const [reference, setReference] = useState("");
   const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
+  const [sendCustomerEmail, setSendCustomerEmail] = useState(false);
 
   if (!isOpen) return null;
 
@@ -76,6 +77,19 @@ export function InvoicePaymentModal({
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+
+          <label className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={sendCustomerEmail}
+              onChange={e => setSendCustomerEmail(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span>
+              <span className="block font-medium text-gray-900">Gửi email xác nhận cho khách hàng</span>
+              <span className="text-xs text-gray-500">Chỉ bật khi khách hàng cần nhận email phiếu thu.</span>
+            </span>
+          </label>
         </div>
 
         <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
@@ -89,11 +103,11 @@ export function InvoicePaymentModal({
           </button>
           <button 
             type="button" 
-            onClick={() => onConfirm({ amount, method, reference, paidAt: new Date(paidAt).toISOString() })}
+            onClick={() => onConfirm({ amount, method, reference, paidAt: new Date(paidAt).toISOString(), sendCustomerEmail })}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
             disabled={isPending || amount <= 0}
           >
-            {isPending ? "Đang xử lý..." : "Ghi nhận"}
+            {isPending ? "Đang xử lý..." : sendCustomerEmail ? "Ghi nhận & gửi email" : "Ghi nhận, không gửi email"}
           </button>
         </div>
       </div>

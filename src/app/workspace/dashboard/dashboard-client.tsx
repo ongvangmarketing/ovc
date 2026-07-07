@@ -6,13 +6,12 @@ import {
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
-  ChevronDown,
   ClipboardList,
   DollarSign,
   Layers3,
   UsersRound,
 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import {
   Area,
   AreaChart,
@@ -37,6 +36,13 @@ const item: Variants = {
 
 const taskColors = ["#1d9bf0", "#ff5a1f", "#16c784", "#ff3b4f"];
 const projectIconColors = ["#7049ff", "#16c784", "#ff5a1f", "#1d9bf0"];
+const periodOptions = [
+  { value: "7d", label: "7 ngày qua" },
+  { value: "30d", label: "30 ngày qua" },
+  { value: "3m", label: "3 tháng qua" },
+  { value: "6m", label: "6 tháng qua" },
+  { value: "12m", label: "12 tháng qua" },
+];
 
 function number(value: number) {
   return new Intl.NumberFormat("vi-VN").format(value);
@@ -61,8 +67,7 @@ export function DashboardContainer({ children }: { children: ReactNode }) {
   return <div className="min-h-full bg-[#f8f9fd]">{children}</div>;
 }
 
-export function WorkspaceDashboard({ data, dateFrom, dateTo }: { data: WorkspaceDashboardData; dateFrom?: string; dateTo?: string }) {
-  const [trendRange, setTrendRange] = useState<"7d" | "30d" | "3m" | "6m" | "12m">("6m");
+export function WorkspaceDashboard({ data, dateFrom, dateTo, period }: { data: WorkspaceDashboardData; dateFrom?: string; dateTo?: string; period: "7d" | "30d" | "3m" | "6m" | "12m" }) {
   const totalProjects = data.projectStatus.reduce((sum, project) => sum + project.value, 0);
   const totalTasks = data.taskTotal;
   const doneTasks = taskValue(data, "DONE");
@@ -77,9 +82,9 @@ export function WorkspaceDashboard({ data, dateFrom, dateTo }: { data: Workspace
     { label: "Hoàn thành", value: doneTasks, color: "#16c784" },
     { label: "Quá hạn", value: reviewTasks, color: "#ff3b4f" },
   ];
-  const projectChartData = trendRange.endsWith("d")
-    ? data.projectDailyTrend.slice(-(trendRange === "7d" ? 7 : 30))
-    : data.projectTrend.slice(-Number(trendRange.replace("m", "")));
+  const projectChartData = period.endsWith("d")
+    ? data.projectDailyTrend.slice(-(period === "7d" ? 7 : 30))
+    : data.projectTrend.slice(-Number(period.replace("m", "")));
   const activeProjects = projectChartData.reduce((sum, period) => sum + period.activeProjects, 0);
 
   return (
@@ -94,22 +99,33 @@ export function WorkspaceDashboard({ data, dateFrom, dateTo }: { data: Workspace
           <h1 className="text-[24px] font-semibold tracking-normal text-[#171331] sm:text-[28px]">Tổng quan dự án</h1>
           <p className="mt-2 text-[15px] font-medium text-[#6f6a8f]">Cập nhật tình hình hoạt động của doanh nghiệp</p>
         </div>
-        <form method="get" className="flex flex-wrap items-end gap-2 rounded-xl border border-[#dfe3f0] bg-white p-2 shadow-sm">
-          <label className="text-[11px] font-medium text-[#6f6a8f]">
+        <form method="get" className="grid w-full grid-cols-2 items-end gap-2 rounded-xl border border-[#dfe3f0] bg-white p-2 shadow-sm sm:w-auto sm:grid-cols-[145px_145px_155px_auto]">
+          <label className="min-w-0 text-[11px] font-medium text-[#6f6a8f]">
             Từ ngày
-            <input name="from" type="date" defaultValue={dateFrom} className="mt-1 block h-9 rounded-lg border border-[#dfe3f0] px-2 text-[13px] font-semibold text-[#2b244d] outline-none focus:border-[#7049ff]" />
+            <input name="from" type="date" defaultValue={dateFrom} className="mt-1 block h-10 w-full min-w-[132px] rounded-lg border border-[#dfe3f0] px-2 text-[13px] font-semibold text-[#2b244d] outline-none focus:border-[#7049ff]" />
           </label>
-          <label className="text-[11px] font-medium text-[#6f6a8f]">
+          <label className="min-w-0 text-[11px] font-medium text-[#6f6a8f]">
             Đến ngày
-            <input name="to" type="date" defaultValue={dateTo} className="mt-1 block h-9 rounded-lg border border-[#dfe3f0] px-2 text-[13px] font-semibold text-[#2b244d] outline-none focus:border-[#7049ff]" />
+            <input name="to" type="date" defaultValue={dateTo} className="mt-1 block h-10 w-full min-w-[132px] rounded-lg border border-[#dfe3f0] px-2 text-[13px] font-semibold text-[#2b244d] outline-none focus:border-[#7049ff]" />
           </label>
-          <button type="submit" className="flex h-9 items-center gap-2 rounded-lg bg-[#7049ff] px-3 text-[13px] font-semibold text-white">
+          <label className="col-span-2 min-w-0 text-[11px] font-medium text-[#6f6a8f] sm:col-span-1">
+            Khoảng thời gian
+            <input type="hidden" name="period" value={period} />
+            <SelectBox ariaLabel="Khoảng thời gian toàn trang" value={period} onChange={(value) => {
+              const params = new URLSearchParams(window.location.search);
+              params.set("period", value);
+              params.delete("from");
+              params.delete("to");
+              window.location.href = `${window.location.pathname}?${params.toString()}`;
+            }} options={periodOptions} className="mt-1 h-10 w-full rounded-lg text-[13px]" />
+          </label>
+          <button type="submit" className="col-span-2 flex h-10 items-center justify-center gap-2 rounded-lg bg-[#7049ff] px-3 text-[13px] font-semibold text-white sm:col-span-1">
             <CalendarDays className="h-4 w-4" /> Áp dụng
           </button>
         </form>
       </motion.header>
 
-      <motion.section variants={item} className="grid grid-cols-2 gap-3 sm:gap-5 2xl:grid-cols-4">
+      <motion.section variants={item} className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
         <KpiCard href="/workspace/projects" icon={<Layers3 />} tone="purple" label="Tổng số dự án" value={number(totalProjects)} change={12.5} />
         <KpiCard href="/workspace/tasks" icon={<ClipboardList />} tone="orange" label="Tổng số công việc" value={number(totalTasks)} change={8.3} />
         <KpiCard href="/workspace/crm" icon={<UsersRound />} tone="blue" label="Khách hàng" value={number(data.kpis.customers.value)} change={15.7} />
@@ -121,7 +137,6 @@ export function WorkspaceDashboard({ data, dateFrom, dateTo }: { data: Workspace
           <div className="mb-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-[20px] font-semibold text-[#171331]">Tổng quan dự án</h2>
-              <SelectBox ariaLabel="Khoảng thời gian biểu đồ" value={trendRange} onChange={(value) => setTrendRange(value as "7d" | "30d" | "3m" | "6m" | "12m")} options={[{ value: "7d", label: "7 ngày qua" }, { value: "30d", label: "30 ngày qua" }, { value: "3m", label: "3 tháng qua" }, { value: "6m", label: "6 tháng qua" }, { value: "12m", label: "12 tháng qua" }]} className="h-10 w-[145px] rounded-xl text-[13px] sm:text-[14px]" />
             </div>
             <div className="mt-4 flex flex-wrap items-center gap-8">
                 <div className="flex items-center gap-3">
@@ -204,19 +219,29 @@ export function WorkspaceDashboard({ data, dateFrom, dateTo }: { data: Workspace
       <section className="grid gap-5 xl:grid-cols-[1fr_1fr_360px]">
         <motion.article variants={item} className="rounded-2xl border border-[#edf0f7] bg-white p-5 shadow-[0_18px_50px_rgba(31,35,70,0.06)]">
           <SectionTitle title="Dự án gần đây" action="Xem tất cả" href="/workspace/projects" />
-          <div className="mt-3 divide-y divide-[#edf0f7]">
+          <div className="mt-3 space-y-2">
             {data.activeProjects.slice(0, 4).map((project, index) => (
-              <Link key={project.id} href={`/workspace/projects/${project.id}`} className="grid grid-cols-[42px_1fr_auto_auto] items-center gap-4 py-3 transition-colors hover:bg-[#f8f9fd] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7049ff]">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full text-white" style={{ backgroundColor: projectIconColors[index % projectIconColors.length] }}><Layers3 className="h-5 w-5" /></span>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-[#171331]">{project.name}</p>
-                  <p className="truncate text-xs text-[#6f6a8f]">Cập nhật gần đây</p>
+              <Link
+                key={project.id}
+                href={`/workspace/projects/${project.id}`}
+                className="block rounded-xl border border-transparent px-2 py-3 transition-colors hover:border-[#edf0f7] hover:bg-[#f8f9fd] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7049ff]"
+              >
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white" style={{ backgroundColor: projectIconColors[index % projectIconColors.length] }}>
+                    <Layers3 className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold leading-5 text-[#171331]" title={project.name}>{project.name}</p>
+                    <p className="mt-0.5 truncate text-xs text-[#6f6a8f]">Cập nhật gần đây</p>
+                  </div>
                 </div>
-                <div className="hidden w-24 items-center gap-2 sm:flex">
-                  <div className="h-1.5 flex-1 rounded-full bg-[#edf0f7]"><i className="block h-full rounded-full bg-[#7049ff]" style={{ width: `${project.progress}%` }} /></div>
-                  <span className="text-xs font-semibold text-[#6f6a8f]">{project.progress}%</span>
+                <div className="mt-3 flex items-center gap-3 pl-[52px]">
+                  <div className="h-1.5 min-w-0 flex-1 rounded-full bg-[#edf0f7]">
+                    <i className="block h-full rounded-full bg-[#7049ff]" style={{ width: `${project.progress}%` }} />
+                  </div>
+                  <span className="w-9 shrink-0 text-right text-xs font-semibold text-[#6f6a8f]">{project.progress}%</span>
+                  <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-[#16a36f]">Đang thực hiện</span>
                 </div>
-                <span className="text-xs font-semibold text-[#16c784]">Đang thực hiện</span>
               </Link>
             ))}
           </div>
@@ -271,15 +296,15 @@ function KpiCard({ href, icon, tone, label, value, change }: { href: string; ico
     <Link
       href={href}
       aria-label={`Xem ${label.toLocaleLowerCase("vi-VN")}`}
-      className="group rounded-2xl border border-[#edf0f7] bg-white p-3 shadow-[0_18px_50px_rgba(31,35,70,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-[#7049ff]/30 hover:shadow-[0_20px_55px_rgba(31,35,70,0.11)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7049ff] sm:p-5"
+      className="group [container-type:inline-size] rounded-2xl border border-[#edf0f7] bg-white p-3 shadow-[0_18px_50px_rgba(31,35,70,0.06)] transition duration-200 hover:-translate-y-0.5 hover:border-[#7049ff]/30 hover:shadow-[0_20px_55px_rgba(31,35,70,0.11)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7049ff] sm:p-5 lg:p-4 xl:p-5"
     >
       <article className="relative min-h-[118px] pr-1 sm:min-h-[138px]">
         <div className="min-w-0 pr-2">
           <p className="text-xs font-medium text-[#6f6a8f] sm:text-sm">{label}</p>
-          <strong className="mt-1 block break-words text-[18px] leading-tight text-[#171331] sm:mt-2 sm:text-[24px]">{value}</strong>
+          <strong className="mt-1 block whitespace-nowrap text-[clamp(16px,12cqw,24px)] leading-tight text-[#171331] sm:mt-2">{value}</strong>
         </div>
-        <span className={`absolute bottom-0 right-0 flex h-10 w-10 items-center justify-center rounded-full text-white transition-transform group-hover:scale-105 sm:h-12 sm:w-12 ${toneClass}`}>{icon}</span>
-        <span className="absolute bottom-1 left-0 inline-flex rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-600 sm:bottom-2 sm:text-xs">↑ {change}%</span>
+        <span className={`absolute bottom-0 right-0 flex h-[clamp(34px,26cqw,48px)] w-[clamp(34px,26cqw,48px)] items-center justify-center rounded-full text-white transition-transform group-hover:scale-105 [&>svg]:h-[48%] [&>svg]:w-[48%] ${toneClass}`}>{icon}</span>
+        <span className="absolute bottom-1 left-0 inline-flex rounded-full bg-emerald-50 px-[clamp(6px,5cqw,8px)] py-1 text-[clamp(10px,7cqw,12px)] font-semibold text-emerald-600 sm:bottom-2">↑ {change}%</span>
       </article>
     </Link>
   );

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Download, Eye, Edit, MoreHorizontal, Trash2 } from "lucide-react";
+import { Plus, Download, Eye, Edit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatDate, formatCurrency } from "@/lib/utils/format";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -43,6 +43,10 @@ function getCustomerName(contact?: FinanceContact | null) {
   if (!contact) return "Không gắn khách hàng";
   const fullName = contact.name || `${contact.firstName || ""} ${contact.lastName || ""}`.trim();
   return contact.company?.name || fullName || contact.email || contact.phone || "Không gắn khách hàng";
+}
+
+function displayQuotationNumber(number: string) {
+  return /^[A-Za-zÀ-ỹ]/.test(number) ? number : `BG-${number}`;
 }
 
 export function QuotationsClient() {
@@ -125,10 +129,12 @@ export function QuotationsClient() {
                   <tr key={inv.id} onClick={() => router.push(`/workspace/finance/quotations/${inv.id}`)} className="cursor-pointer border-b border-border last:border-0 table-row-hover">
                     <td className="whitespace-nowrap py-3 px-4">
                       <Link href={`/workspace/finance/quotations/${inv.id}`} className="whitespace-nowrap text-sm font-semibold text-blue-600 hover:underline">
-                        {inv.number}
+                        {displayQuotationNumber(inv.number)}
                       </Link>
                     </td>
-                    <td className="whitespace-nowrap py-3 px-4 text-sm text-muted-foreground">{getCustomerName(inv.contact)}</td>
+                    <td className="py-3 px-4 text-sm text-muted-foreground">
+                      <span className="block truncate">{getCustomerName(inv.contact)}</span>
+                    </td>
                     <td className="py-3 px-4">
                       <span
                         className="badge-status text-xs font-medium"
@@ -160,9 +166,6 @@ export function QuotationsClient() {
                           title="Xóa"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
-                          <MoreHorizontal className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
