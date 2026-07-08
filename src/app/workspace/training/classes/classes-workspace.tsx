@@ -138,7 +138,7 @@ export function ClassesWorkspace({ initialClasses }: { initialClasses: TrainingC
               <CalendarDays className="h-4 w-4 text-orange-500" />
               Đào tạo / Lớp học
             </div>
-            <h1 className="text-2xl font-semibold text-slate-950">Quản lý Lớp học</h1>
+            <h1 className="text-[15px] font-medium text-slate-950">Quản lý Lớp học</h1>
             <p className="mt-1 text-[14px] font-light text-slate-500">Điều phối sĩ số, lịch học và phân công giảng viên.</p>
           </div>
           <Link 
@@ -186,8 +186,8 @@ export function ClassesWorkspace({ initialClasses }: { initialClasses: TrainingC
                 />
               </div>
               <div className="flex rounded-lg border border-slate-200 p-1 bg-slate-50">
-                <button onClick={() => setView("board")} className={cn("p-1.5 rounded-md flex items-center gap-1", view==="board" ? "bg-white shadow-sm text-indigo-600":"text-slate-500")}><Columns3 className="w-4 h-4" /><span className="text-xs font-semibold pr-1">Card</span></button>
-                <button onClick={() => setView("table")} className={cn("p-1.5 rounded-md flex items-center gap-1", view==="table" ? "bg-white shadow-sm text-indigo-600":"text-slate-500")}><Table2 className="w-4 h-4" /><span className="text-xs font-semibold pr-1">List</span></button>
+                <button onClick={() => setView("board")} className={cn("p-1.5 rounded-md flex items-center gap-1", view==="board" ? "bg-white shadow-sm text-indigo-600":"text-slate-500")}><Columns3 className="w-4 h-4" /><span className="text-xs font-medium pr-1">Card</span></button>
+                <button onClick={() => setView("table")} className={cn("p-1.5 rounded-md flex items-center gap-1", view==="table" ? "bg-white shadow-sm text-indigo-600":"text-slate-500")}><Table2 className="w-4 h-4" /><span className="text-xs font-medium pr-1">List</span></button>
               </div>
             </div>
           </div>
@@ -209,10 +209,10 @@ export function ClassesWorkspace({ initialClasses }: { initialClasses: TrainingC
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="font-bold text-slate-900 text-base">{item.name}</h3>
+                        <h3 className="font-medium text-slate-900 text-base">{item.name}</h3>
                         <p className="text-xs text-slate-500 mt-0.5">{item.course} · {item.code}</p>
                       </div>
-                      <span className={cn("px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border shrink-0", statusConfig[item.status].tone)}>
+                      <span className={cn("px-2 py-1 text-[10px] font-medium uppercase tracking-wider rounded-full border shrink-0", statusConfig[item.status].tone)}>
                         {statusConfig[item.status].label}
                       </span>
                     </div>
@@ -221,7 +221,7 @@ export function ClassesWorkspace({ initialClasses }: { initialClasses: TrainingC
                       <div>
                         <div className="flex justify-between items-center text-xs mb-1 text-slate-600">
                           <span>Sĩ số ({item.students}/{item.maxStudents})</span>
-                          <span className="font-semibold">{item.capacityRate}%</span>
+                          <span className="font-medium">{item.capacityRate}%</span>
                         </div>
                         <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div 
@@ -237,7 +237,7 @@ export function ClassesWorkspace({ initialClasses }: { initialClasses: TrainingC
                     </div>
 
                     {item.risk && (
-                      <div className="bg-amber-50 text-amber-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5">
+                      <div className="bg-amber-50 text-amber-700 text-xs font-medium px-2.5 py-1.5 rounded-lg flex items-center gap-1.5">
                         <AlertTriangle className="w-3.5 h-3.5" /> {item.risk}
                       </div>
                     )}
@@ -271,19 +271,19 @@ export function ClassesWorkspace({ initialClasses }: { initialClasses: TrainingC
                         className="cursor-pointer hover:bg-slate-50 transition-colors"
                       >
                         <td className="px-4 py-3">
-                          <div className="font-semibold text-slate-900">{item.name}</div>
+                          <div className="font-medium text-slate-900">{item.name}</div>
                           <div className="text-xs text-slate-500">{item.course}</div>
                         </td>
                         <td className="px-4 py-3 text-slate-600">{item.instructor}</td>
                         <td className="px-4 py-3">
-                          <div className="font-semibold text-slate-900">{item.students}/{item.maxStudents}</div>
+                          <div className="font-medium text-slate-900">{item.students}/{item.maxStudents}</div>
                           <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden mt-1">
                             <div className="h-full bg-indigo-500" style={{ width: `${Math.min(item.capacityRate, 100)}%` }} />
                           </div>
                         </td>
                         <td className="px-4 py-3 text-slate-600">{dateLabel(item.startDate)}</td>
                         <td className="px-4 py-3">
-                          <span className={cn("px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded border", statusConfig[item.status].tone)}>
+                          <span className={cn("px-2 py-1 text-[10px] font-medium uppercase tracking-wider rounded border", statusConfig[item.status].tone)}>
                             {statusConfig[item.status].label}
                           </span>
                         </td>
@@ -301,14 +301,14 @@ export function ClassesWorkspace({ initialClasses }: { initialClasses: TrainingC
 
 function StatCard({ label, value, icon, tone }: { label: string; value: number | string; icon: React.ReactNode; tone: string }) {
   return (
-    <div className="quote-panel p-5">
+    <div className="quote-panel p-4">
       <div className="flex justify-between items-start mb-2">
         <div className="text-sm font-medium text-slate-500">{label}</div>
         <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-slate-100", tone)}>
           {icon}
         </div>
       </div>
-      <div className="text-3xl font-bold text-slate-900">{value}</div>
+      <div className="text-3xl font-medium text-slate-900">{value}</div>
     </div>
   );
 }

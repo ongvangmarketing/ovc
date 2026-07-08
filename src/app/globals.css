@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
 
@@ -90,7 +89,7 @@
     --spacing-16: 4rem;     /* 64px */
 
     /* Typography */
-    --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 
     /* Sidebar Width */
     --sidebar-width: 260px;
@@ -146,7 +145,39 @@
     min-height: 100dvh;
     font-family: var(--font-sans);
     font-size: 16px;
+    font-weight: 400; /* Apple body uses Regular weight */
     line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Apple HIG Typography Hierarchy */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+    color: inherit;
+  }
+  
+  /* Large titles: Tighter tracking, bolder weight */
+  h1 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  
+  h2 {
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+  
+  h3 {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  
+  /* Medium titles/subheadings */
+  h4, h5, h6 {
+    font-weight: 500;
+    letter-spacing: 0;
   }
 
   /* Custom Scrollbar */
@@ -404,8 +435,6 @@ kbd {
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
   color: hsl(var(--sidebar-foreground) / 0.7);
-  font-size: 16px;
-  font-weight: 500;
   transition: all 0.15s;
   cursor: pointer;
 }
@@ -678,35 +707,7 @@ select {
   font-family: var(--font-sans) !important;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
-.text-3xl,
-.text-2xl,
-.text-xl,
-.text-lg,
-.text-base,
-.text-\[15px\] {
-  font-size: 16px !important;
-  line-height: 1.45 !important;
-  letter-spacing: 0 !important;
-}
 
-small,
-.text-sm,
-.text-xs,
-.text-\[13px\],
-.text-\[12px\],
-.text-\[11px\],
-.text-\[10px\],
-.text-\[9px\] {
-  font-size: 14px !important;
-  line-height: 1.45 !important;
-  letter-spacing: 0 !important;
-}
 
 code,
 kbd,
@@ -715,42 +716,30 @@ pre {
   font-family: var(--font-sans) !important;
 }
 
-.quote-page,
-.quote-page * {
-  font-family: var(--font-sans) !important;
-  font-size: 14px !important;
-  font-weight: 300 !important;
-  line-height: 1.45 !important;
-  letter-spacing: 0 !important;
-}
-
-.quote-page strong,
-.quote-page .font-semibold,
-.quote-page .font-bold {
-  font-weight: 300 !important;
-}
-
 .quote-panel {
-  border: 1px solid rgb(226 232 240);
-  border-radius: 0.75rem;
+  border: 1px solid #eaeaea;
+  border-radius: 12px;
   background: white;
-  padding: 1rem;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+  padding: 1.5rem;
+  box-shadow: none;
 }
-
 .quote-panel-header {
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  border-bottom: 1px solid rgb(241 245 249);
-  padding-bottom: 0.75rem;
-  color: rgb(15 23 42);
+  gap: 1rem;
 }
-
+.quote-panel-header h2 {
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+  color: #000;
+  margin: 0;
+}
 .quote-panel-header span {
-  color: rgb(100 116 139);
+  font-size: 14px;
+  color: #666;
 }
 
 .quote-work-heading {
@@ -760,18 +749,26 @@ pre {
 }
 
 .quote-input {
+  box-sizing: border-box;
+  min-width: 0;
   width: 100%;
-  border-radius: 0.5rem;
-  border: 1px solid rgb(226 232 240);
-  background: white;
-  padding: 0.625rem 0.875rem;
-  color: rgb(15 23 42);
+  border-radius: 6px;
+  border: 1px solid #eaeaea;
+  background: #fff;
+  padding: 10px 14px;
+  color: #000;
   outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
+  box-shadow: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.quote-input::placeholder {
+  color: rgb(148 163 184);
 }
 
 .quote-input-with-left-icon {
-  padding-left: 2.75rem !important;
+  padding-left: 2.5rem !important;
+  padding-right: 2.25rem !important;
 }
 
 .quote-input-with-right-icon {
@@ -798,8 +795,155 @@ pre {
 }
 
 .quote-input:focus {
-  border-color: rgb(245 158 11);
-  box-shadow: 0 0 0 3px rgb(245 158 11 / 0.14);
+  background: #ffffff;
+  border-color: #000;
+  box-shadow: none;
+}
+
+.quote-input:hover {
+  border-color: #d4d4d4;
+}
+
+.vercel-picker-input {
+  padding-left: 2.5rem !important;
+  padding-right: 2.5rem !important;
+}
+
+.quote-combo-trigger {
+  box-sizing: border-box;
+  display: block;
+  min-height: 42px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  border-radius: 6px;
+  border: 1px solid #eaeaea;
+  background: #fff;
+  padding: 10px 44px 10px 40px;
+  text-align: left;
+  outline: none;
+  box-shadow: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.quote-combo-trigger:hover {
+  border-color: #d4d4d4;
+}
+
+.quote-combo-trigger:focus {
+  border-color: #000;
+}
+
+.quote-combo-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgb(100 116 139);
+  font-size: 12px;
+  font-weight: 300;
+  line-height: 16px;
+}
+
+.quote-combo-value {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 20px;
+}
+
+.quote-customer-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.quote-customer-soft .quote-input,
+.quote-customer-soft .quote-combo-trigger {
+  border-color: transparent;
+  background: #fafafa;
+  box-shadow: none;
+}
+
+.quote-customer-soft .quote-input:hover,
+.quote-customer-soft .quote-combo-trigger:hover {
+  border-color: transparent;
+  background: #f5f5f5;
+}
+
+.quote-customer-soft .quote-input:focus,
+.quote-customer-soft .quote-combo-trigger:focus {
+  border-color: transparent;
+  background: #fff;
+  box-shadow: inset 0 -1px 0 #000;
+}
+
+.quote-customer-soft .vercel-picker-input {
+  border-color: transparent;
+}
+
+.quote-customer-soft select.quote-input {
+  font-weight: 500;
+}
+
+@media (min-width: 1024px) {
+  .quote-customer-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.quote-segmented-control {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  min-width: 0;
+  width: 100%;
+  min-height: 43px;
+  border-radius: 8px;
+  border: 1px solid #eaeaea;
+  background: #f8fafc;
+  padding: 4px;
+}
+
+.quote-segmented-option {
+  min-width: 0;
+  border-radius: 6px;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  overflow: hidden;
+  padding: 0 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quote-segmented-option:hover {
+  background: #fff;
+  color: #111827;
+}
+
+.quote-segmented-option-active {
+  background: #fff;
+  color: #000;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.quote-panel .grid {
+  min-width: 0;
+}
+
+.quote-panel .grid > * {
+  min-width: 0;
+}
+
+.quote-input[type="date"]::-webkit-calendar-picker-indicator {
+  margin-right: 0;
 }
 
 .quote-button {
@@ -862,35 +1006,35 @@ pre {
 
 .quote-action-button {
   display: inline-flex;
-  min-height: 3.5rem;
+  min-height: 2.5rem;
   align-items: center;
   justify-content: center;
-  border-radius: 1rem;
-  padding: 0.875rem 1.45rem;
-  color: rgb(51 65 85);
+  gap: 6px;
+  border-radius: 999px;
+  padding: 0.5rem 1.5rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: #000;
   transition: background-color 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
+.quote-action-primary {
+  border: 1px solid #000;
+  background: #000;
+  color: white;
+  box-shadow: none;
+}
+.quote-action-primary:hover {
+  border-color: #333;
+  background: #333;
+}
 .quote-action-secondary {
-  border: 1px solid rgb(226 232 240);
+  border: 1px solid #eaeaea;
   background: white;
 }
-
 .quote-action-secondary:hover {
-  border-color: rgb(203 213 225);
-  background: rgb(248 250 252);
-}
-
-.quote-action-primary {
-  border: 1px solid rgb(245 158 11);
-  background: rgb(245 158 11);
-  color: white;
-  box-shadow: 0 10px 24px rgb(245 158 11 / 0.18);
-}
-
-.quote-action-primary:hover {
-  border-color: rgb(217 119 6);
-  background: rgb(217 119 6);
+  border-color: #ccc;
+  background: #f9f9f9;
 }
 
 .quote-icon-button {
@@ -1215,17 +1359,14 @@ pre {
   cursor: pointer;
   align-items: center;
   justify-content: flex-start;
-  border-radius: 0.75rem;
-  border: 1px solid rgb(226 232 240);
-  background: rgb(248 250 252);
-  padding: 0.5rem 0.75rem;
+  padding-top: 1.5rem;
 }
 
 .quote-switch {
   position: relative;
   display: inline-flex;
   height: 2rem;
-  min-width: 4.75rem;
+  min-width: 7rem;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
@@ -1464,6 +1605,22 @@ pre {
 
 .quote-payment-sidebar .quote-panel-header span {
   max-width: 240px;
+}
+
+.quote-payment-sidebar .grid-cols-1.sm\:grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quote-payment-sidebar .relative {
+  min-width: 0;
+}
+
+.quote-payment-sidebar .quote-input[type="date"] {
+  inline-size: 100%;
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  padding-left: 2.25rem !important;
+  padding-right: 0.75rem !important;
 }
 
 .invoice-channel-grid {
@@ -1719,11 +1876,9 @@ pre {
 
 .quote-detail-summary > div {
   min-width: 0;
-  border-right: 1px solid rgb(226 232 240);
 }
 
 .quote-detail-summary > div:last-child {
-  border-right: 0;
 }
 
 .quote-detail-summary strong {
@@ -1751,6 +1906,9 @@ pre {
   color: rgb(71 85 105);
   padding: 0.8rem 0.9rem;
   white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .quote-detail-tabs button.active {
@@ -1810,15 +1968,15 @@ pre {
 
 .quote-progress span {
   display: inline-flex;
-  height: 1.55rem;
-  width: 1.55rem;
+  height: 1.25rem;
+  width: 1.25rem;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
   background: rgb(241 245 249);
   color: rgb(100 116 139);
-  font-size: 12px;
+  font-size: 10px;
   line-height: 1;
 }
 
@@ -1826,7 +1984,7 @@ pre {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.2;
 }
 
@@ -2262,18 +2420,24 @@ pre {
 .quote-panel label {
   display: grid;
   gap: 0.4rem;
-  color: rgb(100 116 139);
+  color: #666;
+  font-size: 13px;
+  font-weight: 500;
 }
-
-.quote-grid-3 input,
-.quote-grid-3 select,
 .quote-panel textarea {
   width: 100%;
-  border: 1px solid rgb(226 232 240);
-  border-radius: 0.75rem;
-  padding: 0.75rem 0.85rem;
-  color: rgb(15 23 42);
+  border: 1px solid #eaeaea;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #000;
+  background-color: #fff;
   outline: none;
+  transition: all 0.2s ease;
+}
+.quote-panel textarea:focus {
+  background-color: #ffffff;
+  border-color: #000;
+  box-shadow: none;
 }
 
 .quote-panel textarea {
@@ -2458,12 +2622,10 @@ pre {
 
   .quote-detail-summary > div {
     border-right: 0;
-    border-bottom: 1px solid rgb(226 232 240);
     padding-bottom: 0.75rem;
   }
 
   .quote-detail-summary > div:last-child {
-    border-bottom: 0;
   }
 }
 
@@ -4138,13 +4300,11 @@ main.scrollable .customer-line-chart text {
 
   .quote-detail-summary > div {
     border-bottom: 0;
-    border-right: 1px solid rgb(226 232 240);
     padding: 0.9rem 1rem;
     scroll-snap-align: start;
   }
 
   .quote-detail-summary > div:last-child {
-    border-right: 0;
   }
 
   .quote-detail-layout,
@@ -4642,4 +4802,87 @@ main.scrollable .customer-line-chart text {
     animation-duration: 0s !important;
     animation-delay: 0s !important;
   }
+}
+
+/* ============================================================
+   APPLE HIG UI UTILITIES
+   ============================================================ */
+
+/* Segmented Control (Tabs) */
+.apple-segmented-control {
+  display: inline-flex;
+  background-color: #f5f5f7;
+  padding: 4px;
+  border-radius: 9px;
+  gap: 2px;
+}
+
+.apple-segmented-item {
+  color: #1c1c1e;
+  cursor: pointer;
+  border-radius: 7px;
+  padding: 6px 14px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.apple-segmented-item:hover {
+  background-color: rgba(0,0,0,0.03);
+}
+
+.apple-segmented-item.active {
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+  font-weight: 500;
+}
+
+/* Apple Table Card Wrapper */
+.apple-table-card {
+  background: #ffffff;
+  border: 1px solid #e5e5ea;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.02);
+  overflow: hidden;
+}
+
+.apple-table-card table th {
+  background-color: #f5f5f7;
+  color: #8e8e93;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  padding: 10px 16px;
+  border-bottom: 1px solid #e5e5ea;
+}
+
+.apple-table-card table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f2f2f7;
+  color: #1c1c1e;
+  white-space: nowrap;
+}
+
+.apple-table-card table tr:last-child td {
+  border-bottom: none;
+}
+
+.apple-table-card table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.apple-table-card table tbody tr:hover {
+  background-color: #f9f9fb;
+}
+
+/* Apple Badges */
+.apple-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }

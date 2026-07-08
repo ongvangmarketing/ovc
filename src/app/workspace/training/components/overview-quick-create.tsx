@@ -55,13 +55,13 @@ export function OverviewQuickCreate({ onClose, onCreate }: QuickCreateProps) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 p-5">
+        <div className="flex items-center justify-between border-b border-slate-100 p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
               <GraduationCap className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-slate-950">Tạo nhanh khóa học</h2>
+              <h2 className="text-base font-medium text-slate-950">Tạo nhanh khóa học</h2>
               <p className="text-xs text-slate-500">Điền thông tin cơ bản, sửa chi tiết sau.</p>
             </div>
           </div>
@@ -76,7 +76,7 @@ export function OverviewQuickCreate({ onClose, onCreate }: QuickCreateProps) {
         </div>
 
         {/* Body */}
-        <div className="space-y-4 p-5">
+        <div className="space-y-4 p-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field
               name="title"
@@ -111,18 +111,18 @@ export function OverviewQuickCreate({ onClose, onCreate }: QuickCreateProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-slate-100 p-5">
+        <div className="flex items-center justify-end gap-2 border-t border-slate-100 p-4">
           <button
             type="button"
             onClick={onClose}
-            className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+            className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
           >
             Hủy
           </button>
           <button
             type="submit"
             id="quick-create-submit"
-            className="h-10 rounded-xl bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary/90 active:scale-95 focus-visible:ring-4 focus-visible:ring-orange-100"
+            className="h-10 rounded-xl bg-primary px-5 text-sm font-medium text-white transition hover:bg-primary/90 active:scale-95 focus-visible:ring-4 focus-visible:ring-orange-100"
           >
             Tạo khóa học
           </button>
@@ -138,7 +138,7 @@ function Field({
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { label: string; className?: string }) {
   return (
-    <label className={`block space-y-1.5 text-sm font-semibold text-slate-600 ${className ?? ""}`}>
+    <label className={`block space-y-1.5 text-sm font-medium text-slate-600 ${className ?? ""}`}>
       {label}
       <input
         {...props}

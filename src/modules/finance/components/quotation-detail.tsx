@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/lib/utils/cn";
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -70,7 +72,7 @@ type QuotationDetailData = {
     name?: string;
     email?: string | null;
     phone?: string | null;
-    company?: { name?: string | null } | null;
+    company?: { id?: string; name?: string | null; taxCode?: string | null; address?: string | null; phone?: string | null; email?: string | null; } | null;
   } | null;
   project?: { name?: string | null } | null;
   deal?: { title?: string | null; name?: string | null } | null;
@@ -205,6 +207,13 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
 
   const publicUrl = data.token ? `/document/${data.token}` : "";
   const fullPublicUrl = data.token && typeof window !== "undefined" ? `${window.location.origin}${publicUrl}` : "";
+  const isCompanyCustomer = !!data.contact?.company;
+  const customerCompany = data.contact?.company?.name || '';
+  const customerTaxCode = data.contact?.company?.taxCode || data.contact?.taxCode || '';
+  const customerAddress = data.contact?.company?.address || data.contact?.address || '';
+  const customerPhone = data.contact?.company?.phone || data.contact?.phone || '';
+  const customerEmail = data.contact?.company?.email || data.contact?.email || '';
+  const customerPerson = data.contact ? `${data.contact.firstName || ''} ${data.contact.lastName || ''}`.trim() || data.contact.name : '';
   const customerSignatureRequired = data.customerSignatureRequired !== false;
   const hasCustomerCancel = Boolean(data.activityLogs?.some((log) => log.action === "customer_signature_revoked")) || data.status === "REJECTED";
   const customerDecisionLabel = customerSignatureRequired ? (data.signedAt ? "Ký kết" : "Hủy") : "Không cần ký";
@@ -377,37 +386,37 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
   }, [menuOpen]);
 
   return (
-    <div className="quote-page mx-auto max-w-[1440px] px-6 py-6 animate-in fade-in duration-300">
-      <div className="mb-5 flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="mx-auto w-full max-w-[1440px] px-6 py-10 lg:px-12 bg-white min-h-[calc(100vh-64px)] animate-in fade-in duration-300">
+      <div className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#eaeaea] pb-6">
         <div>
           <div className="mb-2 flex items-center gap-2 text-[14px] font-light text-slate-500">
             <FileText className="h-4 w-4 text-orange-500" />
             Tài chính / Báo giá / Chi tiết báo giá
           </div>
           <div className="flex items-center gap-3">
-            <h1 className="text-[18px] font-medium text-slate-950">{data.number}</h1>
-            <span className={`quote-status quote-status-${data.status.toLowerCase()}`}>
+            <h1 className="text-[36px] font-medium tracking-tighter text-black leading-none">{data.number}</h1>
+            <span className={cn("px-2.5 py-1 rounded-full text-[13px] font-medium border", data.status === "DRAFT" ? "bg-gray-50 border-gray-200 text-gray-700" : data.status === "SENT" ? "bg-blue-50 border-blue-200 text-blue-700" : data.status === "ACCEPTED" ? "bg-green-50 border-green-200 text-green-700" : data.status === "REJECTED" ? "bg-red-50 border-red-200 text-red-700" : "bg-purple-50 border-purple-200 text-purple-700")}>
               {statusLabel[data.status] || data.status}
             </span>
           </div>
         </div>
 
-        <div className="quote-detail-top-actions">
+        <div className="flex flex-wrap items-center gap-2">
           {publicUrl ? (
-            <a href={publicUrl} target="_blank" className="quote-detail-top-button">
+            <a href={publicUrl} target="_blank" className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors">
               <Eye className="h-4 w-4" /> Xem public
             </a>
           ) : null}
-          <Link href={`/workspace/finance/quotations/${data.id}/edit`} className="quote-detail-top-button">
+          <Link href={`/workspace/finance/quotations/${data.id}/edit`} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors">
             <Edit3 className="h-4 w-4" /> Sửa
           </Link>
           
           <div ref={moreMenuRef} className="relative">
-            <button type="button" onClick={() => setMenuOpen((current) => !current)} className="quote-detail-top-button">
+            <button type="button" onClick={() => setMenuOpen((current) => !current)} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors">
               <Ellipsis className="h-4 w-4" /> Thêm
             </button>
             {menuOpen ? (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden z-10 flex flex-col py-1">
+              <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-[#eaeaea] rounded-lg shadow-sm overflow-hidden z-10 flex flex-col py-1">
                 {actionItems.map((item) => (
                   <button
                     key={item.label}
@@ -418,35 +427,75 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
                       setMenuOpen(false);
                       item.onClick();
                     }}
-                    className={`flex items-center gap-2 px-3 py-2 text-sm text-left ${item.disabled ? "opacity-50 cursor-not-allowed" : "hover:bg-slate-50"}`}
+                    className={`flex items-center gap-3 px-4 py-2.5 text-[14px] font-medium text-gray-700 hover:bg-gray-50 hover:text-black transition-colors text-left w-full ${item.disabled ? "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-gray-700" : ""}`}
                   >
                     {item.icon}
-                    {item.label}
+                    <span>{item.label}</span>
                   </button>
                 ))}
               </div>
             ) : null}
           </div>
           
-          <button type="button" onClick={() => setIsDeleteModalOpen(true)} className="quote-detail-top-button quote-detail-delete">
+          <button type="button" onClick={() => setIsDeleteModalOpen(true)} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-red-600 rounded-lg hover:bg-red-50 hover:border-red-200 transition-colors">
             <Trash2 className="h-4 w-4" /> Xóa
           </button>
         </div>
       </div>
 
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4 mb-10">
+        <div className="lg:col-span-2">
+          <span className="text-[11px] text-gray-400 font-medium uppercase tracking-widest block mb-4">Khách hàng</span>
+          <strong className="text-[20px] font-medium text-black block leading-tight mb-1">
+            {isCompanyCustomer ? customerCompany : (customerPerson || customerEmail || "Chưa có thông tin")}
+          </strong>
+          {isCompanyCustomer && (
+            <p className="text-[15px] text-gray-500 mb-6">
+              Mã số thuế: {customerTaxCode || "Chưa cập nhật"}
+            </p>
+          )}
+          {!isCompanyCustomer && <div className="mb-6" />}
+
+          <div className="grid gap-3 max-w-xl">
+            {isCompanyCustomer && customerPerson && (
+              <div className="flex text-[14px]">
+                <span className="text-gray-500 w-32 shrink-0 font-light">Đại diện:</span>
+                <span className="text-gray-900">{customerPerson}</span>
+              </div>
+            )}
+            {customerAddress && (
+              <div className="flex text-[14px]">
+                <span className="text-gray-500 w-32 shrink-0 font-light">Địa chỉ:</span>
+                <span className="text-gray-900">{customerAddress}</span>
+              </div>
+            )}
+            <div className="flex text-[14px]">
+              <span className="text-gray-500 w-32 shrink-0 font-light">Điện thoại:</span>
+              <span className="text-gray-900">{customerPhone || "—"}</span>
+            </div>
+            <div className="flex text-[14px]">
+              <span className="text-gray-500 w-32 shrink-0 font-light">Email:</span>
+              <span className="text-gray-900">{customerEmail || "—"}</span>
+            </div>
+          </div>
+        </div>
+        <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-[#eaeaea] pt-6 lg:pt-0 lg:pl-8">
+          <span className="text-[13px] text-gray-500 font-medium uppercase tracking-widest block mb-2">Báo giá</span>
+          <strong className="text-[20px] font-medium text-black block mb-1">{data.number}</strong>
+          <p className="text-[14px] text-gray-600 mb-1">{data.project?.name || data.deal?.title || data.deal?.name || "Chưa gắn dự án"}</p>
+          <p className="text-[14px] text-gray-600">Ngày lập: {formatDate(data.createdAt)}</p>
+        </div>
+      </section>
+
       <div className="flex flex-col lg:flex-row gap-6">
         <main className="flex-1 space-y-6">
-          <nav className="flex gap-4 border-b border-slate-200">
+          <nav className="quote-detail-tabs mb-8">
             {detailTabs.map((tab) => (
               <button 
                 key={tab.id} 
                 type="button" 
                 onClick={() => setActiveTab(tab.id)} 
-                className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
-                  activeTab === tab.id 
-                    ? "border-orange-500 text-orange-600" 
-                    : "border-transparent text-slate-500 hover:text-slate-800"
-                }`}
+                className={activeTab === tab.id ? "active" : ""}
               >
                 {tab.label}
               </button>
@@ -455,12 +504,8 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
 
           {activeTab === "info" ? (
             <>
-              <section className="quote-panel">
-                <div className="quote-panel-header">
-                  <h2>Quy trình xử lý</h2>
-                  <span>Tiến độ xử lý báo giá.</span>
-                </div>
-                <div className="quote-progress quote-progress-five mt-4">
+              <section className="bg-white rounded-xl border border-[#eaeaea] p-6">
+                <div className="quote-progress quote-progress-five">
                   {steps.map((step) => (
                     <div key={step.label} className={step.done ? "done" : ""}>
                       <span>✓</span>
@@ -470,45 +515,45 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
                 </div>
               </section>
 
-              <section className="quote-panel">
-                <div className="quote-panel-header">
-                  <h2>Sản phẩm & dịch vụ</h2>
-                  <span>Danh sách các hạng mục trong báo giá.</span>
-                </div>
+              <section className="bg-white rounded-xl border border-[#eaeaea] p-6">
+                <div className="mb-4">
+<h2 className="text-[16px] font-medium text-black">Sản phẩm & dịch vụ</h2>
+<span className="text-[14px] text-gray-500 block mt-1">Danh sách các hạng mục trong báo giá.</span>
+</div>
                 <div className="quotation-items-list mt-2">
                   {data.items?.length ? (
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mt-4">
                       <div className="overflow-x-auto w-full">
                         <table className="w-full text-sm text-left border-collapse">
-                          <thead className="bg-[#ee8f15] text-white">
+                          <thead className="bg-gray-50/50 text-gray-500 border-b border-[#eaeaea]">
                             <tr>
-                              <th className="px-4 py-3 font-medium border-r border-[#fa9f2a] min-w-[280px]">Nội dung dịch vụ</th>
-                              <th className="px-4 py-3 font-medium text-center w-24 border-r border-[#fa9f2a]">Đơn vị</th>
-                              <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#fa9f2a]">SL</th>
-                              <th className="px-4 py-3 font-medium text-right w-36 border-r border-[#fa9f2a]">Đơn giá (VND)</th>
-                              <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#fa9f2a]">Thuế</th>
+                              <th className="px-4 py-3 font-medium border-r border-[#eaeaea] min-w-[280px]">Nội dung dịch vụ</th>
+                              <th className="px-4 py-3 font-medium text-center w-24 border-r border-[#eaeaea]">Đơn vị</th>
+                              <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#eaeaea]">SL</th>
+                              <th className="px-4 py-3 font-medium text-right w-36 border-r border-[#eaeaea]">Đơn giá (VND)</th>
+                              <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#eaeaea]">Thuế</th>
                               <th className="px-4 py-3 font-medium text-right w-40">Thành tiền (VND)</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100">
+                          <tbody className="divide-y divide-[#eaeaea]">
                             {data.items.map((item, index) => (
                               <tr key={item.id} className="bg-white text-slate-700 transition-colors hover:bg-slate-50 group">
-                                <td className="px-4 py-5 align-top border-r border-slate-100">
+                                <td className="px-4 py-5 align-top border-r border-[#eaeaea]">
                                   <div className="font-medium uppercase text-slate-800 mb-2">
                                     {String(index + 1).padStart(2, '0')} {item.name}
                                   </div>
                                   {item.description && <div className="text-slate-500 mt-1 whitespace-pre-wrap text-[14px]" dangerouslySetInnerHTML={{ __html: item.description }} />}
                                 </td>
-                                <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                                <td className="px-4 py-5 text-center align-top border-r border-[#eaeaea]">
                                   Lần
                                 </td>
-                                <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                                <td className="px-4 py-5 text-center align-top border-r border-[#eaeaea]">
                                   {asNumber(item.quantity)}
                                 </td>
-                                <td className="px-4 py-5 text-right align-top border-r border-slate-100">
+                                <td className="px-4 py-5 text-right align-top border-r border-[#eaeaea]">
                                   {formatMoney(item.unitPrice, data.currency)}
                                 </td>
-                                <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                                <td className="px-4 py-5 text-center align-top border-r border-[#eaeaea]">
                                   {asNumber(item.tax)}%
                                 </td>
                                 <td className="px-4 py-5 text-right align-top font-medium">
@@ -526,28 +571,28 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
                 </div>
               </section>
 
-              <section className="quote-panel">
-                <div className="quote-panel-header">
-                  <h2>Ghi chú & điều khoản</h2>
-                  <span>Các thông tin gửi kèm cho khách hàng.</span>
-                </div>
+              <section className="bg-white rounded-xl border border-[#eaeaea] p-6">
+                <div className="mb-4">
+<h2 className="text-[16px] font-medium text-black">Ghi chú & điều khoản</h2>
+<span className="text-[14px] text-gray-500 block mt-1">Các thông tin gửi kèm cho khách hàng.</span>
+</div>
                 <div className="grid gap-4 mt-4">
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <strong className="text-sm font-semibold text-slate-800 block mb-2">Ghi chú gửi khách</strong>
+                    <strong className="text-sm font-medium text-slate-800 block mb-2">Ghi chú gửi khách</strong>
                     <div className="text-[14px] text-slate-600 leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: data.notes || "Chưa có ghi chú." }} />
                   </div>
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                    <strong className="text-sm font-semibold text-slate-800 block mb-2">Điều khoản</strong>
+                    <strong className="text-sm font-medium text-slate-800 block mb-2">Điều khoản</strong>
                     <div className="text-[14px] text-slate-600 leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: data.terms || "Chưa có điều khoản." }} />
                   </div>
                 </div>
               </section>
             </>
           ) : (
-            <section className="quote-panel">
-              <div className="quote-panel-header">
-                <h2>{activeTab === "activity" ? "Lịch sử hoạt động" : "Tệp đính kèm"}</h2>
-              </div>
+            <section className="bg-white rounded-xl border border-[#eaeaea] p-6">
+              <div className="mb-4">
+<h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">{activeTab === "activity" ? "Lịch sử hoạt động" : "Tệp đính kèm"}</h2>
+</div>
               <div className="mt-4">
                 {activeTab === "activity" ? (
                   <ActivityTimeline logs={data.activityLogs} fallback={fallbackActivities} />
@@ -560,69 +605,63 @@ export function QuotationDetailView({ data }: { data: QuotationDetailData }) {
         </main>
 
         <aside className="w-full lg:w-[340px] space-y-6">
-          <section className="quote-panel">
-            <div className="quote-panel-header">
-              <h2>Khách hàng & Dự án</h2>
-            </div>
-            <div className="flex flex-col gap-4 mt-4 text-sm">
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6">
+            <div className="mb-4">
+<h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Dự án</h2>
+</div>
+            <div className="flex flex-col gap-4 text-sm mt-4">
               <div>
-                <div className="text-slate-500 mb-1">Khách hàng</div>
-                <div className="font-medium text-slate-800">{data.contact?.company?.name || contactName(data.contact)}</div>
-                {data.contact?.phone && <div className="text-slate-600 mt-0.5">{data.contact.phone}</div>}
-                {data.contact?.email && <div className="text-slate-600 mt-0.5">{data.contact.email}</div>}
+                <div className="text-slate-500 font-light mb-1">Dự án</div>
+                <div className="text-slate-800">{data.project?.name || data.deal?.title || data.deal?.name || "Không gắn dự án"}</div>
               </div>
               <div className="pt-3 border-t border-slate-100">
-                <div className="text-slate-500 mb-1">Dự án</div>
-                <div className="font-medium text-slate-800">{data.project?.name || data.deal?.title || data.deal?.name || "Không gắn dự án"}</div>
-              </div>
-              <div className="pt-3 border-t border-slate-100">
-                <div className="text-slate-500 mb-1">Người tạo</div>
-                <div className="font-medium text-slate-800">{data.creator?.name || "Administrator"}</div>
+                <div className="text-slate-500 font-light mb-1">Người tạo</div>
+                <div className="text-slate-800">{data.creator?.name || "Administrator"}</div>
               </div>
             </div>
           </section>
 
-          <section className="quote-panel">
-            <div className="quote-panel-header">
-              <h2>Thông tin báo giá</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-sm mt-4">
-              <div className="text-slate-500">Mã báo giá</div><div className="font-medium text-right">{data.number}</div>
-              <div className="text-slate-500">Trạng thái</div><div className="font-medium text-right">{statusLabel[data.status] || data.status}</div>
-              <div className="text-slate-500">Ngày tạo</div><div className="font-medium text-right">{formatDateTime(data.createdAt)}</div>
-              <div className="text-slate-500">Hiệu lực đến</div><div className="font-medium text-right">{formatDate(data.validUntil)}</div>
-              <div className="text-slate-500">Admin ký</div><div className="font-medium text-right">{formatDateTime(data.adminSignedAt)}</div>
-              <div className="text-slate-500">Khách ký</div><div className="font-medium text-right">{customerSignatureRequired ? formatDateTime(data.signedAt) : "Không cần ký"}</div>
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6">
+            <div className="mb-4">
+<h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Thông tin báo giá</h2>
+</div>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-[13px] mt-4">
+              <div className="text-slate-500 font-light">Mã báo giá</div><div className="font-medium text-right text-black">{data.number}</div>
+              <div className="text-slate-500 font-light">Trạng thái</div><div className="font-medium text-right text-black">{statusLabel[data.status] || data.status}</div>
+              <div className="text-slate-500 font-light">Ngày tạo</div><div className="font-medium text-right text-black">{formatDateTime(data.createdAt)}</div>
+              <div className="text-slate-500 font-light">Hiệu lực đến</div><div className="font-medium text-right text-black">{formatDate(data.validUntil)}</div>
+              <div className="text-slate-500 font-light">Admin ký</div><div className="font-medium text-right text-black">{formatDateTime(data.adminSignedAt)}</div>
+              <div className="text-slate-500 font-light">Khách ký</div><div className="font-medium text-right text-black">{customerSignatureRequired ? formatDateTime(data.signedAt) : "Không cần ký"}</div>
             </div>
           </section>
 
-          <section className="quote-panel">
-            <div className="quote-panel-header">
-              <h2>Giá trị & thanh toán</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-sm mt-4">
-              <div className="text-slate-500">Tạm tính</div><div className="font-medium text-right">{formatMoney(data.subtotal, data.currency)}</div>
-              <div className="text-slate-500">Thuế VAT</div><div className="font-medium text-right">{formatMoney(data.tax, data.currency)}</div>
-              <div className="text-slate-500 font-semibold mt-2">Tổng giá trị</div><div className="font-bold text-orange-600 text-lg text-right mt-2">{formatMoney(data.total, data.currency)}</div>
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6">
+            <div className="mb-4">
+<h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Giá trị & thanh toán</h2>
+</div>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-[13px] mt-4">
+              <div className="text-slate-500 font-light">Tạm tính</div><div className="font-medium text-right text-black">{formatMoney(data.subtotal, data.currency)}</div>
+              <div className="text-slate-500 font-light">Thuế VAT</div><div className="font-medium text-right text-black">{formatMoney(data.tax, data.currency)}</div>
+              <div className="text-slate-500 font-light mt-2">Tổng giá trị</div><div className="font-medium text-orange-600 text-[14px] text-right mt-2">{formatMoney(data.total, data.currency)}</div>
             </div>
           </section>
 
           <section className="quote-detail-card">
-            <h2>Tài liệu báo giá</h2>
+            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Tài liệu báo giá</h2>
             <div className="contract-document-box">
               <FileText className="h-10 w-10 text-emerald-600" />
               <strong>{data.number}</strong>
               <span>{formatMoney(data.total, data.currency)}</span>
             </div>
-            <button type="button" onClick={() => data.token && window.open(`/document/${data.token}/pdf`, "_blank")} className="quote-detail-action w-full mt-3">
+            <button type="button" onClick={() => data.token && window.open(`/document/${data.token}/pdf`, "_blank")} className="w-full flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors mt-3">
               <Download className="h-4 w-4" />
               Tải xuống
             </button>
           </section>
 
           <section className="quote-detail-card">
-            <h2>Thao tác</h2>
-            <div className="quote-side-actions">
+            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Thao tác</h2>
+            <div className="grid gap-3">
               {actionItems.map((item) => (
                 <ActionButton
                   key={item.label}

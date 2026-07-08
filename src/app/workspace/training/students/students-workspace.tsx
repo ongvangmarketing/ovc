@@ -123,7 +123,7 @@ export function StudentsWorkspace({ initialStudents }: { initialStudents: Traini
               <Users className="h-4 w-4 text-orange-500" />
               Đào tạo / Học viên
             </div>
-            <h1 className="text-2xl font-semibold text-slate-950">Học viên</h1>
+            <h1 className="text-[15px] font-medium text-slate-950">Học viên</h1>
             <p className="mt-1 text-[14px] font-light text-slate-500">Quản lý hồ sơ, tiến độ học tập và chăm sóc học viên.</p>
           </div>
           <Link
@@ -213,14 +213,14 @@ export function StudentsWorkspace({ initialStudents }: { initialStudents: Traini
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-600 shrink-0">
+                          <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center font-medium text-slate-600 shrink-0">
                             {row.name.charAt(0)}
                           </div>
                           <div>
                             <Link
                               href={`/workspace/training/students/${row.id}`}
                               onClick={(event) => event.stopPropagation()}
-                              className="font-semibold text-slate-900 transition hover:text-orange-600"
+                              className="font-medium text-slate-900 transition hover:text-orange-600"
                             >
                               {row.name}
                             </Link>
@@ -233,7 +233,7 @@ export function StudentsWorkspace({ initialStudents }: { initialStudents: Traini
                         <div className="text-xs text-slate-500">{row.active} lớp đang học</div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={cn("px-2.5 py-1 text-xs font-semibold rounded-full border", statusConfig[row.status].tone)}>
+                        <span className={cn("px-2.5 py-1 text-xs font-medium rounded-full border", statusConfig[row.status].tone)}>
                           {statusConfig[row.status].label}
                         </span>
                       </td>
@@ -264,17 +264,17 @@ export function StudentsWorkspace({ initialStudents }: { initialStudents: Traini
                 </tbody>
               </table>
             ) : (
-              <div className="grid gap-4 p-6 lg:grid-cols-4">
+              <div className="grid gap-4 p-4 lg:grid-cols-4">
                 {statusOrder.map((status) => { 
                   const list = filtered.filter(i => i.status === status); 
                   return (
                     <section key={status} className="rounded-2xl border border-slate-200 bg-slate-50/50 p-3">
                       <div className="mb-3 flex items-center justify-between">
-                        <h2 className="inline-flex items-center gap-2 text-sm font-bold text-slate-700">
+                        <h2 className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
                           <span className={cn("h-2 w-2 rounded-full", statusConfig[status].dot)} />
                           {statusConfig[status].label}
                         </h2>
-                        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-600">{list.length}</span>
+                        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600">{list.length}</span>
                       </div>
                       <div className="space-y-3">
                         {list.map((item) => (
@@ -283,10 +283,10 @@ export function StudentsWorkspace({ initialStudents }: { initialStudents: Traini
                             onClick={() => router.push(`/workspace/training/students/${item.id}`)}
                             className="cursor-pointer rounded-xl border border-slate-200 bg-white p-3 transition-all hover:border-orange-300 hover:shadow-md"
                           >
-                            <h3 className="font-bold text-slate-900 text-sm truncate">{item.name}</h3>
+                            <h3 className="font-medium text-slate-900 text-sm truncate">{item.name}</h3>
                             <div className="flex justify-between items-center mt-2 text-xs text-slate-500">
                               <span>Tiến độ</span>
-                              <span className="font-semibold text-slate-900">{item.progress}%</span>
+                              <span className="font-medium text-slate-900">{item.progress}%</span>
                             </div>
                             <div className="mt-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                               <div className={cn("h-full rounded-full", status === "risk" ? "bg-rose-500" : "bg-indigo-500")} style={{ width: `${item.progress}%` }} />
@@ -310,14 +310,14 @@ export function StudentsWorkspace({ initialStudents }: { initialStudents: Traini
 
 function StatCard({ label, value, icon, tone }: { label: string; value: number | string; icon: React.ReactNode; tone: string }) {
   return (
-    <div className="quote-panel p-5">
+    <div className="quote-panel p-4">
       <div className="flex justify-between items-start mb-2">
         <div className="text-sm font-medium text-slate-500">{label}</div>
         <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-slate-100", tone)}>
           {icon}
         </div>
       </div>
-      <div className="text-3xl font-bold text-slate-900">{value}</div>
+      <div className="text-3xl font-medium text-slate-900">{value}</div>
     </div>
   );
 }

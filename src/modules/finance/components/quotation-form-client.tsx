@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  CalendarDays,
   FileUp,
   FileText,
   Plus,
@@ -13,11 +12,14 @@ import {
   X,
 } from "lucide-react";
 
+import { normalizePaymentChannelKeys, getDynamicPaymentChannels, type PaymentChannelKey } from "@/lib/finance/payment-channels";
 import { createQuotation, updateQuotation } from "@/app/actions/finance-crud";
-import { getContacts, getDeals, getCompanies, getContactAssignees } from "@/app/actions/crm";
+import { getContacts, getCompanies, getContactAssignees, getDeals, lookupCompanyByTaxCode } from "@/app/actions/crm";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 import { getProjects } from "@/app/actions/projects";
 import { cn } from "@/lib/utils/cn";
-import { formatCurrency } from "@/lib/utils/format";
+import { formatCurrency, formatDate } from "@/lib/utils/format";
+import { CustomerFormSection } from "./customer-form-section";
 
 type QuotationMode = "create" | "edit";
 
@@ -28,8 +30,29 @@ type ContactOption = {
   name?: string;
   email?: string | null;
   phone?: string | null;
-  company?: { name?: string | null } | null;
+  identityNumber?: string | null;
+  jobTitle?: string | null;
+  customFields?: unknown;
+  company?: {
+    name?: string | null;
+    taxCode?: string | null;
+    representativeName?: string | null;
+    representativeTitle?: string | null;
+    customFields?: unknown;
+  } | null;
   address?: string | null;
+};
+
+type CompanyOption = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  taxCode?: string | null;
+  representativeName?: string | null;
+  representativeTitle?: string | null;
+  customFields?: unknown;
 };
 
 type ProjectOption = {
@@ -69,6 +92,15 @@ type InitialQuotation = {
   assigneeId?: string | null;
   projectId?: string | null;
   dealId?: string | null;
+  contactName?: string | null;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
+  contactAddress?: string | null;
+  contactIdentityNumber?: string | null;
+  companyName?: string | null;
+  companyTaxCode?: string | null;
+  companyRepresentative?: string | null;
+  companyRepresentativeTitle?: string | null;
   customerSignatureRequired?: boolean;
   currency?: string;
   subtotal?: unknown;
@@ -122,6 +154,40 @@ function numberValue(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function objectFields(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function taxCodeFromCompany(company?: CompanyOption | null) {
+  const customFields = objectFields(company?.customFields);
+  const customTaxCode = customFields.taxCode;
+
+  return String(company?.taxCode || customTaxCode || "").trim();
+}
+
+function companyNameFromCompany(company?: CompanyOption | null, fallback = "") {
+  const customFields = objectFields(company?.customFields);
+  const customName = customFields.companyName || customFields.name || customFields.businessName;
+  const taxCode = normalizedLookup(taxCodeFromCompany(company));
+  const companyName = String(customName || company?.name || "").trim();
+
+  if (companyName && normalizedLookup(companyName) !== taxCode) {
+    return companyName;
+  }
+
+  return fallback;
+}
+
+function isUsefulCompany(company?: CompanyOption | null) {
+  if (!company) return false;
+  const name = companyNameFromCompany(company);
+  return Boolean(name || taxCodeFromCompany(company) || company.email || company.phone);
+}
+
+function normalizedLookup(value?: string | null) {
+  return String(value || "").trim().replace(/\s+/g, "");
+}
+
 function formatFileSize(size: number) {
   if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   if (size >= 1024) return `${(size / 1024).toFixed(1)} KB`;
@@ -138,6 +204,14 @@ function normalizeLegacyText(value?: string | null) {
     .trim();
 }
 
+function normalizeQuotationTerms(value?: string | null) {
+  if (!value) return "";
+  return value
+    .replace(/^\s*(?:Ngày lập|Ngay lap)\s*:\s*\d{4}-\d{2}-\d{2}\s*$/gim, "")
+    .replace(/<p>\s*(?:Ngày lập|Ngay lap)\s*:\s*\d{4}-\d{2}-\d{2}\s*<\/p>/gi, "")
+    .trim();
+}
+
 function recalcItem(item: QuotationItemForm): QuotationItemForm {
   const amount = numberValue(item.quantity) * numberValue(item.unitPrice);
   const afterDiscount = Math.max(0, amount - numberValue(item.discount));
@@ -150,15 +224,136 @@ function Field({
   children,
   className,
 }: {
-  label: string;
+  label?: string;
   children: React.ReactNode;
   className?: string;
 }) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1.5 block text-[14px] font-light text-slate-600">{label}</span>
+      {label ? (
+        <span className="mb-1.5 block text-[14px] font-light text-slate-600">{label}</span>
+      ) : null}
       {children}
     </label>
+  );
+}
+
+function VercelPicker<T extends { id: string }>({
+  value,
+  selectedTitle,
+  placeholder,
+  options,
+  search,
+  onSearchChange,
+  onSelect,
+  getTitle,
+  getSubtitle,
+  className,
+}: {
+  value: string;
+  selectedTitle?: string;
+  placeholder: string;
+  options: T[];
+  search: string;
+  onSearchChange: (value: string) => void;
+  onSelect: (id: string) => void;
+  getTitle: (option: T) => string;
+  getSubtitle?: (option: T) => string;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const displayValue = open ? search : (selectedTitle || search || "");
+  const normalizedQuery = search.trim().toLowerCase();
+  const visibleOptions = normalizedQuery
+    ? options.filter((option) =>
+        [getTitle(option), getSubtitle?.(option)]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery)
+      )
+    : options.slice(0, 12);
+
+  useEffect(() => {
+    if (!open) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [open]);
+
+  return (
+    <div ref={wrapperRef} className={cn("relative min-w-0", className)}>
+      <Search className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+      <input
+        value={displayValue}
+        onFocus={() => {
+          onSearchChange("");
+          setOpen(true);
+        }}
+        onChange={(event) => {
+          onSearchChange(event.target.value);
+          setOpen(true);
+        }}
+        className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none vercel-picker-input font-medium"
+        placeholder={placeholder}
+      />
+      {(value || selectedTitle || search) ? (
+        <button
+          type="button"
+          onClick={() => {
+            onSelect("");
+            onSearchChange("");
+            setOpen(false);
+          }}
+          className="absolute right-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-[6px] text-gray-400 transition-colors hover:bg-gray-50 hover:text-black"
+          aria-label="Xóa lựa chọn"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      ) : null}
+
+      {open ? (
+        <div className="absolute left-0 top-[calc(100%+8px)] z-[80] w-full overflow-hidden rounded-[10px] border border-[#eaeaea] bg-white">
+          <div className="max-h-[280px] overflow-y-auto p-1.5">
+            {visibleOptions.length ? (
+              visibleOptions.map((option) => {
+                const title = getTitle(option);
+                const subtitle = getSubtitle?.(option);
+                const selected = option.id === value;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => {
+                      onSelect(option.id);
+                      onSearchChange(title);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full min-w-0 items-start justify-between gap-3 rounded-[8px] px-3 py-2.5 text-left transition-colors hover:bg-gray-50",
+                      selected && "bg-gray-50"
+                    )}
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-[14px] font-medium text-black">{title}</span>
+                      {subtitle ? <span className="mt-0.5 block truncate text-[12px] text-gray-500">{subtitle}</span> : null}
+                    </span>
+                    {selected ? <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-black" /> : null}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-3 py-8 text-center text-[13px] text-gray-500">Không tìm thấy dữ liệu phù hợp.</div>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -170,154 +365,51 @@ function SignatureToggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="quote-signature-toggle sm:col-span-2" aria-label="Ký số">
-      <input
-        type="checkbox"
-        className="sr-only"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-      <span className={cn("quote-switch", checked && "quote-switch-on")}>
-        <span>Ký số</span>
-      </span>
+    <label className="flex h-[46px] mt-[30px] cursor-pointer items-center justify-between rounded-lg border-transparent bg-gray-50/50 px-4 hover:bg-gray-100 transition-colors" aria-label="Ký số">
+      <span className="text-[13px] font-medium text-black">{checked ? "Bật ký số" : "Tắt ký số"}</span>
+      <div className={cn("relative h-5 w-9 rounded-full transition-colors", checked ? "bg-black" : "bg-gray-200")}>
+        <div className={cn("absolute top-[2px] left-[2px] h-4 w-4 rounded-full bg-white transition-transform", checked && "translate-x-4")} />
+      </div>
+      <input type="checkbox" className="sr-only" checked={checked} onChange={(event) => onChange(event.target.checked)} />
     </label>
   );
 }
 
-function ComboSelect<T extends { id: string }>({
-  label,
-  value,
-  search,
-  selectedTitle,
-  onSearchChange,
-  placeholder,
-  options,
-  getTitle,
-  getSubtitle,
-  onSelect,
-  emptyTitle,
-  allowEmpty,
-}: {
-  label: string;
-  value: string;
-  search: string;
-  selectedTitle?: string;
-  onSearchChange: (value: string) => void;
-  placeholder: string;
-  options: T[];
-  getTitle: (option: T) => string;
-  getSubtitle?: (option: T) => string;
-  onSelect: (id: string) => void;
-  emptyTitle?: string;
-  allowEmpty?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const comboRef = useRef<HTMLDivElement>(null);
+import { ComboSelectModal as ComboSelect } from "@/components/ui/combo-select-modal";
 
-  useEffect(() => {
-    if (!open) return;
-    const closeOnOutsideClick = (event: MouseEvent) => {
-      if (!comboRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", closeOnOutsideClick);
-    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
-  }, [open]);
-
-  return (
-    <Field label={label}>
-      <div ref={comboRef} className="quote-combo">
-        <Search className="quote-input-icon quote-input-icon-left top-[21px]" />
-        <input
-          value={search || selectedTitle || ""}
-          onChange={(event) => {
-            onSearchChange(event.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          className="quote-input quote-input-with-left-icon"
-          placeholder={placeholder}
-          type="search"
-        />
-        {(value || search || selectedTitle) ? (
-          <button
-            type="button"
-            onPointerDown={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onSelect("");
-              onSearchChange("");
-              setOpen(false);
-            }}
-            onClick={(event) => event.preventDefault()}
-            className="absolute right-2 top-[21px] z-50 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-xs font-semibold text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-            aria-label="Xóa lựa chọn"
-          >
-            x
-          </button>
-        ) : null}
-        {open ? (
-          <div className="quote-combo-menu">
-            {allowEmpty ? (
-              <button
-                type="button"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  onSelect("");
-                  onSearchChange("");
-                  setOpen(false);
-                }}
-                className={cn("quote-combo-option", !value && "quote-combo-option-active")}
-              >
-                {emptyTitle || "Không chọn"}
-              </button>
-            ) : null}
-            {options.slice(0, 9).map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  onSelect(option.id);
-                  onSearchChange(getTitle(option));
-                  setOpen(false);
-                }}
-                className={cn("quote-combo-option", option.id === value && "quote-combo-option-active")}
-              >
-                <span>{getTitle(option)}</span>
-                {getSubtitle ? <small>{getSubtitle(option)}</small> : null}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    </Field>
-  );
-}
 
 export function QuotationFormClient({
   mode,
   initialData,
   initialNumber,
+  dynamicPaymentChannels,
+  initialCompanies,
+  initialContacts,
 }: {
   mode: QuotationMode;
   initialData?: InitialQuotation;
   initialNumber?: string;
+  dynamicPaymentChannels?: string | null;
+  initialCompanies?: CompanyOption[];
+  initialContacts?: ContactOption[];
 }) {
-  const router = useRouter();
+    const paymentChannelOptions = useMemo(() => getDynamicPaymentChannels(dynamicPaymentChannels), [dynamicPaymentChannels]);
+const router = useRouter();
   const queryClient = useQueryClient();
   const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
 
   const [number, setNumber] = useState(initialData?.number || initialNumber || "");
   const [title, setTitle] = useState(initialData?.title || "");
   const [contactId, setContactId] = useState(searchParams?.get("contactId") || initialData?.contactId || "");
-  const [contactName, setContactName] = useState("");
-  const [contactPhone, setContactPhone] = useState("");
-  const [contactEmail, setContactEmail] = useState("");
-  const [contactAddress, setContactAddress] = useState("");
-  const [companyName, setCompanyName] = useState("");
+  const [contactName, setContactName] = useState(initialData?.contactName || "");
+  const [contactPhone, setContactPhone] = useState(initialData?.contactPhone || "");
+  const [contactEmail, setContactEmail] = useState(initialData?.contactEmail || "");
+  const [contactAddress, setContactAddress] = useState(initialData?.contactAddress || "");
+  const [contactIdentityNumber, setContactIdentityNumber] = useState(initialData?.contactIdentityNumber || "");
+  const [companyName, setCompanyName] = useState(initialData?.companyName || "");
+  const [companyTaxCode, setCompanyTaxCode] = useState(initialData?.companyTaxCode || "");
+  const [representativeName, setRepresentativeName] = useState(initialData?.companyRepresentative || "");
+  const [representativeTitle, setRepresentativeTitle] = useState(initialData?.companyRepresentativeTitle || "");
   const [companyId, setCompanyId] = useState(searchParams?.get("companyId") || initialData?.companyId || "");
   const [targetType, setTargetType] = useState<"company" | "contact" | "lead">(initialData?.companyId ? "company" : initialData?.contactId ? "contact" : "company");
   const [assigneeId, setAssigneeId] = useState(initialData?.assigneeId || "");
@@ -332,7 +424,7 @@ export function QuotationFormClient({
   const [discountType, setDiscountType] = useState(initialData?.discountType || "fixed");
   const [discount, setDiscount] = useState(numberValue(initialData?.discount));
   const [notes, setNotes] = useState(initialData?.notes || "");
-  const [terms, setTerms] = useState(initialData?.terms || "");
+  const [terms, setTerms] = useState(normalizeQuotationTerms(initialData?.terms));
   const [customerSearch, setCustomerSearch] = useState("");
   const [projectSearch, setProjectSearch] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -352,6 +444,8 @@ export function QuotationFormClient({
   const { data: contacts = [] } = useQuery({
     queryKey: ["contacts"],
     queryFn: () => getContacts(),
+    initialData: initialContacts,
+    staleTime: 60_000,
   });
 
   const { data: projects = [] } = useQuery({
@@ -367,6 +461,8 @@ export function QuotationFormClient({
   const { data: companies = [] } = useQuery({
     queryKey: ["companies"],
     queryFn: () => getCompanies(),
+    initialData: initialCompanies,
+    staleTime: 60_000,
   });
 
   const { data: assignees = [] } = useQuery({
@@ -388,7 +484,7 @@ export function QuotationFormClient({
     if (currentUser?.id) setAssigneeId(currentUser.id);
   }, [assigneeId, assignees, mode]);
 
-  const selectedCompany = (companies as any[]).find((c: any) => c.id === companyId);
+  const selectedCompany = (companies as CompanyOption[]).find((company) => company.id === companyId);
   const selectedDeal = (deals as any[]).find((d: any) => d.id === dealId);
 
   useEffect(() => {
@@ -422,11 +518,18 @@ export function QuotationFormClient({
     return (projects as ProjectOption[]).filter((project) => project.name.toLowerCase().includes(keyword));
   }, [projects, projectSearch]);
 
-  const [companySearch, setCompanySearch] = useState("");
+  const [companySearch, setCompanySearch] = useState(initialData?.companyName || "");
   const filteredCompanies = useMemo(() => {
+    const usefulCompanies = (companies as CompanyOption[]).filter(isUsefulCompany);
     const keyword = companySearch.trim().toLowerCase();
-    if (!keyword) return companies as any[];
-    return (companies as any[]).filter((c) => c.name?.toLowerCase().includes(keyword));
+    if (!keyword) return usefulCompanies;
+    return usefulCompanies.filter((company) =>
+      [companyNameFromCompany(company), company.name, company.email, company.phone, taxCodeFromCompany(company)]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword)
+    );
   }, [companies, companySearch]);
 
   const [assigneeSearch, setAssigneeSearch] = useState("");
@@ -454,6 +557,15 @@ export function QuotationFormClient({
   }
   const selectedAssignee = (assignees as any[]).find((a) => a.user?.id === assigneeId);
   const selectedProject = (projects as ProjectOption[]).find((project) => project.id === projectId);
+  const customerDisplayName = targetType === "company"
+    ? (companyNameFromCompany(selectedCompany, companyName || companySearch) || "Chọn công ty")
+    : (selectedContact ? contactLabel(selectedContact) : contactName || customerSearch || "Chọn khách hàng");
+  const customerInitial = customerDisplayName.trim().charAt(0).toUpperCase() || "K";
+  const customerMeta = [
+    targetType === "company" && companyTaxCode ? `MST ${companyTaxCode}` : "",
+    contactPhone,
+    contactEmail,
+  ].filter(Boolean);
 
   const computedSubtotal = items.reduce((sum, item) => sum + numberValue(item.quantity) * numberValue(item.unitPrice), 0);
   const computedLineTax = items.reduce((sum, item) => {
@@ -469,12 +581,16 @@ export function QuotationFormClient({
 
   const payload = () => ({
     number: number.trim() || undefined,
-    title,
+    title: title.trim() || `Báo giá ${number || ''}`,
     contactId: contactId || undefined,
         targetType,
         assigneeId: assigneeId || undefined,
         contactName: targetType !== 'company' ? (customerSearch || contactName) : undefined,
         companyName: targetType === 'company' ? (companySearch || companyName) : companyName,
+        companyTaxCode,
+        companyRepresentative: representativeName,
+        companyRepresentativeTitle: representativeTitle,
+        contactIdentityNumber,
         contactPhone,
         contactEmail,
         contactAddress,
@@ -506,26 +622,154 @@ export function QuotationFormClient({
         }),
       });
 
-  
+  const hasLoadedCompanyRef = useRef(false);
+  const hasLoadedContactRef = useRef(false);
+
+  const hydrateContactFields = (contact: ContactOption, overwrite = false) => {
+    const contactFields = objectFields(contact.customFields);
+    const contactCompany = contact.company as CompanyOption | null;
+
+    setContactName((current) => (overwrite || !current ? contactLabel(contact) : current));
+    setCustomerSearch((current) => (overwrite || !current ? contactLabel(contact) : current));
+    setContactPhone((current) => (overwrite || !current ? contact.phone || "" : current));
+    setContactEmail((current) => (overwrite || !current ? contact.email || "" : current));
+    setContactAddress((current) => (overwrite || !current ? contact.address || "" : current));
+    setContactIdentityNumber((current) => (
+      overwrite || !current
+        ? String(contact.identityNumber || contactFields.identityNumber || contactFields.cccd || contactFields.citizenId || contactFields.idNumber || "")
+        : current
+    ));
+    setCompanyName((current) => (overwrite || !current ? companyNameFromCompany(contactCompany) : current));
+    setCompanyTaxCode((current) => (overwrite || !current ? taxCodeFromCompany(contactCompany) : current));
+  };
+
+  const hydrateCompanyFields = (company: CompanyOption, overwrite = false) => {
+    const customFields = objectFields(company.customFields);
+    const nextCompanyName = companyNameFromCompany(company, companyName);
+    const fallbackCompany = (companies as CompanyOption[]).find((candidate) => {
+      if (candidate.id === company.id || !taxCodeFromCompany(candidate)) return false;
+      return normalizedLookup(companyNameFromCompany(candidate)) === normalizedLookup(nextCompanyName);
+    });
+    const nextTaxCode = taxCodeFromCompany(company) || taxCodeFromCompany(fallbackCompany);
+
+    setCompanyName((current) => (overwrite || !current ? nextCompanyName : current));
+    setCompanySearch((current) => (overwrite || !current ? nextCompanyName : current));
+    setContactPhone((current) => (overwrite || !current ? company.phone || "" : current));
+    setContactEmail((current) => (overwrite || !current ? company.email || "" : current));
+    setContactAddress((current) => (overwrite || !current ? company.address || "" : current));
+    setCompanyTaxCode((current) => (overwrite || !current ? nextTaxCode : current));
+    setRepresentativeName((current) => (
+      overwrite || !current
+        ? String(company.representativeName || customFields.representativeName || customFields.representative || customFields.legalRepresentative || customFields.contactPerson || customFields.companyRepresentative || "")
+        : current
+    ));
+    setRepresentativeTitle((current) => (
+      overwrite || !current
+        ? String(company.representativeTitle || customFields.representativeTitle || customFields.position || customFields.jobTitle || customFields.title || "")
+        : current
+    ));
+  };
+
   useEffect(() => {
-    if (selectedContact) {
-      setContactName(contactLabel(selectedContact));
-      setContactPhone(selectedContact.phone || "");
-      setContactEmail(selectedContact.email || "");
-      setContactAddress(selectedContact.address || "");
-      setCompanyName(selectedContact.company?.name || "");
+    if (selectedContact && !hasLoadedContactRef.current) {
+      hydrateContactFields(selectedContact);
+      hasLoadedContactRef.current = true;
     }
   }, [selectedContact]);
 
   useEffect(() => {
-    if (selectedCompany) {
-      setCompanyName(selectedCompany.name || "");
-      setContactPhone(selectedCompany.phone || "");
-      setContactEmail(selectedCompany.email || "");
-      setContactAddress(selectedCompany.address || "");
+    if (selectedCompany && !hasLoadedCompanyRef.current) {
+      hydrateCompanyFields(selectedCompany);
+      hasLoadedCompanyRef.current = true;
     }
   }, [selectedCompany]);
 
+  useEffect(() => {
+    if (targetType !== "company" || companyId || !(companies as CompanyOption[]).length) return;
+    const matchedCompany = (companies as CompanyOption[]).find((company) => {
+      const sameTaxCode = companyTaxCode && normalizedLookup(taxCodeFromCompany(company)) === normalizedLookup(companyTaxCode);
+      const sameName = companyName && normalizedLookup(companyNameFromCompany(company)) === normalizedLookup(companyName);
+      return sameTaxCode || sameName;
+    });
+    if (!matchedCompany) return;
+
+    setCompanyId(matchedCompany.id);
+    hydrateCompanyFields(matchedCompany);
+    hasLoadedCompanyRef.current = true;
+  }, [companies, companyId, companyName, companyTaxCode, targetType]);
+
+  useEffect(() => {
+    if (companyTaxCode || !companyName || !(companies as CompanyOption[]).length) return;
+    const matchedCompany = (companies as CompanyOption[]).find((company) =>
+      taxCodeFromCompany(company) && normalizedLookup(companyNameFromCompany(company)) === normalizedLookup(companyName)
+    );
+    if (matchedCompany) {
+      setCompanyTaxCode(taxCodeFromCompany(matchedCompany));
+    }
+  }, [companies, companyName, companyTaxCode]);
+
+  const handleContactChange = (id: string) => {
+    setContactId(id);
+    const nextContact = (contacts as ContactOption[]).find((contact) => contact.id === id);
+    if (nextContact) {
+      hydrateContactFields(nextContact, true);
+      hasLoadedContactRef.current = true;
+      return;
+    }
+    hasLoadedContactRef.current = false;
+  };
+
+  const handleCompanyChange = (id: string) => {
+    setCompanyId(id);
+    const nextCompany = (companies as CompanyOption[]).find((company) => company.id === id);
+    if (nextCompany) {
+      hydrateCompanyFields(nextCompany, true);
+      hasLoadedCompanyRef.current = true;
+      return;
+    }
+    hasLoadedContactRef.current = false;
+  };
+
+  const taxLookupMutation = useMutation({
+    mutationFn: lookupCompanyByTaxCode,
+    onSuccess: (result, taxCode) => {
+      if (!result.success) return;
+
+      setCompanyTaxCode(result.data.taxCode || taxCode);
+      setCompanyName(result.data.name || companyName);
+      setCompanySearch(result.data.name || companyName);
+      setContactAddress(result.data.address || contactAddress);
+    },
+  });
+
+  const runTaxLookup = (taxCode: string) => {
+    const normalizedTaxCode = taxCode.trim().replace(/\s+/g, "");
+    if (normalizedTaxCode.length < 10) return;
+    
+    const existing = (companies as CompanyOption[]).find((company) => normalizedLookup(taxCodeFromCompany(company)) === normalizedTaxCode);
+    const existingName = companyNameFromCompany(existing, companyName);
+    const needsCompanyName = !existingName || normalizedLookup(existingName) === normalizedTaxCode;
+    if (!existing || needsCompanyName) {
+      taxLookupMutation.mutate(normalizedTaxCode);
+    }
+  };
+
+  useEffect(() => {
+    const normalizedTaxCode = (companyTaxCode || "").trim().replace(/\s+/g, "");
+    if (normalizedTaxCode.length < 10) return;
+
+    const timer = window.setTimeout(() => runTaxLookup(normalizedTaxCode), 800);
+    return () => window.clearTimeout(timer);
+  }, [companyTaxCode]);
+
+  useEffect(() => {
+    const normalizedSearch = (companySearch || "").trim().replace(/\s+/g, "");
+    if (normalizedSearch.match(/^\d{10}(\d{3})?$/)) {
+      const timer = window.setTimeout(() => runTaxLookup(normalizedSearch), 800);
+      return () => window.clearTimeout(timer);
+    }
+    return undefined;
+  }, [companySearch]);
   const saveMutation = useMutation({
     mutationFn: (statusOverride?: string) => {
       const data = { ...payload(), status: statusOverride || status };
@@ -583,12 +827,10 @@ export function QuotationFormClient({
 
   const handleSave = async (statusOverride?: string) => {
     setSaveError("");
-    if (!title.trim()) {
-      alert("Vui lòng nhập tiêu đề báo giá.");
-      return;
-    }
-    if (!contactId) {
-      alert("Vui lòng chọn khách hàng.");
+    const hasContactCustomer = targetType !== "company" && (contactId || customerSearch.trim() || contactName.trim());
+    const hasCompanyCustomer = targetType === "company" && (companyId || companySearch.trim() || companyName.trim());
+    if (!hasContactCustomer && !hasCompanyCustomer) {
+      alert(targetType === "company" ? "Vui lòng chọn hoặc nhập tên công ty." : "Vui lòng chọn khách hàng.");
       return;
     }
     try {
@@ -614,27 +856,26 @@ export function QuotationFormClient({
   const mobilePanelHeaderStyle = isMobileLayout ? { alignItems: "flex-start", gap: "0.5rem" } : undefined;
 
   return (
-    <div className="quote-page mx-auto max-w-[1440px] px-3 py-4 sm:px-6 sm:py-6">
-      <div className="mb-5 flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <div className="mb-8 flex flex-col gap-5 border-b border-[#eaeaea] pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-[14px] font-light text-slate-500">
-            <FileText className="h-4 w-4 text-orange-500" />
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-gray-400">
             Tài chính / Báo giá
           </div>
-          <h1 className="text-[14px] font-light text-slate-950">
+          <h1 className="text-[32px] md:text-[40px] font-medium tracking-tight text-black leading-none">
             {mode === "create" ? "Tạo báo giá" : `Báo giá ${initialData?.number || ""}`}
           </h1>
         </div>
 
-        <div className="quote-form-actions w-full lg:w-auto">
-          <button type="button" onClick={() => router.back()} className="quote-action-button quote-action-secondary">
+        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
+          <button type="button" onClick={() => router.back()} className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[14px] font-medium text-black hover:bg-gray-50 transition-colors">
             Quay lại
           </button>
           <button
             type="button"
             onClick={() => handleSave("DRAFT")}
             disabled={saveMutation.isPending}
-            className="quote-action-button quote-action-secondary"
+            className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[14px] font-medium text-black hover:bg-gray-50 transition-colors"
           >
             {saveMutation.isPending ? "Đang lưu..." : "Lưu nháp"}
           </button>
@@ -642,7 +883,7 @@ export function QuotationFormClient({
             type="submit"
             form="quotation-form"
             disabled={saveMutation.isPending}
-            className="quote-action-button quote-action-primary"
+            className="rounded-full bg-black px-6 py-2.5 text-[14px] font-medium text-white hover:bg-gray-800 transition-colors"
           >
             {saveMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
@@ -655,41 +896,42 @@ export function QuotationFormClient({
         </div>
       ) : null}
 
-      <form id="quotation-form" onSubmit={handleSubmit} className="quote-form-grid" style={mobileSingleColumnStyle}><section className="quote-panel quote-payment-sidebar">
-            <div className="quote-panel-header">
-              <h2>Thông tin chung</h2>
-            </div>
+      <form id="quotation-form" onSubmit={handleSubmit} className="flex flex-col gap-8 lg:grid lg:grid-cols-12 lg:items-start lg:gap-10">
+        <section className="rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:sticky lg:top-8 lg:col-span-4 lg:col-start-9 lg:row-span-12 lg:row-start-1">
+          <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
+            <h2 className="text-[24px] font-medium tracking-tight text-black">Thông tin chung</h2>
+          </div>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Số báo giá">
-                <input
-                  value={number}
-                  onChange={(event) => setNumber(event.target.value)}
-                  className="quote-input"
-                  placeholder="Tự sinh nếu bỏ trống"
-                />
-              </Field>
+          <div className="flex flex-col gap-6">
+            <Field label="Số báo giá">
+              <input
+                value={number}
+                onChange={(event) => setNumber(event.target.value)}
+                className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                placeholder="Tự sinh nếu bỏ trống"
+              />
+            </Field>
+            <div className="grid grid-cols-2 gap-4">
               <Field label="Ngày lập">
-                <div className="relative">
-                  <CalendarDays className="quote-input-icon quote-input-icon-left" />
-                  <input
-                    type="date"
-                    value={quotationDate}
-                    onChange={(event) => setQuotationDate(event.target.value)}
-                    className="quote-input quote-input-with-left-icon"
-                  />
-                </div>
+                <input
+                  type="date"
+                  value={quotationDate}
+                  onChange={(event) => setQuotationDate(event.target.value)}
+                  className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                />
               </Field>
               <Field label="Hạn chót">
                 <input
                   type="date"
                   value={validUntil}
                   onChange={(event) => setValidUntil(event.target.value)}
-                  className="quote-input"
+                  className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
                 />
               </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
               <Field label="Trạng thái">
-                <select value={status} onChange={(event) => setStatus(event.target.value)} className="quote-input">
+                <select value={status} onChange={(event) => setStatus(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
                   {statusOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -697,254 +939,188 @@ export function QuotationFormClient({
                   ))}
                 </select>
               </Field>
-
-              <Field label="Tiêu đề" className="sm:col-span-2">
-                <input
-                  value={title}
-                  onChange={(event) => setTitle(event.target.value)}
-                  className="quote-input"
-                  placeholder="VD: Báo giá dịch vụ Digital Marketing"
-                  required
-                />
-              </Field>
               <Field label="Loại tiền">
-                <select value={currency} onChange={(event) => setCurrency(event.target.value)} className="quote-input">
+                <select value={currency} onChange={(event) => setCurrency(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
                   <option value="VND">VND</option>
                   <option value="USD">USD</option>
                 </select>
               </Field>
-              <SignatureToggle
-                checked={customerSignatureRequired}
-                onChange={setCustomerSignatureRequired}
-              />
             </div>
-          </section>
-
-          <section className="quote-panel">
-            <div className="quote-panel-header"><h2>Khách hàng và dự án</h2></div>
-            <div className="space-y-4">
-              {/* Row 1 */}
-              <div className="grid gap-4 lg:grid-cols-3 items-start">
-                <Field label="Đối tượng báo giá">
-                  <select className="quote-input" value={targetType} onChange={(e) => setTargetType(e.target.value as any)}>
-                    <option value="company">Công ty</option>
-                    <option value="contact">Cá nhân</option>
-                    <option value="lead">Lead</option>
-                  </select>
-                </Field>
-                {typeof assignees !== 'undefined' && (
-                  <ComboSelect
-                    label="Người phụ trách"
-                    value={assigneeId}
-                    search=""
-                    selectedTitle={assignees.find((a: any) => a.id === assigneeId)?.name}
-                    onSearchChange={() => {}}
-                    placeholder="Gõ tên người phụ trách..."
-                    options={assignees}
-                    getTitle={(a: any) => a.name}
-                    onSelect={setAssigneeId}
-                    allowEmpty
-                  />
-                )}
-                {typeof deals !== 'undefined' && (
-                  <ComboSelect
-                    label="Deal / Cơ hội"
-                    value={dealId}
-                    search={dealSearch}
-                    selectedTitle={selectedDeal ? dealLabel(selectedDeal) : undefined}
-                    onSearchChange={setDealSearch}
-                    placeholder="Gõ tên deal..."
-                    options={filteredDeals}
-                    getTitle={dealLabel}
-                    getSubtitle={(deal: any) => (deal.value ? formatCurrency(numberValue(deal.value)) : "")}
-                    onSelect={setDealId}
-                    allowEmpty
-                  />
-                )}
-              </div>
-
-              {/* Row 2 */}
-              <div className="grid gap-4 lg:grid-cols-3 items-start">
-                {targetType === "company" && typeof filteredCompanies !== 'undefined' ? (
-                  <ComboSelect
-                    label="Công ty"
-                    value={companyId}
-                    search={companySearch}
-                    selectedTitle={selectedCompany?.name || companyName}
-                    onSearchChange={setCompanySearch}
-                    placeholder="Gõ tên công ty..."
-                    options={filteredCompanies}
-                    getTitle={(c: any) => c.name}
-                    getSubtitle={(c: any) => c.taxCode || ""}
-                    onSelect={setCompanyId}
-                    allowEmpty
-                  />
-                ) : (
-                  <ComboSelect
-                    label="Tên khách hàng"
-                    value={contactId}
-                    search={customerSearch}
-                    selectedTitle={selectedContact ? contactLabel(selectedContact) : contactName}
-                    onSearchChange={setCustomerSearch}
-                    placeholder="Gõ tên, email hoặc mã khách hàng..."
-                    options={filteredContacts}
-                    getTitle={contactLabel}
-                    getSubtitle={(contact: any) => [contact.company?.name, contact.email, contact.phone].filter(Boolean).join(" · ")}
-                    onSelect={setContactId}
-                    allowEmpty
-                  />
-                )}
-                <Field label="Số điện thoại">
-                  <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className="quote-input" placeholder="09xxxx..." />
-                </Field>
-                <Field label="Email">
-                  <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="quote-input" placeholder="email@..." />
-                </Field>
-              </div>
-
-              {/* Row 3 */}
-              <div className="grid gap-4 lg:grid-cols-2 items-start">
-                <Field label="Địa chỉ">
-                  <input value={contactAddress} onChange={(e) => setContactAddress(e.target.value)} className="quote-input" placeholder="Số nhà, đường..." />
-                </Field>
-                {targetType !== "company" && (
-                  <Field label="Công ty">
-                    <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="quote-input" placeholder="Tên công ty (nếu có)" />
-                  </Field>
-                )}
-              </div>
-            </div>
-          </section>
-
-          <section className="quote-panel">
-            <div className="quote-panel-header" style={mobilePanelHeaderStyle}>
-              <h2 className="quote-work-heading">Nội dung công việc</h2>
-              <button type="button" onClick={addItem} className="quote-button quote-button-soft">
+            <SignatureToggle
+              checked={customerSignatureRequired}
+              onChange={setCustomerSignatureRequired}
+            />
+          </div>
+        </section>
+        <CustomerFormSection
+          customerInitial={customerInitial}
+          customerDisplayName={customerDisplayName}
+          customerMeta={customerMeta}
+          targetType={targetType as any}
+          setTargetType={setTargetType as any}
+          assignees={assignees}
+          assigneeId={assigneeId}
+          setAssigneeId={setAssigneeId}
+          companyId={companyId}
+          companySearch={companySearch}
+          selectedCompany={selectedCompany}
+          companyName={companyName}
+          setCompanySearch={setCompanySearch}
+          handleCompanyChange={handleCompanyChange}
+          setCompanyName={setCompanyName}
+          filteredCompanies={filteredCompanies}
+          representativeName={representativeName}
+          setRepresentativeName={setRepresentativeName}
+          representativeTitle={representativeTitle}
+          setRepresentativeTitle={setRepresentativeTitle}
+          companyTaxCode={companyTaxCode}
+          setCompanyTaxCode={setCompanyTaxCode}
+          contactId={contactId}
+          customerSearch={customerSearch}
+          selectedContact={selectedContact}
+          contactName={contactName}
+          setCustomerSearch={setCustomerSearch}
+          handleContactChange={handleContactChange}
+          setContactName={setContactName}
+          filteredContacts={filteredContacts}
+          contactPhone={contactPhone}
+          setContactPhone={setContactPhone}
+          contactEmail={contactEmail}
+          setContactEmail={setContactEmail}
+          contactAddress={contactAddress}
+          setContactAddress={setContactAddress}
+          contactIdentityNumber={contactIdentityNumber}
+          setContactIdentityNumber={setContactIdentityNumber}
+        />
+          <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+            <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
+              <h2 className="text-[24px] font-medium tracking-tight text-black">Nội dung công việc</h2>
+              <button type="button" onClick={addItem} className="inline-flex items-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[14px] font-medium text-black transition-colors hover:bg-gray-50">
                 <Plus className="h-4 w-4" />
                 Thêm dòng
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-0">
               {items.map((item, index) => (
-                <div key={index} className="quote-item-grid contract-item-grid" style={mobileSingleColumnStyle}>
-                  <Field label="Mô tả sản phẩm / dịch vụ" className="lg:col-span-9">
-                    <textarea
-                      rows={3}
+                <div key={index} className="flex flex-col gap-4 border-b border-[#eaeaea] py-5 last:border-0">
+                  <Field label="Mô tả sản phẩm / dịch vụ">
+                    <TiptapEditor
                       value={item.name}
-                      onChange={(event) => updateItemDescription(index, event.target.value)}
-                      className="quote-input min-h-[92px] resize-y"
+                      onChange={(content) => updateItemDescription(index, content)}
                       placeholder="Nhập mô tả chi tiết, phạm vi công việc, ghi chú riêng cho hạng mục..."
                     />
                   </Field>
-                  <Field label="Đơn vị">
-                    <input
-                      value={item.unit || ""}
-                      onChange={(event) => updateItem(index, "unit", event.target.value)}
-                      className="quote-input"
-                      placeholder=""
-                    />
-                  </Field>
-                  <Field label="Số lượng">
-                    <input
-                      type="number"
-                      min={0}
-                      value={item.quantity}
-                      onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                      className="quote-input"
-                    />
-                  </Field>
-                  <Field label="Đơn giá">
-                    <input
-                      type="number"
-                      min={0}
-                      value={item.unitPrice}
-                      onChange={(event) => updateItem(index, "unitPrice", event.target.value)}
-                      className="quote-input"
-                    />
-                  </Field>
-                  <Field label="Thuế %">
-                    <input
-                      type="number"
-                      min={0}
-                      value={item.tax}
-                      onChange={(event) => updateItem(index, "tax", event.target.value)}
-                      className="quote-input"
-                    />
-                  </Field>
-                  <Field label="Thành tiền">
-                    <input readOnly value={formatCurrency(item.total)} className="quote-input bg-slate-50 text-slate-500" />
-                  </Field>
-                  <button type="button" onClick={() => removeItem(index)} className="quote-icon-button" title="Xóa dòng">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-[1fr_1fr_1fr_1fr_1.5fr_auto] md:items-end">
+                    <Field label="Đơn vị">
+                      <input
+                        value={item.unit || ""}
+                        onChange={(event) => updateItem(index, "unit", event.target.value)}
+                        className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                        placeholder=""
+                      />
+                    </Field>
+                    <Field label="Số lượng">
+                      <input
+                        type="number"
+                        min={0}
+                        value={item.quantity}
+                        onChange={(event) => updateItem(index, "quantity", event.target.value)}
+                        className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                      />
+                    </Field>
+                    <Field label="Đơn giá">
+                      <input
+                        type="number"
+                        min={0}
+                        value={item.unitPrice}
+                        onChange={(event) => updateItem(index, "unitPrice", event.target.value)}
+                        className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                      />
+                    </Field>
+                    <Field label="Thuế %">
+                      <input
+                        type="number"
+                        min={0}
+                        value={item.tax}
+                        onChange={(event) => updateItem(index, "tax", event.target.value)}
+                        className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                      />
+                    </Field>
+                    <Field label="Thành tiền">
+                      <input readOnly value={formatCurrency(item.total)} className="w-full rounded-lg border-transparent bg-gray-100/50 px-4 py-3 text-[14px] font-medium text-gray-500 transition-colors placeholder:text-gray-300 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
+                    </Field>
+                    <button type="button" onClick={() => removeItem(index)} className="inline-flex h-[46px] w-[46px] items-center justify-center rounded-lg border-transparent bg-gray-50/50 text-gray-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Xóa dòng">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
 
-            <div className="quote-inline-total contract-inline-total">
-              <div className="quote-inline-total-columns" style={mobileSingleColumnStyle}>
-                <div className="quote-inline-total-group">
-                <Field label="Loại chiết khấu">
-                  <select value={discountType} onChange={(event) => setDiscountType(event.target.value)} className="quote-input">
-                    <option value="fixed">VND</option>
-                    <option value="percent">%</option>
-                  </select>
-                </Field>
-                <Field label="Chiết khấu">
-                  <input
-                    type="number"
-                    min={0}
-                    value={discount}
-                    onChange={(event) => setDiscount(numberValue(event.target.value))}
-                    className="quote-input"
-                  />
-                </Field>
-                <div className="quote-total-row">
-                  <span>Tổng chiết khấu</span>
-                  <strong>-{formatCurrency(lineDiscount)}</strong>
-                </div>
+            <div className="mt-4 border-t border-[#eaeaea] pt-8">
+              <div className="grid gap-8 md:grid-cols-2">
+                <div className="flex flex-col gap-4">
+                  <Field label="Loại chiết khấu">
+                    <select value={discountType} onChange={(event) => setDiscountType(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
+                      <option value="fixed">VND</option>
+                      <option value="percent">%</option>
+                    </select>
+                  </Field>
+                  <Field label="Chiết khấu">
+                    <input
+                      type="number"
+                      min={0}
+                      value={discount}
+                      onChange={(event) => setDiscount(numberValue(event.target.value))}
+                      className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                    />
+                  </Field>
+                  <div className="flex items-center justify-between border-t border-[#eaeaea] pt-4 text-[14px] text-gray-500">
+                    <span>Tổng chiết khấu</span>
+                    <strong className="text-red-500 font-medium">-{formatCurrency(lineDiscount)}</strong>
+                  </div>
                 </div>
 
-                <div className="quote-inline-total-group">
-                <Field label="Tạm tính">
-                  <input
-                    type="number"
-                    min={0}
-                    value={subtotal}
-                    onChange={(event) => {
-                      setSubtotalOverride(numberValue(event.target.value));
-                    }}
-                    className="quote-input"
-                  />
-                </Field>
-                <Field label="Tổng thuế">
-                  <input
-                    type="number"
-                    min={0}
-                    value={totalTax}
-                    onChange={(event) => {
-                      setTotalTaxOverride(numberValue(event.target.value));
-                    }}
-                    className="quote-input"
-                  />
-                </Field>
-                <div className="quote-grand-total">
-                  <span>Tổng báo giá</span>
-                  <strong>{formatCurrency(totalAmount)}</strong>
+                <div className="flex flex-col gap-4">
+                  <Field label="Tạm tính">
+                    <input
+                      type="number"
+                      min={0}
+                      value={subtotal}
+                      onChange={(event) => {
+                        setSubtotalOverride(numberValue(event.target.value));
+                      }}
+                      className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                    />
+                  </Field>
+                  <Field label="Tổng thuế">
+                    <input
+                      type="number"
+                      min={0}
+                      value={totalTax}
+                      onChange={(event) => {
+                        setTotalTaxOverride(numberValue(event.target.value));
+                      }}
+                      className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                    />
+                  </Field>
+                  <div className="flex items-center justify-between border-t border-[#eaeaea] pt-4">
+                    <span className="text-[16px] font-medium text-black">Tổng báo giá</span>
+                    <strong className="text-[24px] font-semibold text-black tracking-tight">{formatCurrency(totalAmount)}</strong>
+                  </div>
                 </div>
-              </div>
               </div>
             </div>
           </section>
 
-          <section className="quote-panel quote-compact-upload-panel">
-            <div className="quote-panel-header">
-              <h2>Tệp đính kèm</h2>
+          <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+            <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
+              <h2 className="text-[24px] font-medium tracking-tight text-black">Tệp đính kèm</h2>
             </div>
 
-            <div className="quote-upload-grid" style={mobileSingleColumnStyle}>
-              <label className="quote-upload-zone">
+            <div className="grid gap-6 md:grid-cols-2">
+              <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50/50 p-8 text-center transition-colors hover:bg-gray-100">
                 <input
                   type="file"
                   multiple
@@ -954,61 +1130,62 @@ export function QuotationFormClient({
                     event.currentTarget.value = "";
                   }}
                 />
-                <span className="quote-upload-icon">
+                <span className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm border border-[#eaeaea]">
                   <FileUp className="h-5 w-5" />
                 </span>
-                <strong>Chọn file hoặc kéo thả vào đây</strong>
-                <small>PDF, DOCX, XLSX, PNG, JPG. Dữ liệu upload sẽ nối backend file ở bước tiếp theo.</small>
+                <strong className="text-[14px] font-medium text-black">Chọn file hoặc kéo thả vào đây</strong>
+                <small className="mt-1 text-[12px] text-gray-500">PDF, DOCX, XLSX, PNG, JPG. Dữ liệu upload sẽ nối backend file ở bước tiếp theo.</small>
               </label>
 
-              <div className="quote-upload-list">
+              <div className="flex flex-col gap-3">
                 {attachments.length ? (
                   attachments.map((file, index) => (
-                    <div key={`${file.name}-${file.size}-${file.lastModified}`} className="quote-upload-file">
-                      <FileText className="h-4 w-4 text-orange-500" />
-                      <div>
-                        <strong>{file.name}</strong>
-                        <span>{formatFileSize(file.size)}</span>
+                    <div key={`${file.name}-${file.size}-${file.lastModified}`} className="flex items-center gap-3 rounded-lg border border-[#eaeaea] bg-white p-3 shadow-sm">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-orange-50 text-orange-500">
+                        <FileText className="h-5 w-5" />
                       </div>
-                      <button type="button" onClick={() => removeAttachment(index)} title="Gỡ file">
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <strong className="truncate text-[13px] font-medium text-black">{file.name}</strong>
+                        <span className="text-[11px] text-gray-500">{formatFileSize(file.size)}</span>
+                      </div>
+                      <button type="button" onClick={() => removeAttachment(index)} title="Gỡ file" className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors">
                         <X className="h-4 w-4" />
                       </button>
                     </div>
                   ))
                 ) : (
-                  <div className="quote-upload-empty">Chưa có tệp nào được chọn.</div>
+                  <div className="flex h-full min-h-[120px] items-center justify-center rounded-xl border border-dashed border-gray-200 text-[13px] text-gray-400">
+                    Chưa có tệp nào được chọn.
+                  </div>
                 )}
               </div>
             </div>
           </section>
 
-          <section className="quote-panel">
-            <div className="quote-panel-header">
-              <h2>Ghi chú</h2>
+          <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+            <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
+              <h2 className="text-[24px] font-medium tracking-tight text-black">Ghi chú</h2>
             </div>
             <div className="grid gap-4">
               <Field label="Ghi chú gửi khách">
-                <textarea
-                  rows={7}
+                <TiptapEditor
                   value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  className="quote-input min-h-[180px] resize-y"
+                  onChange={(content) => setNotes(content)}
                   placeholder="Nội dung hiển thị cho khách trong báo giá..."
                 />
               </Field>
             </div>
           </section>
 
-          <section className="quote-panel">
-            <div className="quote-panel-header" style={mobilePanelHeaderStyle}>
-              <h2>Điều khoản báo giá</h2>
+          <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+            <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
+              <h2 className="text-[24px] font-medium tracking-tight text-black">Điều khoản báo giá</h2>
             </div>
-            <div className="contract-terms-editor">
+            <div className="grid gap-4">
               <Field label="Điều khoản / Nội dung thêm">
-                <textarea
+                <TiptapEditor
                   value={terms}
-                  onChange={(event) => setTerms(event.target.value)}
-                  className="quote-input min-h-[360px] resize-y leading-7"
+                  onChange={(content) => setTerms(content)}
                   placeholder="Điều kiện thanh toán, hiệu lực báo giá, phạm vi triển khai..."
                 />
               </Field>

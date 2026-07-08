@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { submitDealSelectionAction } from '@/app/actions/deals';
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 
 export function DealPublicViewClient({ data }: { data: any }) {
     const [selectedIds, setSelectedIds] = useState<string[]>(
@@ -189,7 +190,7 @@ export function DealPublicViewClient({ data }: { data: any }) {
                     --bg:#f7f9fc; --card:#fff; --line:#eef2f7; --text:#0f172a; --muted:#64748b;
                     --primary:#2563eb; --accent:#7c3aed; --success:#16a34a; --shadow:0 8px 30px rgba(15,23,42,.05);
                     --radius:18px;
-                    font-family: Inter, system-ui, sans-serif;
+                    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, sans-serif;
                     color: var(--text);
                     font-size: 14px;
                     text-align: left;
@@ -303,7 +304,7 @@ export function DealPublicViewClient({ data }: { data: any }) {
 
             {isSubmitted && (
                 <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-lg">
-                    <div className="bg-green-50 text-green-700 border border-green-200 rounded-xl p-4 text-center font-medium shadow-xl" style={{ fontFamily: 'Inter, sans-serif' }}>
+                    <div className="bg-green-50 text-green-700 border border-green-200 rounded-xl p-4 text-center font-medium shadow-xl" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif' }}>
                         Cảm ơn Quý khách! Yêu cầu của Quý khách đã được gửi thành công. Chúng tôi sẽ liên hệ lại sớm nhất.
                     </div>
                 </div>
@@ -412,12 +413,11 @@ export function DealPublicViewClient({ data }: { data: any }) {
                             ))}
                         </div>
                         <div className="need">
-                            <label className="block text-sm font-semibold text-slate-800 mb-2" style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Ghi chú & Yêu cầu thêm (Tùy chọn)</label>
-                            <textarea 
-                                style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: '14px', padding: '14px', minHeight: '100px', resize: 'vertical', fontFamily: 'Inter, sans-serif' }}
+                            <label className="block text-sm font-medium text-slate-800 mb-2" style={{ display: 'block', marginBottom: '8px', fontWeight: '600' }}>Ghi chú & Yêu cầu thêm (Tùy chọn)</label>
+                            <TiptapEditor 
                                 placeholder="Quý khách có thể để lại ghi chú, yêu cầu bổ sung tại đây..."
                                 value={customerNote}
-                                onChange={e => setCustomerNote(e.target.value)}
+                                onChange={content => setCustomerNote(content)}
                             />
                         </div>
                     </section>
@@ -477,7 +477,7 @@ export function DealPublicViewClient({ data }: { data: any }) {
 
             {showInfoModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 modern-template-wrapper" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(4px)', padding: '16px' }}>
-                    <div style={{ backgroundColor: '#fff', borderRadius: '18px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', width: '100%', maxWidth: '450px', overflow: 'hidden', fontFamily: 'Inter, sans-serif' }}>
+                    <div style={{ backgroundColor: '#fff', borderRadius: '18px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', width: '100%', maxWidth: '450px', overflow: 'hidden', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif' }}>
                         <div style={{ padding: '24px', borderBottom: '1px solid #eef2f7', backgroundColor: '#f8faff' }}>
                             <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a', margin: '0' }}>Bổ sung thông tin</h3>
                             <p style={{ fontSize: '14px', color: '#64748b', margin: '4px 0 0 0' }}>Vui lòng bổ sung thông tin liên hệ dưới đây.</p>
@@ -487,7 +487,7 @@ export function DealPublicViewClient({ data }: { data: any }) {
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '4px' }}>Họ và tên / Tên đơn vị <span style={{ color: '#ef4444' }}>*</span></label>
                                 <input 
                                     type="text" 
-                                    style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 16px', outline: 'none', transition: 'border-color 0.2s', fontFamily: 'Inter, sans-serif' }}
+                                    style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 16px', outline: 'none', transition: 'border-color 0.2s', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif' }}
                                     placeholder="Nhập họ và tên..."
                                     value={contactInfo.name}
                                     onChange={e => setContactInfo({...contactInfo, name: e.target.value})}
@@ -497,7 +497,7 @@ export function DealPublicViewClient({ data }: { data: any }) {
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '4px' }}>Số điện thoại <span style={{ color: '#ef4444' }}>*</span></label>
                                 <input 
                                     type="tel" 
-                                    style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 16px', outline: 'none', transition: 'border-color 0.2s', fontFamily: 'Inter, sans-serif' }}
+                                    style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 16px', outline: 'none', transition: 'border-color 0.2s', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif' }}
                                     placeholder="Nhập số điện thoại..."
                                     value={contactInfo.phone}
                                     onChange={e => setContactInfo({...contactInfo, phone: e.target.value})}
@@ -507,7 +507,7 @@ export function DealPublicViewClient({ data }: { data: any }) {
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '4px' }}>Email <span style={{ color: '#ef4444' }}>*</span></label>
                                 <input 
                                     type="email" 
-                                    style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 16px', outline: 'none', transition: 'border-color 0.2s', fontFamily: 'Inter, sans-serif' }}
+                                    style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 16px', outline: 'none', transition: 'border-color 0.2s', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif' }}
                                     placeholder="Nhập địa chỉ email..."
                                     value={contactInfo.email}
                                     onChange={e => setContactInfo({...contactInfo, email: e.target.value})}
@@ -517,7 +517,7 @@ export function DealPublicViewClient({ data }: { data: any }) {
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '4px' }}>Địa chỉ <span style={{ color: '#ef4444' }}>*</span></label>
                                 <input 
                                     type="text" 
-                                    style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 16px', outline: 'none', transition: 'border-color 0.2s', fontFamily: 'Inter, sans-serif' }}
+                                    style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 16px', outline: 'none', transition: 'border-color 0.2s', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif' }}
                                     placeholder="Nhập địa chỉ liên hệ..."
                                     value={contactInfo.address}
                                     onChange={e => setContactInfo({...contactInfo, address: e.target.value})}
@@ -527,7 +527,7 @@ export function DealPublicViewClient({ data }: { data: any }) {
                                 <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '4px' }}>Mã số thuế</label>
                                 <input 
                                     type="text" 
-                                    style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 16px', outline: 'none', transition: 'border-color 0.2s', fontFamily: 'Inter, sans-serif' }}
+                                    style={{ width: '100%', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '10px 16px', outline: 'none', transition: 'border-color 0.2s', fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif' }}
                                     placeholder="Nhập mã số thuế nếu có..."
                                     value={contactInfo.taxCode}
                                     onChange={e => setContactInfo({...contactInfo, taxCode: e.target.value})}

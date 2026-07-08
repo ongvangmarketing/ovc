@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Plus, Save, Search, Trash2, X } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils/cn";
 import { formatCurrency } from "@/lib/utils/format";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 import { saveDealAction } from "@/app/actions/deals";
 
 type DealServiceItem = {
@@ -169,7 +171,7 @@ export function DealFormClient({
             <div className="text-xs text-muted-foreground mb-1">
               CRM / Cơ hội
             </div>
-            <h1 className="text-lg font-semibold text-foreground m-0 p-0 leading-none">
+            <h1 className="text-[15px] font-medium text-foreground m-0 p-0 leading-none">
               {mode === "create" ? "Tạo Cơ hội mới" : `Sửa: ${deal?.title}`}
             </h1>
           </div>
@@ -189,7 +191,7 @@ export function DealFormClient({
       <div className="max-w-5xl mx-auto mt-6 px-4 space-y-6">
         
         {/* SECTION: Thông tin chung */}
-        <section className="bg-white rounded-xl border border-border shadow-sm p-5">
+        <section className="bg-white rounded-xl border border-border shadow-sm p-4">
           <h2 className="text-sm font-medium text-foreground mb-4">Thông tin chung</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div className="md:col-span-2">
@@ -255,7 +257,7 @@ export function DealFormClient({
         </section>
 
         {/* SECTION: Khách hàng và dự án */}
-        <section className="bg-white rounded-xl border border-border shadow-sm p-5">
+        <section className="bg-white rounded-xl border border-border shadow-sm p-4">
           <h2 className="text-sm font-medium text-foreground mb-4">Khách hàng / Liên hệ</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
@@ -301,7 +303,7 @@ export function DealFormClient({
           </div>
 
           {servicePickerOpen ? (
-            <div className="border-b border-slate-200 bg-slate-50 p-5">
+            <div className="border-b border-slate-200 bg-slate-50 p-4">
               <div className="relative mb-4">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input value={serviceSearch} onChange={(event) => setServiceSearch(event.target.value)} className="quote-input pl-9" placeholder="Tìm gói hoặc option dịch vụ..." />
@@ -330,7 +332,7 @@ export function DealFormClient({
             </div>
           ) : null}
           
-          <div className="p-5">
+          <div className="p-4">
             {form.serviceOptions.length === 0 ? (
               <div className="text-center py-8 border-2 border-dashed border-border rounded-lg bg-slate-50">
                 <p className="text-sm text-muted-foreground">Chưa có Sản phẩm/Dịch vụ nào được thêm vào Cơ hội.</p>
@@ -356,11 +358,10 @@ export function DealFormClient({
                     <div key={item.id} className="grid grid-cols-12 gap-3 items-start pb-4 border-b border-border border-dashed last:border-0 last:pb-0">
                       <div className="col-span-4 space-y-2">
                         <div className="font-medium text-sm text-foreground bg-slate-50 px-3 py-2 rounded border border-border">{item.name}</div>
-                        <textarea
+                        <TiptapEditor
                           placeholder="Nhập mô tả chi tiết, phạm vi công việc, ghi chú riêng..."
-                          className="w-full text-xs px-3 py-2 border border-border rounded-md min-h-[60px] focus:outline-none focus:ring-1 focus:ring-primary"
                           value={item.note}
-                          onChange={e => updateItem(index, 'note', e.target.value)}
+                          onChange={content => updateItem(index, 'note', content)}
                         />
                       </div>
                       <div className="col-span-1">
@@ -408,7 +409,7 @@ export function DealFormClient({
                       <span className="text-muted-foreground">Tạm tính</span>
                       <span className="font-medium text-foreground">{formatCurrency(totalValue)}</span>
                     </div>
-                    <div className="flex justify-between items-center py-3 text-base border-t border-border font-bold">
+                    <div className="flex justify-between items-center py-3 text-base border-t border-border font-medium">
                       <span className="text-foreground">Tổng Giá Trị Deal</span>
                       <span className="text-emerald-600">{formatCurrency(totalValue)}</span>
                     </div>
@@ -420,14 +421,13 @@ export function DealFormClient({
         </section>
 
         {/* SECTION: Ghi chú */}
-        <section className="bg-white rounded-xl border border-border shadow-sm p-5">
+        <section className="bg-white rounded-xl border border-border shadow-sm p-4">
           <h2 className="text-sm font-medium text-foreground mb-4">Ghi chú Nội bộ</h2>
           <div>
-            <textarea
+            <TiptapEditor
               placeholder="Nhập ghi chú, đánh giá khách hàng, lịch sử trao đổi ngắn gọn..."
-              className="w-full text-sm px-3 py-2 border border-border rounded-md min-h-[100px] focus:outline-none focus:ring-1 focus:ring-primary"
               value={form.notes}
-              onChange={e => setForm({...form, notes: e.target.value})}
+              onChange={content => setForm({...form, notes: content})}
             />
           </div>
         </section>

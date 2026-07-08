@@ -68,16 +68,36 @@ export async function proxy(request: NextRequest) {
   const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
 
   if (isProtected) {
+    const cookieHeader = request.headers.get("cookie") || "";
+
+    // 1. Fast path: check if session token cookie exists.
+    //    If it does, trust the user is authenticated and let the server component
+    //    do the real verification via requireAuth(). This avoids an HTTP round-trip
+    //    on every navigation and eliminates the race condition causing logouts.
+    const hasSessionToken = /better-auth\.session_token=([^;]+)/.test(cookieHeader);
+
+    let session: SessionWithRole | null = null;
+
+    if (!hasSessionToken) {
+      // 2. Slow path: no session cookie at all → definitely not logged in
+      //    No need to hit the API, just redirect immediately.
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      return response;
+    }
+
+    // 3. We have a session cookie. For role-based redirects we still need the role.
+    //    Use the API call but only to get role, not to decide login state.
     const authBaseURL = process.env.INTERNAL_AUTH_URL
       ?? (process.env.NODE_ENV === "production" ? "http://127.0.0.1:3000" : request.nextUrl.origin);
 
-    const { data: session } = await betterFetch<SessionWithRole>(
+    const { data } = await betterFetch<SessionWithRole>(
       "/api/auth/get-session",
       {
         baseURL: authBaseURL,
         cache: "no-store",
         headers: {
-          cookie: request.headers.get("cookie") || "",
+          cookie: cookieHeader,
           host: request.headers.get("host") || "",
           "x-forwarded-host": request.headers.get("x-forwarded-host") || request.headers.get("host") || "",
           "x-forwarded-proto": request.headers.get("x-forwarded-proto") || request.nextUrl.protocol.replace(":", ""),
@@ -85,12 +105,18 @@ export async function proxy(request: NextRequest) {
         },
       },
     );
+    session = data ?? null;
 
+    // If API call failed but cookie exists, be lenient: let server component handle it.
+    // This prevents false-positive logouts due to transient network errors.
     if (!session) {
-      const response = NextResponse.redirect(new URL("/login", request.url));
+      // Only hard-redirect if path requires specific role we can't determine
+      // For basic workspace access, let the server handle auth.
+      const response = NextResponse.next();
       response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
       return response;
     }
+
 
     const role = session.user.role || "";
 

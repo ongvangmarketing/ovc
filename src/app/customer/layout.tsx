@@ -1,21 +1,18 @@
-import Link from "next/link";
 import { requireCustomerPortal } from "@/lib/auth/rbac";
-import { PortalTopbar } from "@/components/training/portal-topbar";
-import { CustomerSidebar } from "./components/sidebar";
+import { PortalShell } from "./portal-shell";
+import { getCustomerPortalData } from "./portal-data";
 
 export default async function CustomerLayout({ children }: { children: React.ReactNode }) {
   const session = await requireCustomerPortal();
-
+  const data = await getCustomerPortalData(); // Needed for customerName etc., or we can just pass session data
+  
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex">
-      <CustomerSidebar />
-
-      <main className="flex-1 lg:pl-[280px]">
-        <PortalTopbar user={session.user} roleLabel="Customer Portal" parentLabel="Ong Vàng Cloud" homeHref="/customer" accent="blue" />
-        <div className="min-h-[calc(100vh-64px)]">
-          {children}
-        </div>
-      </main>
-    </div>
+    <PortalShell 
+      customerName={data.customerName || session.user.name || "Customer"} 
+      email={session.user.email} 
+      brand={{ name: "OngVàng", favicon: "/brand/ong-vang-logo.svg" }}
+    >
+      {children}
+    </PortalShell>
   );
 }

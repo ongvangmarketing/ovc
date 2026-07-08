@@ -74,10 +74,10 @@ export function OverviewStatCards({ stats, isLoading }: OverviewStatCardsProps) 
               </div>
             ) : null}
             <p className="text-xs font-medium text-slate-500">{stat.label}</p>
-            <strong className="mt-1.5 block text-xl font-bold tabular-nums text-slate-950">
+            <strong className="mt-1.5 block text-[15px] font-medium tabular-nums text-slate-950">
               {stat.value}
             </strong>
-            <small className="mt-1 block text-xs font-semibold text-emerald-600">
+            <small className="mt-1 block text-xs font-medium text-emerald-600">
               {stat.note}
             </small>
           </motion.article>

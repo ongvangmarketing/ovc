@@ -46,19 +46,19 @@ export function CourseListClient({ courses }: { courses: TrainingCourseRow[] }) 
             return (
               <tr key={course.id} onClick={() => router.push(href)} className="cursor-pointer border-b border-border last:border-0 table-row-hover">
                 <td className="whitespace-nowrap py-3 px-4">
-                  <Link href={href} className="text-sm font-semibold text-blue-600 hover:underline" onClick={(event) => event.stopPropagation()}>
+                  <Link href={href} className="text-sm font-medium text-blue-600 hover:underline" onClick={(event) => event.stopPropagation()}>
                     {course.title}
                   </Link>
                   <p className="mt-1 max-w-[280px] truncate text-xs text-muted-foreground">{course.description}</p>
                 </td>
                 <td className="whitespace-nowrap py-3 px-4 text-sm text-muted-foreground">{course.instructor}</td>
                 <td className="py-3 px-4">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${courseStatusTone[course.status] || courseStatusTone.DRAFT}`}>
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${courseStatusTone[course.status] || courseStatusTone.DRAFT}`}>
                     {courseStatusLabel[course.status] || course.status}
                   </span>
                 </td>
                 <td className="whitespace-nowrap py-3 px-4 text-sm text-muted-foreground">{course.classes} lớp · {course.enrollments} học viên</td>
-                <td className="whitespace-nowrap py-3 px-4 text-sm font-semibold text-foreground">{currency.format(course.price)}</td>
+                <td className="whitespace-nowrap py-3 px-4 text-sm font-medium text-foreground">{currency.format(course.price)}</td>
                 <td className="py-3 px-4" onClick={(event) => event.stopPropagation()}>
                   <div className="flex items-center justify-end gap-2">
                     <Link href={href} className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-blue-50 hover:text-blue-600" title="Vận hành">

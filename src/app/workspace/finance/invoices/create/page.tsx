@@ -2,6 +2,7 @@ import { InvoiceFormClient } from "@/modules/finance/components/invoice-form-cli
 import { getNextInvoiceNumber } from "@/app/actions/finance-crud";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { db } from "@/lib/db";
+import { getSettings } from "@/app/actions/settings";
 
 export default async function CreateInvoicePage(props: {
   searchParams: Promise<{ contractId?: string; quotationId?: string }>;
@@ -86,5 +87,7 @@ export default async function CreateInvoicePage(props: {
     }
   }
 
-  return <InvoiceFormClient mode="create" initialData={initialData} initialNumber={nextNumber} />;
+  const settings = await getSettings();
+  const paymentMethodsJson = (settings as any).payment_methods || null;
+  return <InvoiceFormClient mode="create" initialData={initialData} initialNumber={nextNumber}  dynamicPaymentChannels={paymentMethodsJson} />;
 }

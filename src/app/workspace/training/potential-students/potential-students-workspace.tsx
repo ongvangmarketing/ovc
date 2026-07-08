@@ -133,7 +133,7 @@ export function PotentialStudentsWorkspace({ initialStudents }: { initialStudent
               <Sparkles className="h-4 w-4 text-orange-500" />
               Đào tạo / Học viên tiềm năng
             </div>
-            <h1 className="text-2xl font-semibold text-slate-950">Học viên tiềm năng</h1>
+            <h1 className="text-[15px] font-medium text-slate-950">Học viên tiềm năng</h1>
             <p className="mt-1 text-[14px] font-light text-slate-500">Chăm sóc lead đào tạo trước khi chuyển thành học viên.</p>
           </div>
           <Link
@@ -181,8 +181,8 @@ export function PotentialStudentsWorkspace({ initialStudents }: { initialStudent
             </div>
             
             <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
-              <button onClick={() => setView("board")} className={cn("p-1.5 rounded-md flex items-center gap-1", view==="board" ? "bg-white shadow-sm text-indigo-600":"text-slate-500")}><Columns3 className="w-4 h-4" /><span className="text-xs font-semibold pr-1">Board</span></button>
-              <button onClick={() => setView("table")} className={cn("p-1.5 rounded-md flex items-center gap-1", view==="table" ? "bg-white shadow-sm text-indigo-600":"text-slate-500")}><Table2 className="w-4 h-4" /><span className="text-xs font-semibold pr-1">Table</span></button>
+              <button onClick={() => setView("board")} className={cn("p-1.5 rounded-md flex items-center gap-1", view==="board" ? "bg-white shadow-sm text-indigo-600":"text-slate-500")}><Columns3 className="w-4 h-4" /><span className="text-xs font-medium pr-1">Board</span></button>
+              <button onClick={() => setView("table")} className={cn("p-1.5 rounded-md flex items-center gap-1", view==="table" ? "bg-white shadow-sm text-indigo-600":"text-slate-500")}><Table2 className="w-4 h-4" /><span className="text-xs font-medium pr-1">Table</span></button>
             </div>
           </div>
 
@@ -200,11 +200,11 @@ export function PotentialStudentsWorkspace({ initialStudents }: { initialStudent
                   return (
                     <div key={status} className="flex max-h-full w-72 shrink-0 flex-col rounded-2xl border border-slate-200 bg-slate-100/50 shadow-sm">
                       <div className="p-3 border-b border-slate-200 bg-white/50 rounded-t-2xl flex justify-between items-center sticky top-0">
-                        <div className="font-semibold text-slate-800 text-sm flex items-center gap-2">
+                        <div className="font-medium text-slate-800 text-sm flex items-center gap-2">
                           <span className={cn("w-2.5 h-2.5 rounded-full", statusConfig[status].dot)}></span>
                           {statusConfig[status].label}
                         </div>
-                        <span className="px-2 py-0.5 bg-slate-200 text-slate-600 text-xs font-bold rounded-full">{list.length}</span>
+                        <span className="px-2 py-0.5 bg-slate-200 text-slate-600 text-xs font-medium rounded-full">{list.length}</span>
                       </div>
                       <div className="p-3 overflow-y-auto space-y-3 flex-1">
                         {list.map(lead => (
@@ -214,7 +214,7 @@ export function PotentialStudentsWorkspace({ initialStudents }: { initialStudent
                             className="group cursor-pointer rounded-xl border border-slate-200 bg-white p-3 shadow-sm transition-all hover:border-orange-300 hover:shadow-md"
                           >
                             <div className="flex justify-between items-start mb-2">
-                              <h4 className="font-semibold text-slate-900 text-sm truncate">{lead.name}</h4>
+                              <h4 className="font-medium text-slate-900 text-sm truncate">{lead.name}</h4>
                               {lead.score >= 80 && <Star className="w-4 h-4 text-amber-400 fill-amber-400 shrink-0" />}
                             </div>
                             <div className="text-xs text-slate-500 truncate mb-3">{lead.interestedIn}</div>
@@ -223,7 +223,7 @@ export function PotentialStudentsWorkspace({ initialStudents }: { initialStudent
                                 <CalendarClock className="w-3.5 h-3.5" />
                                 {lead.nextFollowUpAt ? new Date(lead.nextFollowUpAt).toLocaleDateString("vi-VN") : "No date"}
                               </div>
-                              <span className="font-bold text-slate-400 group-hover:text-slate-600 transition-colors">
+                              <span className="font-medium text-slate-400 group-hover:text-slate-600 transition-colors">
                                 {lead.score}đ
                               </span>
                             </div>
@@ -261,19 +261,19 @@ export function PotentialStudentsWorkspace({ initialStudents }: { initialStudent
                         onClick={() => router.push(`/workspace/training/potential-students/${lead.id}`)}
                         className="cursor-pointer hover:bg-slate-50 transition-colors"
                       >
-                        <td className="px-4 py-3 font-semibold text-slate-900">{lead.name}</td>
+                        <td className="px-4 py-3 font-medium text-slate-900">{lead.name}</td>
                         <td className="px-4 py-3">
                           <div className="text-xs text-slate-600">{lead.email}</div>
                           <div className="text-xs text-slate-500">{lead.phone}</div>
                         </td>
                         <td className="px-4 py-3 text-slate-700">{lead.interestedIn}</td>
                         <td className="px-4 py-3">
-                          <span className={cn("px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded border", statusConfig[lead.status].tone)}>
+                          <span className={cn("px-2 py-1 text-[10px] font-medium uppercase tracking-wider rounded border", statusConfig[lead.status].tone)}>
                             {statusConfig[lead.status].label}
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <span className={cn("font-bold", lead.score >= 80 ? "text-amber-500" : "text-slate-700")}>{lead.score}</span>
+                          <span className={cn("font-medium", lead.score >= 80 ? "text-amber-500" : "text-slate-700")}>{lead.score}</span>
                         </td>
                         <td className="px-4 py-3 text-slate-600">{formatDate(lead.nextFollowUpAt)}</td>
                       </tr>
@@ -290,14 +290,14 @@ export function PotentialStudentsWorkspace({ initialStudents }: { initialStudent
 
 function StatCard({ label, value, icon, tone }: { label: string; value: number | string; icon: React.ReactNode; tone: string }) {
   return (
-    <div className="quote-panel p-5">
+    <div className="quote-panel p-4">
       <div className="flex justify-between items-start mb-2">
         <div className="text-sm font-medium text-slate-500">{label}</div>
         <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-slate-100", tone)}>
           {icon}
         </div>
       </div>
-      <div className="text-3xl font-bold text-slate-900">{value}</div>
+      <div className="text-3xl font-medium text-slate-900">{value}</div>
     </div>
   );
 }

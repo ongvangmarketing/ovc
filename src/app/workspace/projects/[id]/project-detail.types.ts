@@ -3,14 +3,22 @@ export type TaskLite = {
   title: string;
   description?: string | null;
   status?: string | null;
+  taskListId?: string | null;
   priority?: string | null;
   dueDate?: string | Date | null;
   startDate?: string | Date | null;
   tags?: string[];
   assignee?: { id?: string; name?: string | null; image?: string | null } | null;
   subtasks?: Array<{ id: string; title: string; status?: string | null }>;
-  comments?: Array<{ id: string; content: string; createdAt?: string | Date | null }>;
+  comments?: Array<{ id: string; content: string; createdAt?: string | Date | null; guestName?: string | null; user?: { name?: string | null; email?: string | null } | null }>;
   attachments?: Array<{ id: string; name: string }>;
+};
+
+export type TaskListLite = {
+  id: string;
+  name: string;
+  order: number;
+  color?: string | null;
 };
 
 export type ProjectLite = {
@@ -18,6 +26,7 @@ export type ProjectLite = {
   name: string;
   description?: string | null;
   color?: string | null;
+  shareToken?: string | null;
   status?: string | null;
   priority?: string | null;
   startDate?: string | Date | null;
@@ -29,6 +38,7 @@ export type ProjectLite = {
   owner?: { id: string; name?: string | null; email?: string | null } | null;
   ownerId?: string | null;
   tasks?: TaskLite[];
+  taskLists?: TaskListLite[];
   socialMarketingEnabled?: boolean;
   facebookProjectReport?: {
     pageEnabled: boolean;

@@ -24,8 +24,8 @@ type ProjectItem = {
 
 export function ProjectsView({
   projects,
-  title = "Danh sách dự án",
-  description = "Chọn cách hiển thị phù hợp để theo dõi dự án.",
+  title = "Dự án",
+  description = "Tất cả các dự án đang triển khai và đã hoàn thành của bạn.",
   actionHref,
   compact = false,
 }: {
@@ -38,23 +38,23 @@ export function ProjectsView({
   const [view, setView] = useState<"list" | "grid">("grid");
 
   return (
-    <div className="w-full">
-      <div className={`mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${compact ? 'px-0' : 'px-6 pt-6'}`}>
+    <div className="w-full bg-white text-black selection:bg-black selection:text-white">
+      <div className={`mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between ${compact ? 'px-0' : 'px-6 pt-10 md:px-12 max-w-[1440px] mx-auto'}`}>
         <div>
-          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
+          <h2 className={compact ? "text-[24px] font-medium tracking-tight text-black" : "text-[40px] md:text-[48px] font-medium tracking-tighter leading-none text-black"}>{title}</h2>
+          <p className="mt-3 text-[16px] text-gray-500 max-w-xl leading-relaxed">{description}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {actionHref && (
-            <Link href={actionHref} className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">
+            <Link href={actionHref} className="text-[14px] font-medium text-black hover:text-gray-500 transition-colors">
               Xem tất cả
             </Link>
           )}
-          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <div className="flex items-center rounded-full border border-[#eaeaea] bg-white p-1">
             <button 
               type="button" 
               onClick={() => setView("list")} 
-              className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${view === "list" ? "bg-white text-blue-600 shadow-sm ring-1 ring-slate-200" : "text-slate-500 hover:text-slate-900"}`}
+              className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${view === "list" ? "bg-black text-white" : "text-gray-400 hover:text-black"}`}
               title="Danh sách"
             >
               <List className="h-4 w-4" />
@@ -62,7 +62,7 @@ export function ProjectsView({
             <button 
               type="button" 
               onClick={() => setView("grid")} 
-              className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${view === "grid" ? "bg-white text-blue-600 shadow-sm ring-1 ring-slate-200" : "text-slate-500 hover:text-slate-900"}`}
+              className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${view === "grid" ? "bg-black text-white" : "text-gray-400 hover:text-black"}`}
               title="Lưới"
             >
               <Grid2X2 className="h-4 w-4" />
@@ -72,31 +72,30 @@ export function ProjectsView({
       </div>
 
       {!projects.length ? (
-        <div className="flex min-h-[200px] flex-col items-center justify-center p-8 text-center bg-slate-50 border-t border-slate-100">
-          <CalendarDays className="mb-4 h-12 w-12 text-slate-300" />
-          <h3 className="text-lg font-semibold text-slate-900">Chưa có dự án nào</h3>
-          <p className="mt-1 text-sm text-slate-500">Bạn chưa có dự án nào trong danh sách này.</p>
+        <div className="flex min-h-[300px] flex-col items-center justify-center p-12 text-center border-t border-[#eaeaea] max-w-[1440px] mx-auto">
+          <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+            <CalendarDays className="h-6 w-6 text-gray-300" />
+          </div>
+          <h3 className="text-[24px] font-medium tracking-tight text-black">Chưa có dự án nào</h3>
+          <p className="mt-2 text-[16px] text-gray-500 max-w-sm">Danh sách dự án của bạn hiện đang trống.</p>
         </div>
       ) : (
-        <div className={`grid gap-6 ${view === "grid" ? (compact ? "grid-cols-1" : "sm:grid-cols-2 xl:grid-cols-3") : "grid-cols-1"} ${compact ? 'px-0 pb-0' : 'px-6 pb-6'}`}>
+        <div className={`grid gap-6 ${view === "grid" ? (compact ? "grid-cols-1" : "md:grid-cols-2 lg:grid-cols-3") : "grid-cols-1"} ${compact ? 'px-0 pb-0' : 'px-6 pb-16 md:px-12 max-w-[1440px] mx-auto'}`}>
           {projects.map((project) => (
             <Link 
               key={project.id} 
               href={`/customer/projects/${project.id}`} 
-              className={`group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-blue-300 hover:shadow-md ${view === "list" ? "sm:flex-row sm:items-center sm:gap-6" : ""}`}
+              className={`group flex flex-col justify-between rounded-2xl border border-[#eaeaea] bg-white p-8 transition-colors hover:border-gray-300 ${view === "list" ? "sm:flex-row sm:items-center sm:gap-8" : ""}`}
             >
               <div className={view === "list" ? "flex-1" : ""}>
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start justify-between gap-4 mb-6">
                   <div className="flex items-center gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-xl font-bold text-blue-600 ring-1 ring-blue-100">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-50 text-[16px] font-medium text-black border border-[#eaeaea]">
                       {initials(project.name)}
                     </div>
                     <div>
-                      <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">{project.name}</h3>
-                      <span className={`mt-1 inline-block rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                        ['COMPLETED', 'DONE'].includes(project.status) ? 'bg-emerald-100 text-emerald-700' : 
-                        ['ACTIVE', 'IN_PROGRESS'].includes(project.status) ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'
-                      }`}>
+                      <h3 className="text-[24px] font-medium tracking-tight text-black group-hover:text-gray-600 transition-colors leading-tight">{project.name}</h3>
+                      <span className="mt-2 inline-block rounded-full border border-[#eaeaea] px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-black bg-white">
                         {project.statusLabel}
                       </span>
                     </div>
@@ -104,46 +103,46 @@ export function ProjectsView({
                 </div>
                 
                 {view === "grid" && (
-                  <p className="mt-4 text-sm text-slate-500 line-clamp-2 h-10">{project.description || "Chưa có mô tả."}</p>
+                  <p className="text-[15px] text-gray-500 line-clamp-2 h-11 mb-8">{project.description || "Không có mô tả dự án."}</p>
                 )}
                 
-                <div className={`mt-6 ${view === "list" ? "mt-4" : ""}`}>
-                  <div className="flex items-center justify-between text-xs font-medium">
-                    <span className="text-slate-500">Tiến độ dự án</span>
-                    <span className="text-emerald-600 font-bold">{project.progress}%</span>
+                <div className={`${view === "list" ? "mt-4" : ""}`}>
+                  <div className="flex items-center justify-between text-[13px] font-medium text-gray-500 mb-2">
+                    <span>Tiến độ</span>
+                    <span className="text-black">{project.progress}%</span>
                   </div>
-                  <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                    <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${project.progress}%` }} />
+                  <div className="h-1 w-full overflow-hidden rounded-full bg-[#eaeaea]">
+                    <div className="h-full bg-black transition-all duration-500" style={{ width: `${project.progress}%` }} />
                   </div>
                 </div>
               </div>
 
-              <div className={`${view === "list" ? "mt-0 flex w-full max-w-sm flex-col justify-center border-l border-slate-100 pl-6" : "mt-6 border-t border-slate-100 pt-6"}`}>
-                <div className="grid grid-cols-2 gap-4">
+              <div className={`${view === "list" ? "mt-0 flex w-full max-w-sm flex-col justify-center border-l border-[#eaeaea] pl-8" : "mt-8 border-t border-[#eaeaea] pt-8"}`}>
+                <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                   <div>
-                    <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-slate-400"><CalendarDays className="h-3 w-3" /> Ngày bắt đầu</span>
-                    <strong className="mt-1 block text-sm text-slate-900">{project.startDate}</strong>
+                    <span className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-1 block">Bắt đầu</span>
+                    <strong className="block text-[15px] font-medium text-black">{project.startDate}</strong>
                   </div>
                   <div>
-                    <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-slate-400"><Clock3 className="h-3 w-3" /> Hạn chót</span>
-                    <strong className="mt-1 block text-sm text-slate-900">{project.dueDate}</strong>
+                    <span className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-1 block">Hạn chót</span>
+                    <strong className="block text-[15px] font-medium text-black">{project.dueDate}</strong>
                   </div>
                   <div>
-                    <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-slate-400"><CircleCheckBig className="h-3 w-3" /> Nhiệm vụ</span>
-                    <strong className="mt-1 block text-sm text-slate-900">{project.taskCount}</strong>
+                    <span className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-1 block">Nhiệm vụ</span>
+                    <strong className="block text-[15px] font-medium text-black">{project.taskCount}</strong>
                   </div>
                   <div>
-                    <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-slate-400"><WalletCards className="h-3 w-3" /> Ngân sách</span>
-                    <strong className="mt-1 block text-sm text-slate-900 line-clamp-1">{project.budget}</strong>
+                    <span className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-1 block">Ngân sách</span>
+                    <strong className="block text-[15px] font-medium text-black line-clamp-1">{project.budget}</strong>
                   </div>
                 </div>
                 
-                <div className="mt-6 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-500 ring-1 ring-slate-200 overflow-hidden">
-                      {project.owner?.image ? <Image src={project.owner.image} alt="" width={24} height={24} /> : <UserRoundCheck className="h-3 w-3" />}
+                <div className="mt-8 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-50 text-gray-400 border border-[#eaeaea] overflow-hidden">
+                      {project.owner?.image ? <Image src={project.owner.image} alt="" width={32} height={32} /> : <UserRoundCheck className="h-4 w-4" />}
                     </div>
-                    <span className="text-xs font-medium text-slate-600 line-clamp-1">{project.owner?.name || "Chưa gán"}</span>
+                    <span className="text-[13px] font-medium text-black line-clamp-1">{project.owner?.name || "Chưa gán"}</span>
                   </div>
                   <AvatarStack followers={project.followers || []} />
                 </div>
@@ -161,18 +160,18 @@ function AvatarStack({ followers }: { followers: NonNullable<ProjectItem["follow
   const more = Math.max(followers.length - shown.length, 0);
 
   if (!followers.length) {
-    return <span className="text-xs italic text-slate-400">Không có</span>;
+    return <span className="text-[12px] italic text-gray-400">Không có</span>;
   }
 
   return (
     <div className="flex -space-x-2 overflow-hidden" title={`${followers.length} người theo dõi`}>
       {shown.map((member) => (
-        <span key={member.id} aria-label={member.name} className="inline-block h-6 w-6 rounded-full ring-2 ring-white overflow-hidden bg-slate-100 text-slate-500 flex items-center justify-center text-[10px] font-bold">
-          {member.image ? <Image src={member.image} alt="" width={24} height={24} /> : initials(member.name)}
+        <span key={member.id} aria-label={member.name} className="inline-block h-8 w-8 rounded-full border border-white overflow-hidden bg-gray-100 text-gray-500 flex items-center justify-center text-[10px] font-medium">
+          {member.image ? <Image src={member.image} alt="" width={32} height={32} /> : initials(member.name)}
         </span>
       ))}
       {more > 0 && (
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 ring-2 ring-white text-[9px] font-bold text-slate-500">
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white border border-[#eaeaea] text-[10px] font-medium text-black">
           +{more}
         </span>
       )}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { db } from "@/lib/db";
 import Link from "next/link";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 import { ArrowLeft, Save, Building2 } from "lucide-react";
 import { updateCompanyAction } from "@/app/actions/company";
 import { redirect, notFound } from "next/navigation";
@@ -30,7 +31,7 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
         <Link href={`/workspace/crm/companies/${id}`} className="text-gray-500 hover:text-gray-900 bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
           <ArrowLeft className="w-5 h-5" />
         </Link>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+        <h1 className="text-[15px] font-medium text-gray-900 flex items-center gap-2">
           <div className="h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center border border-blue-200">
             <Building2 className="h-4 w-4 text-blue-700" />
           </div>
@@ -39,7 +40,7 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <form action={handleSubmit} className="p-6 space-y-6">
+        <form action={handleSubmit} className="p-4 space-y-6">
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="col-span-2">
@@ -80,8 +81,7 @@ export default async function EditCompanyPage({ params }: { params: Promise<{ id
 
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả / Ghi chú về doanh nghiệp</label>
-              <textarea name="description" rows={3} defaultValue={company.description || ""}
-                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" />
+              <TiptapEditor name="description" defaultValue={company.description || ""} />
             </div>
           </div>
 

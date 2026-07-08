@@ -85,7 +85,7 @@ function DealCard({ deal, isDragging }: { deal: Deal; isDragging?: boolean }) {
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2 mb-2.5">
-        <a href={`/workspace/crm/deals/${deal.id}`} className="text-xs font-semibold text-foreground leading-snug line-clamp-2 flex-1 group-hover:text-primary transition-colors cursor-pointer">
+        <a href={`/workspace/crm/deals/${deal.id}`} className="text-xs font-medium text-foreground leading-snug line-clamp-2 flex-1 group-hover:text-primary transition-colors cursor-pointer">
           {deal.title}
         </a>
         <button className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
@@ -95,7 +95,7 @@ function DealCard({ deal, isDragging }: { deal: Deal; isDragging?: boolean }) {
 
       {deal.hasSelectedOptions && (
         <div className="mb-2.5">
-          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wider">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm bg-green-100 text-green-700 text-[10px] font-medium uppercase tracking-wider">
             <CheckCircle2 className="w-3 h-3" />
             Khách đã chốt
           </span>
@@ -128,7 +128,7 @@ function DealCard({ deal, isDragging }: { deal: Deal; isDragging?: boolean }) {
             {deal.priority}
           </span>
         </div>
-        <span className="text-xs font-bold text-foreground tabular-nums">
+        <span className="text-xs font-medium text-foreground tabular-nums">
           {(deal.value / 1_000_000).toFixed(0)}M₫
         </span>
       </div>
@@ -164,14 +164,14 @@ function KanbanColumn({ stage, onAddDeal, onUpdateStage, onDeleteStage }: { stag
           {isEditing ? (
             <input 
               autoFocus
-              className="text-xs font-semibold text-foreground bg-background border border-border rounded px-1 max-w-[100px] outline-none focus:border-primary/50"
+              className="text-xs font-medium text-foreground bg-background border border-border rounded px-1 max-w-[100px] outline-none focus:border-primary/50"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
               onBlur={handleSaveName}
               onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
             />
           ) : (
-            <span className="text-xs font-semibold text-foreground truncate max-w-[120px]">{stage.name}</span>
+            <span className="text-xs font-medium text-foreground truncate max-w-[120px]">{stage.name}</span>
           )}
           <span className="flex items-center justify-center h-4 min-w-4 px-1 rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
             {stage.deals.length}
@@ -207,9 +207,9 @@ function KanbanColumn({ stage, onAddDeal, onUpdateStage, onDeleteStage }: { stag
 
       {/* Total */}
       <div className="mb-3 rounded-xl border border-border/70 bg-background/75 px-3 py-2 shadow-sm">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Tổng giá trị</div>
+        <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Tổng giá trị</div>
         <div className="mt-0.5 flex items-end gap-1 tabular-nums">
-          <span className="text-base font-bold text-foreground">{(total / 1_000_000).toFixed(0)}M₫</span>
+          <span className="text-base font-medium text-foreground">{(total / 1_000_000).toFixed(0)}M₫</span>
           <span className="pb-0.5 text-[11px] text-muted-foreground">{stage.deals.length} cơ hội</span>
         </div>
       </div>
@@ -371,7 +371,7 @@ export function DealsClient() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Pipeline Cơ hội</h2>
+          <h2 className="text-[15px] font-medium text-foreground">Pipeline Cơ hội</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             {isLoading ? "Đang tải..." : `${dealsData.length} cơ hội đang mở`}
           </p>
@@ -459,7 +459,7 @@ export function DealsClient() {
                   return (
                     <tr key={deal.id} className="border-b border-border last:border-0 table-row-hover">
                       <td className="whitespace-nowrap py-3 px-4">
-                        <Link href={`/workspace/crm/deals/${deal.id}`} className="whitespace-nowrap text-sm font-semibold text-blue-600 hover:underline">
+                        <Link href={`/workspace/crm/deals/${deal.id}`} className="whitespace-nowrap text-sm font-medium text-blue-600 hover:underline">
                           {deal.title}
                         </Link>
                       </td>
@@ -515,7 +515,7 @@ export function DealsClient() {
           <form onSubmit={createQuickDeal} className="w-full max-w-md rounded-2xl border border-border bg-background shadow-2xl">
             <div className="flex items-start justify-between border-b border-border px-5 py-4">
               <div>
-                <h3 className="text-base font-semibold text-foreground">Tạo deal nhanh</h3>
+                <h3 className="text-base font-medium text-foreground">Tạo deal nhanh</h3>
                 <p className="mt-1 text-sm text-muted-foreground">{quickStage?.name || "Cột đang chọn"}</p>
               </div>
               <button type="button" onClick={() => setQuickStageId(null)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
@@ -534,7 +534,7 @@ export function DealsClient() {
             </div>
             <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
               <button type="button" onClick={() => setQuickStageId(null)} className="h-9 rounded-lg border border-border px-4 text-sm font-medium hover:bg-muted">Đóng</button>
-              <button disabled={quickSaving || !quickTitle.trim()} className="h-9 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+              <button disabled={quickSaving || !quickTitle.trim()} className="h-9 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
                 {quickSaving ? "Đang tạo..." : "Tạo deal"}
               </button>
             </div>

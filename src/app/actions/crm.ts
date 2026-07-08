@@ -404,24 +404,22 @@ function normalizeLookup(value?: string | null) {
   return value?.trim().toLowerCase() || "";
 }
 
-function companyTaxCodeFromFields(value: unknown) {
-  const taxCode = customFieldsObject(value).taxCode;
-  return typeof taxCode === "string" ? taxCode.trim() : "";
-}
-
 async function findCompanyByTaxCode(organizationId: string, taxCode: string) {
   const normalizedTaxCode = normalizeLookup(taxCode);
   if (!normalizedTaxCode) return null;
 
-  const companies = await db.company.findMany({
-    where: { organizationId },
+  return db.company.findFirst({
+    where: {
+      organizationId,
+      taxCode: {
+        equals: taxCode,
+        mode: "insensitive",
+      },
+    },
   });
-
-  return companies.find((company) => normalizeLookup(companyTaxCodeFromFields(company.customFields)) === normalizedTaxCode) || null;
 }
 
 async function resolveCompanyId(organizationId: string, payload: ReturnType<typeof normalizeContactPayload>) {
-  const companyCustomFields = payload.companyTaxCode ? { taxCode: payload.companyTaxCode } : undefined;
   const companyData = {
     name: payload.companyName,
     email: payload.companyEmail || null,
@@ -429,7 +427,7 @@ async function resolveCompanyId(organizationId: string, payload: ReturnType<type
     address: payload.address,
     city: payload.city,
     country: payload.country,
-    customFields: companyCustomFields,
+    taxCode: payload.companyTaxCode || null,
   };
 
   if (payload.companyId) {
@@ -447,9 +445,7 @@ async function resolveCompanyId(organizationId: string, payload: ReturnType<type
         address: payload.address || existing.address,
         city: payload.city || existing.city,
         country: payload.country || existing.country,
-        ...(payload.companyTaxCode
-          ? { customFields: { ...customFieldsObject(existing.customFields), taxCode: payload.companyTaxCode } }
-          : {}),
+        taxCode: payload.companyTaxCode || existing.taxCode,
       },
     });
     return existing.id;
@@ -496,9 +492,7 @@ async function resolveCompanyId(organizationId: string, payload: ReturnType<type
         address: payload.address || currentCompany.address,
         city: payload.city || currentCompany.city,
         country: payload.country || currentCompany.country,
-        ...(payload.companyTaxCode
-          ? { customFields: { ...customFieldsObject(currentCompany.customFields), taxCode: payload.companyTaxCode } }
-          : {}),
+        taxCode: payload.companyTaxCode || currentCompany.taxCode,
       },
     });
     return existing.id;

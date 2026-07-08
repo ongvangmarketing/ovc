@@ -126,7 +126,7 @@ export function TuitionWorkspace({ initialTuition }: { initialTuition: TrainingT
               <Receipt className="h-4 w-4 text-orange-500" />
               Đào tạo / Học phí
             </div>
-            <h1 className="text-2xl font-semibold text-slate-950">Quản lý học phí</h1>
+            <h1 className="text-[15px] font-medium text-slate-950">Quản lý học phí</h1>
             <p className="mt-1 text-[14px] font-light text-slate-500">Theo dõi doanh thu, công nợ và hóa đơn học phí HP.</p>
           </div>
           <button 
@@ -173,7 +173,7 @@ export function TuitionWorkspace({ initialTuition }: { initialTuition: TrainingT
               <AnimatePresence>
                 {selectedRows.size > 0 && (
                   <motion.div initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: "auto" }} exit={{ opacity: 0, width: 0 }} className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-                    <span className="text-sm font-semibold text-slate-700">{selectedRows.size} đã chọn</span>
+                    <span className="text-sm font-medium text-slate-700">{selectedRows.size} đã chọn</span>
                     <button onClick={() => { toast.success(`Đã gửi email nhắc phí cho ${selectedRows.size} học viên`); setSelectedRows(new Set()); }} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-sm font-medium rounded-lg flex items-center gap-1.5 hover:bg-indigo-100"><Mail className="w-4 h-4"/> Nhắc phí</button>
                   </motion.div>
                 )}
@@ -234,7 +234,7 @@ export function TuitionWorkspace({ initialTuition }: { initialTuition: TrainingT
                         </button>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-semibold text-slate-900">{row.student}</div>
+                        <div className="font-medium text-slate-900">{row.student}</div>
                         <div className="text-xs text-slate-500">{row.email}</div>
                       </td>
                       <td className="px-6 py-4">
@@ -248,7 +248,7 @@ export function TuitionWorkspace({ initialTuition }: { initialTuition: TrainingT
                         {row.remainingAmount > 0 ? formatCurrency(row.remainingAmount) : "-"}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <span className={cn("px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded border", (statusConfig[row.paymentStatus as TuitionPaymentStatus] || { tone: "bg-slate-50 text-slate-600 border-slate-200" }).tone)}>
+                        <span className={cn("px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider rounded border", (statusConfig[row.paymentStatus as TuitionPaymentStatus] || { tone: "bg-slate-50 text-slate-600 border-slate-200" }).tone)}>
                           {(statusConfig[row.paymentStatus as TuitionPaymentStatus] || { label: "Chưa rõ" }).label}
                         </span>
                       </td>
@@ -265,14 +265,14 @@ export function TuitionWorkspace({ initialTuition }: { initialTuition: TrainingT
 
 function StatCard({ label, value, icon, tone, children }: { label: string; value: string; icon: React.ReactNode; tone: string; children?: React.ReactNode }) {
   return (
-    <div className="quote-panel p-5">
+    <div className="quote-panel p-4">
       <div className="flex justify-between items-start mb-2">
         <div className="text-sm font-medium text-slate-500">{label}</div>
         <div className={cn("w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-slate-100", tone)}>
           {icon}
         </div>
       </div>
-      <div className="text-2xl font-bold text-slate-900">{value}</div>
+      <div className="text-[15px] font-medium text-slate-900">{value}</div>
       {children}
     </div>
   );

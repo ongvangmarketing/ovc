@@ -40,7 +40,7 @@ export default async function FormsPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-950 flex items-center gap-2">
+        <h1 className="text-[15px] font-medium text-gray-950 flex items-center gap-2">
           <div className="h-10 w-10 bg-indigo-100 rounded-xl flex items-center justify-center border border-indigo-200">
             <LayoutTemplate className="h-5 w-5 text-indigo-700" />
           </div>

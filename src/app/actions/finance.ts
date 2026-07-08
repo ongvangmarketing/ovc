@@ -29,6 +29,27 @@ export async function getQuotations() {
 }
 
 /**
+ * Lấy chi tiết Báo giá
+ */
+export async function getQuotationById(id: string) {
+  const session = await requireAuth();
+  
+  const quotation = await db.quotation.findUnique({
+    where: { id, organizationId: session.organizationId },
+    include: {
+      contact: { include: { company: true } },
+      deal: true,
+      project: true,
+      creator: true,
+      items: { orderBy: { order: "asc" } },
+    },
+  });
+
+  if (!quotation) return null;
+  return toClientData(quotation);
+}
+
+/**
  * Lấy danh sách Hợp đồng
  */
 export async function getContracts() {

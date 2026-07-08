@@ -265,10 +265,28 @@ export async function getProjectById(id: string) {
           include: {
             assignee: true,
             subtasks: { orderBy: { order: "asc" } },
-            comments: { orderBy: { createdAt: "desc" }, take: 5 },
+            comments: { include: { user: true }, orderBy: { createdAt: "desc" } },
             attachments: true,
           },
           orderBy: { order: "asc" }
+        },
+        contentPlans: { 
+          include: { 
+            author: { select: { name: true, image: true } },
+            campaign: true,
+            brand: true,
+            client: true,
+            landingPage: true,
+            socialAsset: true,
+            aiPrompt: true,
+            designer: { select: { name: true, image: true } },
+            writer: { select: { name: true, image: true } },
+            reviewer: { select: { name: true, image: true } },
+            publisher: { select: { name: true, image: true } },
+            taxonomies: { include: { taxonomy: true } },
+            mediaAssets: { include: { media: true } },
+            reports: true
+          } 
         }
       }
     });
@@ -360,7 +378,28 @@ export async function getProjectById(id: string) {
   }
 }
 
-export async function createProject(data: { name: string, description?: string, color?: string }) {
+
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
+import crypto from "crypto";
+
+export async function uploadProjectThumbnail(file: FormDataEntryValue | null) {
+  if (!file || typeof file === "string") return null;
+  const session = await requireProjectsSession();
+  
+  const ext = file.name.split('.').pop()?.toLowerCase();
+  if (!['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '')) {
+    throw new Error("Vui lòng upload ảnh định dạng JPG, PNG, WEBP hoặc GIF");
+  }
+  
+  const filename = crypto.randomBytes(16).toString('hex') + "." + ext;
+  const uploadDir = path.join(process.cwd(), "public", "uploads", "projects");
+  await mkdir(uploadDir, { recursive: true });
+  await writeFile(path.join(uploadDir, filename), Buffer.from(await file.arrayBuffer()));
+  return `/uploads/projects/${filename}`;
+}
+
+export async function createProject(data: { name: string, description?: string, color?: string, thumbnail?: string }) {
   const session = await requireProjectsSession();
   try {
     const project = await db.project.create({
@@ -370,6 +409,7 @@ export async function createProject(data: { name: string, description?: string, 
         name: data.name,
         description: data.description,
         color: data.color || "#3b82f6",
+        thumbnail: data.thumbnail,
         // Default task lists for Kanban
         taskLists: {
           create: [
@@ -403,6 +443,7 @@ export async function updateProject(id: string, data: {
   name: string;
   description?: string;
   color?: string;
+  thumbnail?: string | null;
   status?: ProjectStatus;
   priority?: Priority;
   startDate?: string | null;
@@ -429,6 +470,7 @@ export async function updateProject(id: string, data: {
         name: data.name,
         description: data.description || null,
         color: data.color || "#F59E0B",
+        thumbnail: data.thumbnail !== undefined ? data.thumbnail : null,
         status: data.status || "ACTIVE",
         priority: data.priority || "MEDIUM",
         startDate: data.startDate ? new Date(data.startDate) : null,
@@ -692,7 +734,7 @@ export async function createTask(data: {
   projectId: string;
   title: string;
   description?: string;
-  listId?: string;
+  taskListId?: string | null;
   status?: TaskStatus;
   priority?: Priority;
   startDate?: string | null;
@@ -721,7 +763,7 @@ export async function createTask(data: {
           followerIds: data.followerIds || [],
           attachmentNames: data.attachmentNames || [],
         },
-        taskListId: data.listId,
+        taskListId: data.taskListId,
         order: Date.now(), // Simple ordering
         subtasks: data.subtasks?.length
           ? {
@@ -756,6 +798,7 @@ export async function updateTaskDetails(taskId: string, projectId: string, data:
   title: string;
   description?: string;
   status?: TaskStatus;
+  taskListId?: string | null;
   priority?: Priority;
   startDate?: string | null;
   dueDate?: string | null;
@@ -831,7 +874,7 @@ export async function updateTaskDetails(taskId: string, projectId: string, data:
         include: {
           assignee: true,
           subtasks: { orderBy: { order: "asc" } },
-          comments: { orderBy: { createdAt: "desc" }, take: 5 },
+          comments: { include: { user: true }, orderBy: { createdAt: "desc" } },
           attachments: true,
         },
       });
@@ -859,6 +902,358 @@ export async function updateTaskStatus(taskId: string, projectId: string, newSta
     return { success: true };
   } catch (error: unknown) {
     console.error("Error updating task:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+// ==========================================
+// KANBAN TASK LISTS (CUSTOM COLUMNS)
+// ==========================================
+
+export async function createTaskList(projectId: string, name: string) {
+  const session = await requireProjectsSession();
+  
+  // Get max order
+  const maxOrderList = await db.taskList.findFirst({
+    where: { projectId },
+    orderBy: { order: 'desc' },
+  });
+  
+  const order = maxOrderList ? maxOrderList.order + 1000 : 1000;
+  
+  return db.taskList.create({
+    data: {
+      projectId,
+      name,
+      order,
+    },
+  });
+}
+
+export async function updateTaskList(listId: string, name: string) {
+  const session = await requireProjectsSession();
+  return db.taskList.update({
+    where: { id: listId },
+    data: { name },
+  });
+}
+
+export async function deleteTaskList(listId: string) {
+  const session = await requireProjectsSession();
+  // Check if it has tasks
+  const tasksCount = await db.task.count({ where: { taskListId: listId } });
+  if (tasksCount > 0) {
+    throw new Error("Không thể xóa cột đang có công việc");
+  }
+  return db.taskList.delete({
+    where: { id: listId },
+  });
+}
+
+export async function updateTaskColumn(taskId: string, projectId: string, taskListId: string | null) {
+  try {
+    const session = await requireProjectsSession();
+    
+    const task = await db.task.update({
+      where: { id: taskId, projectId },
+      data: { taskListId },
+    });
+    
+    revalidatePath(`/workspace/projects/${projectId}`);
+    return { success: true, task };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+
+export async function generateProjectShareToken(projectId: string) {
+  const session = await requireProjectsSession();
+  try {
+    const project = await db.project.findFirst({
+      where: { id: projectId, organizationId: session.organizationId },
+      select: { id: true, shareToken: true },
+    });
+    if (!project) return { success: false, error: "Không tìm thấy dự án." };
+
+    const crypto = require("crypto");
+    const token = `prj_${crypto.randomBytes(16).toString("hex")}`;
+
+    await db.project.update({
+      where: { id: projectId },
+      data: { shareToken: token },
+    });
+
+    revalidatePath(`/workspace/projects/${projectId}`);
+    revalidatePath(`/workspace/projects/${projectId}/edit`);
+    return { success: true, token };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+export async function revokeProjectShareToken(projectId: string) {
+  const session = await requireProjectsSession();
+  try {
+    const project = await db.project.findFirst({
+      where: { id: projectId, organizationId: session.organizationId },
+      select: { id: true },
+    });
+    if (!project) return { success: false, error: "Không tìm thấy dự án." };
+
+    await db.project.update({
+      where: { id: projectId },
+      data: { shareToken: null },
+    });
+
+    revalidatePath(`/workspace/projects/${projectId}`);
+    revalidatePath(`/workspace/projects/${projectId}/edit`);
+    return { success: true };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+
+export async function getPublicProjectByShareToken(token: string) {
+    try {
+    
+    const project = await db.project.findFirst({
+      where: { shareToken: token },
+      include: {
+        owner: true,
+        members: { include: { user: true } },
+        organization: {
+          include: {
+            members: { include: { user: true }, orderBy: { joinedAt: "desc" } },
+          },
+        },
+        taskLists: { orderBy: { order: "asc" } },
+        tasks: {
+          include: {
+            assignee: true,
+            subtasks: { orderBy: { order: "asc" } },
+            comments: { include: { user: true }, orderBy: { createdAt: "desc" } },
+            attachments: true,
+          },
+          orderBy: { order: "asc" }
+        },
+        contentPlans: { 
+          include: { 
+            author: { select: { name: true, image: true } },
+            campaign: true,
+            brand: true,
+            client: true,
+            landingPage: true,
+            socialAsset: true,
+            aiPrompt: true,
+            designer: { select: { name: true, image: true } },
+            writer: { select: { name: true, image: true } },
+            reviewer: { select: { name: true, image: true } },
+            publisher: { select: { name: true, image: true } },
+            taxonomies: { include: { taxonomy: true } },
+            mediaAssets: { include: { media: true } },
+            reports: true
+          } 
+        }
+      }
+    });
+    if (!project) return null;
+    const organizationId = project.organizationId;
+    const entitlements = await getOrganizationEntitlements(organizationId);
+    const socialMarketingEnabled = hasModule(entitlements, "SOCIAL_MARKETING");
+
+
+    const customFields = objectValue(project.customFields);
+    const facebookReport = objectValue(customFields.facebookReport);
+    const pages = socialMarketingEnabled
+      ? await db.socialProviderAsset.findMany({
+        where: {
+          organizationId: organizationId,
+          provider: "FACEBOOK",
+          assetType: "PAGE",
+          deletedAt: null,
+        },
+        select: { id: true, externalId: true, name: true, avatarUrl: true, selected: true },
+        orderBy: { name: "asc" },
+      })
+      : [];
+    const adAccounts = socialMarketingEnabled
+      ? await db.socialProviderAsset.findMany({
+        where: {
+          organizationId: organizationId,
+          provider: "FACEBOOK",
+          assetType: "AD_ACCOUNT",
+          deletedAt: null,
+        },
+        select: { id: true, externalId: true, name: true, currency: true, timezone: true, selected: true },
+        orderBy: { name: "asc" },
+      })
+      : [];
+    const customerContacts = await db.contact.findMany({
+      where: { organizationId: organizationId, status: "ACTIVE" },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        source: true,
+        company: { select: { name: true } },
+      },
+      orderBy: [{ updatedAt: "desc" }],
+      take: 200,
+    });
+    const uniqueCustomerContacts = Array.from(
+      customerContacts.reduce((items, contact) => {
+        const name = contact.company?.name || `${contact.firstName} ${contact.lastName}`.trim() || contact.email || "Khách hàng";
+        const key = `${contact.email || ""}::${contact.company?.name || name}`.toLowerCase();
+        const current = items.get(key);
+        if (!current || current.source === "portal-seed") items.set(key, { ...contact, displayName: name });
+        return items;
+      }, new Map<string, (typeof customerContacts)[number] & { displayName: string }>()).values(),
+    );
+
+    return {
+      ...project,
+      portalVisible: customFields.portalVisible === true,
+      availableMembers: project.organization.members.map((member) => ({
+        userId: member.userId,
+        role: member.role,
+        user: member.user,
+      })),
+      customerContacts: uniqueCustomerContacts.map((contact) => ({
+        id: contact.id,
+        name: contact.displayName,
+        email: contact.email,
+      })),
+      socialMarketingEnabled,
+      facebookPages: pages,
+      facebookAdAccounts: adAccounts,
+      facebookReportSetup: socialMarketingEnabled ? {
+        enabledSources: objectValue(facebookReport.enabledSources),
+        pageExternalId: typeof facebookReport.pageExternalId === "string" ? facebookReport.pageExternalId : "",
+        pageName: typeof facebookReport.pageName === "string" ? facebookReport.pageName : "",
+        adAccountExternalId: typeof facebookReport.adAccountExternalId === "string" ? facebookReport.adAccountExternalId : "",
+        adAccountName: typeof facebookReport.adAccountName === "string" ? facebookReport.adAccountName : "",
+        pageTokenSaved: tokenEnvelopeExists(facebookReport.pageToken),
+        adsTokenSaved: tokenEnvelopeExists(facebookReport.adsToken),
+        campaignIds: stringArrayValue(facebookReport.campaignIds),
+        adIds: stringArrayValue(customFields.facebookAdIds),
+      } : null,
+      facebookProjectReport: socialMarketingEnabled ? await getProjectFacebookReport(organizationId, project.customFields) : null,
+      facebookAdReport: await getProjectFacebookAdReport(organizationId, project.id, project.customFields),
+      organization: undefined,
+    };
+  } catch (error) {
+    console.error("Error fetching project by id:", error);
+    return null;
+  }
+}
+
+export async function publicAddComment(shareToken: string, taskId: string, guestName: string, content: string) {
+  try {
+    const project = await db.project.findFirst({
+      where: { shareToken, tasks: { some: { id: taskId } } },
+      select: { id: true },
+    });
+    if (!project) return { success: false, error: "Không tìm thấy dự án hoặc công việc." };
+
+    const comment = await db.taskComment.create({
+      data: {
+        taskId,
+        content,
+        guestName,
+      },
+    });
+
+    revalidatePath(`/share/p/${shareToken}`);
+    return { success: true, comment };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+export async function addTaskComment(taskId: string, content: string) {
+  const session = await requireProjectsSession();
+  try {
+    const task = await db.task.findFirst({
+      where: { id: taskId, project: { organizationId: session.organizationId } },
+      select: { id: true, projectId: true },
+    });
+    if (!task) return { success: false, error: "Không tìm thấy công việc." };
+
+    const comment = await db.taskComment.create({
+      data: {
+        taskId,
+        userId: session.userId,
+        content,
+      },
+      include: { user: true }
+    });
+
+    revalidatePath(`/workspace/projects/${task.projectId}`);
+    return { success: true, comment };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+export async function publicUpdateTaskStatus(shareToken: string, taskId: string, newStatus: TaskStatus) {
+  try {
+    const project = await db.project.findFirst({
+      where: { shareToken, tasks: { some: { id: taskId } } },
+      select: { id: true },
+    });
+    if (!project) return { success: false, error: "Không tìm thấy công việc." };
+
+    await db.task.update({
+      where: { id: taskId },
+      data: { status: newStatus },
+    });
+
+    revalidatePath(`/share/p/${shareToken}`);
+    return { success: true };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+export async function publicUpdateTaskColumn(shareToken: string, taskId: string, taskListId: string | null) {
+  try {
+    const project = await db.project.findFirst({
+      where: { shareToken, tasks: { some: { id: taskId } } },
+      select: { id: true },
+    });
+    if (!project) return { success: false, error: "Không tìm thấy công việc." };
+
+    await db.task.update({
+      where: { id: taskId },
+      data: { taskListId },
+    });
+
+    revalidatePath(`/share/p/${shareToken}`);
+    return { success: true };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+export async function publicApproveContentPlan(shareToken: string, planId: string, guestName: string, clientStatus: string) {
+  try {
+    const project = await db.project.findFirst({
+      where: { shareToken, contentPlans: { some: { id: planId } } },
+      select: { id: true },
+    });
+    if (!project) throw new Error('Invalid token or plan not found');
+    
+    await db.contentPlan.update({
+      where: { id: planId },
+      data: { clientStatus },
+    });
+    
+    revalidatePath(`/share/p/${shareToken}`);
+    return { success: true };
+  } catch (error: unknown) {
     return { success: false, error: getErrorMessage(error) };
   }
 }

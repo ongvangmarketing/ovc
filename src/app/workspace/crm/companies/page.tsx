@@ -44,7 +44,7 @@ export default async function CompaniesPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-950 flex items-center gap-2">
+        <h1 className="text-[15px] font-medium text-gray-950 flex items-center gap-2">
           <Building2 className="h-6 w-6 text-indigo-600" />
           Danh sách Công ty
         </h1>
@@ -100,7 +100,7 @@ export default async function CompaniesPage({
                   <tr key={company.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 shrink-0 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold overflow-hidden border border-indigo-100">
+                        <div className="h-10 w-10 shrink-0 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 font-medium overflow-hidden border border-indigo-100">
                           {company.logo ? (
                             <img src={company.logo} alt={company.name} className="w-full h-full object-cover" />
                           ) : (

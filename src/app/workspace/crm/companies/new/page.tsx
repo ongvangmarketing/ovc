@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, Save, Building2 } from "lucide-react";
 import { createCompanyAction } from "@/app/actions/company";
 import { redirect } from "next/navigation";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 
 export const metadata: Metadata = { title: "Thêm Công ty Mới" };
 
@@ -38,7 +39,7 @@ export default async function NewCompanyPage() {
           <h2>Thông tin công ty</h2>
           <span>Mã số thuế sẽ được dùng để tự nhận diện và gán vào công ty đã có nếu trùng.</span>
         </div>
-        <form action={handleSubmit} className="p-6 space-y-6">
+        <form action={handleSubmit} className="p-4 space-y-6">
           
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <label className="block md:col-span-2">
@@ -78,7 +79,7 @@ export default async function NewCompanyPage() {
 
             <label className="block md:col-span-2">
               <span className="mb-1.5 block text-[15px] font-light text-slate-700">Mô tả / Ghi chú về doanh nghiệp</span>
-              <textarea name="description" rows={3} placeholder="Thông tin thêm về quy mô, nhu cầu..." className="quote-input min-h-24" />
+              <TiptapEditor name="description" placeholder="Thông tin thêm về quy mô, nhu cầu..." />
             </label>
           </div>
 

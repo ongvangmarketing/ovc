@@ -42,7 +42,7 @@ export default async function CompanyDetailPage({ params }: { params: Promise<{ 
               <div className="mb-1 flex items-center gap-2 text-[14px] font-light text-slate-500">
                 CRM / Công ty
               </div>
-              <h1 className="text-xl font-semibold text-slate-950">{company.name}</h1>
+              <h1 className="text-[15px] font-medium text-slate-950">{company.name}</h1>
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                 {company.industry && (
                   <span className="flex items-center gap-1"><Briefcase className="w-3.5 h-3.5"/> {company.industry}</span>

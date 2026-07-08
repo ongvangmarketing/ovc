@@ -78,7 +78,7 @@ export function CalendarWorkspace({ initialSchedules }: { initialSchedules: Trai
       <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-2">
+            <h1 className="text-[15px] font-medium text-slate-900 tracking-tight flex items-center gap-2">
               Lịch học
             </h1>
           </div>
@@ -112,7 +112,7 @@ export function CalendarWorkspace({ initialSchedules }: { initialSchedules: Trai
       </header>
 
       {/* Main Workspace */}
-      <div className="flex flex-1 overflow-hidden p-6 gap-6">
+      <div className="flex flex-1 overflow-hidden p-4 gap-6">
         
         <div className="flex-1 flex flex-col min-w-0">
           
@@ -120,7 +120,7 @@ export function CalendarWorkspace({ initialSchedules }: { initialSchedules: Trai
             {/* Toolbar */}
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-white">
               <div className="flex items-center gap-4">
-                <div className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <div className="text-[15px] font-medium text-slate-900 flex items-center gap-2">
                   <span className="capitalize">Tháng 4, 2025</span>
                 </div>
                 <div className="flex items-center gap-1">
@@ -163,7 +163,7 @@ export function CalendarWorkspace({ initialSchedules }: { initialSchedules: Trai
                         <span className="text-xs font-medium text-slate-500 uppercase">
                           {schedule.startDate ? new Date(schedule.startDate).toLocaleDateString("vi-VN", { weekday: "short" }) : "N/A"}
                         </span>
-                        <span className="text-2xl font-bold text-slate-900">
+                        <span className="text-[15px] font-medium text-slate-900">
                           {schedule.startDate ? new Date(schedule.startDate).getDate() : "--"}
                         </span>
                       </div>
@@ -172,18 +172,18 @@ export function CalendarWorkspace({ initialSchedules }: { initialSchedules: Trai
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <span className={cn(
-                            "px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded flex items-center gap-1",
+                            "px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded flex items-center gap-1",
                             schedule.source === "CLASS" ? "bg-emerald-100 text-emerald-700" : "bg-indigo-100 text-indigo-700"
                           )}>
                             {schedule.source === "CLASS" ? "Lịch theo Lớp" : "Lịch theo Buổi"}
                           </span>
                           {schedule.mode === "ONLINE" && (
-                            <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-blue-100 text-blue-700">
+                            <span className="px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded bg-blue-100 text-blue-700">
                               Online
                             </span>
                           )}
                         </div>
-                        <h3 className="font-semibold text-slate-900 text-base truncate">{schedule.title}</h3>
+                        <h3 className="font-medium text-slate-900 text-base truncate">{schedule.title}</h3>
                         <div className="text-sm text-slate-500 truncate">{schedule.course}</div>
                       </div>
 
@@ -220,18 +220,18 @@ export function CalendarWorkspace({ initialSchedules }: { initialSchedules: Trai
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="w-96 bg-white rounded-2xl border border-slate-200 flex flex-col z-20 shadow-sm overflow-hidden shrink-0"
             >
-              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-indigo-500 text-white">
-                <h2 className="font-semibold text-lg">Chi tiết lịch học</h2>
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-indigo-500 text-white">
+                <h2 className="font-medium text-[15px]">Chi tiết lịch học</h2>
                 <button onClick={() => setSelectedId(null)} className="p-1.5 text-indigo-100 hover:text-white hover:bg-indigo-600 rounded-full transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <div className="p-4 overflow-y-auto flex-1 space-y-6">
                 <div>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 mb-3">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-50 text-indigo-700 mb-3">
                     {selectedSchedule.source === "CLASS" ? "Lớp học định kỳ" : "Buổi học đơn lẻ"}
                   </div>
-                  <h3 className="text-xl font-bold text-slate-900 leading-tight">{selectedSchedule.title}</h3>
+                  <h3 className="text-[15px] font-medium text-slate-900 leading-tight">{selectedSchedule.title}</h3>
                   <div className="text-sm font-medium text-slate-500 mt-1">{selectedSchedule.course}</div>
                 </div>
 

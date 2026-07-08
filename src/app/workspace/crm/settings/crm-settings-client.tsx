@@ -76,7 +76,7 @@ export function CrmSettingsClient({ initialSettings }: { initialSettings: any })
                   <div 
                     key={template.id}
                     onClick={() => setSettings({ ...settings, CRM_DOCUMENT_TEMPLATE: template.id })}
-                    className={`relative cursor-pointer rounded-2xl border p-5 transition-all duration-200 ${
+                    className={`relative cursor-pointer rounded-2xl border p-4 transition-all duration-200 ${
                       isSelected 
                         ? "border-orange-500 bg-orange-50/50 shadow-md ring-1 ring-orange-500" 
                         : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"

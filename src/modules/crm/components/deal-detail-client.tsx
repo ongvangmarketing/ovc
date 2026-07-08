@@ -3,6 +3,7 @@
 import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 import { addOptionToDeal, removeDealOption, convertDealOptionsToQuotation, updateDealOption } from "@/app/actions/deal-services";
 import { reorderDealOptionsAction } from "@/app/actions/deals";
 import { 
@@ -400,7 +401,7 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
                 {activeService && (
                   <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
                     <div className="mb-3 flex flex-col gap-1">
-                      <h4 className="font-semibold text-indigo-900 text-sm">Chọn Option từ {activeService.name}</h4>
+                      <h4 className="font-medium text-indigo-900 text-sm">Chọn Option từ {activeService.name}</h4>
                       <p className="text-[13px] text-indigo-700">Hiển thị đầy đủ option, giá, đơn vị và số lượng trước khi thêm vào Cơ hội.</p>
                     </div>
                     <div className="grid gap-3">
@@ -411,8 +412,8 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
                           <article key={opt.id} className="rounded-xl border border-indigo-100 bg-white p-4 shadow-sm">
                             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_120px_110px_auto] lg:items-start">
                               <div className="min-w-0">
-                                <div className="font-semibold uppercase text-slate-900">{opt.name}</div>
-                                <div className="mt-1 text-[13px] font-semibold uppercase text-orange-500">{activeService.name}</div>
+                                <div className="font-medium uppercase text-slate-900">{opt.name}</div>
+                                <div className="mt-1 text-[13px] font-medium uppercase text-orange-500">{activeService.name}</div>
                                 {opt.description ? <p className="mt-2 whitespace-pre-wrap text-[14px] leading-6 text-slate-600">{opt.description}</p> : null}
                                 <div className="mt-3 flex flex-wrap gap-2 text-[12px] text-slate-600">
                                   <span className="rounded-full bg-slate-100 px-2.5 py-1">Đơn vị: {opt.unit || "Gói"}</span>
@@ -429,11 +430,11 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
                                 ) : null}
                               </div>
                               <div>
-                                <span className="mb-1 block text-[11px] font-semibold uppercase text-slate-400">Đơn giá</span>
+                                <span className="mb-1 block text-[11px] font-medium uppercase text-slate-400">Đơn giá</span>
                                 <strong className="text-slate-900">{formatMoney(opt.price)}</strong>
                               </div>
                               <label className="block">
-                                <span className="mb-1 block text-[11px] font-semibold uppercase text-slate-400">Số lượng</span>
+                                <span className="mb-1 block text-[11px] font-medium uppercase text-slate-400">Số lượng</span>
                                 <input
                                   type="number"
                                   min={1}
@@ -504,11 +505,11 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
                                           </div>
                                           <div>
                                             <label className="block text-[11px] font-medium text-slate-500 mb-1 uppercase">Mô tả</label>
-                                            <textarea className="w-full border border-slate-200 rounded-md text-sm px-3 py-2 focus:ring-1 focus:ring-orange-500 outline-none min-h-[90px]" value={editForm.description} onChange={e => setEditForm({...editForm, description: e.target.value})} />
+                                            <TiptapEditor value={editForm.description} onChange={content => setEditForm({...editForm, description: content})} />
                                           </div>
                                           <div>
                                             <label className="block text-[11px] font-medium text-slate-500 mb-1 uppercase">Quyền lợi / Hạng mục</label>
-                                            <textarea className="w-full border border-slate-200 rounded-md text-sm px-3 py-2 focus:ring-1 focus:ring-orange-500 outline-none min-h-[110px]" placeholder="Mỗi dòng là một quyền lợi" value={editForm.featuresText} onChange={e => setEditForm({...editForm, featuresText: e.target.value})} />
+                                            <TiptapEditor placeholder="Mỗi dòng là một quyền lợi" value={editForm.featuresText} onChange={content => setEditForm({...editForm, featuresText: content})} />
                                           </div>
                                         </div>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -523,7 +524,7 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
                                         </div>
                                         <div>
                                           <label className="block text-[11px] font-medium text-slate-500 mb-1 uppercase">Ghi chú</label>
-                                          <textarea className="w-full border border-slate-200 rounded-md text-sm px-3 py-2 focus:ring-1 focus:ring-orange-500 outline-none min-h-[70px]" placeholder="VD: Gói bao gồm hosting 1 năm..." value={editForm.note} onChange={e => setEditForm({...editForm, note: e.target.value})} />
+                                          <TiptapEditor placeholder="VD: Gói bao gồm hosting 1 năm..." value={editForm.note} onChange={content => setEditForm({...editForm, note: content})} />
                                         </div>
                                         <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
                                           <button onClick={handleCancelEdit} disabled={loading} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1.5">
@@ -560,18 +561,18 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
                                         {optionView.name}
                                       </div>
                                       <div className="shrink-0 ml-2">
-                                        {dealOpt.status === 'CUSTOMER_SELECTED' && <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded uppercase flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Đã chọn</span>}
-                                        {dealOpt.status === 'CONVERTED_TO_QUOTE' && <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase">Đã lên Báo giá</span>}
-                                        {dealOpt.status === 'PROPOSED' && <span className="text-[10px] font-bold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded uppercase">Đang đề xuất</span>}
+                                        {dealOpt.status === 'CUSTOMER_SELECTED' && <span className="text-[10px] font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded uppercase flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Đã chọn</span>}
+                                        {dealOpt.status === 'CONVERTED_TO_QUOTE' && <span className="text-[10px] font-medium bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase">Đã lên Báo giá</span>}
+                                        {dealOpt.status === 'PROPOSED' && <span className="text-[10px] font-medium bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded uppercase">Đang đề xuất</span>}
                                       </div>
                                     </div>
-                                    <div className="text-[13px] font-bold text-orange-500 mb-1 uppercase">{dealOpt.serviceOption.service?.name}</div>
+                                    <div className="text-[13px] font-medium text-orange-500 mb-1 uppercase">{dealOpt.serviceOption.service?.name}</div>
                                     {optionView.description && <p className="text-slate-500 mt-1 mb-2 whitespace-pre-wrap text-[14px]">{optionView.description}</p>}
                                     {optionView.note && <div className="text-sm text-slate-600 whitespace-pre-wrap mt-2">{optionView.note}</div>}
                                     <button
                                       type="button"
                                       onClick={() => toggleOptionDetail(dealOpt.id)}
-                                      className="mt-3 inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[12px] font-semibold text-orange-600 hover:bg-orange-100"
+                                      className="mt-3 inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[12px] font-medium text-orange-600 hover:bg-orange-100"
                                     >
                                       {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
                                       {isExpanded ? "Thu gọn chi tiết" : "Xem chi tiết để sửa"}
@@ -583,7 +584,7 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
                                     )}
                                   </td>
                                   <td className="px-4 py-5 text-center align-top border-r border-slate-100">
-                                    <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[12px] font-semibold text-slate-700">
+                                    <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[12px] font-medium text-slate-700">
                                       {optionView.unit}
                                     </span>
                                   </td>
@@ -619,7 +620,7 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
                                         </div>
                                         {features.length ? (
                                           <div>
-                                            <div className="font-semibold text-slate-700">Hạng mục / quyền lợi:</div>
+                                            <div className="font-medium text-slate-700">Hạng mục / quyền lợi:</div>
                                             <ul className="mt-1 list-disc space-y-1 pl-5">
                                               {features.map((feature, featureIndex) => (
                                                 <li key={`${dealOpt.id}-feature-${featureIndex}`}>{feature}</li>
@@ -694,7 +695,7 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
           <section className="quote-detail-card">
             <h2>Giá trị Dự kiến</h2>
             <div className="quote-side-list">
-              <div><span>Ngân sách KH</span><strong className="text-indigo-700 text-lg">{formatMoney(deal.value, deal.currency)}</strong></div>
+              <div><span>Ngân sách KH</span><strong className="text-indigo-700 text-[15px]">{formatMoney(deal.value, deal.currency)}</strong></div>
             </div>
           </section>
 

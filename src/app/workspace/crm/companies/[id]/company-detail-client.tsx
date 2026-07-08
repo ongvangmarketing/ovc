@@ -65,7 +65,7 @@ export function CompanyDetailClient({ company }: { company: any }) {
       
       {/* Title */}
       <div className="flex items-center gap-2 px-6 py-4 bg-white border-b border-gray-200 shrink-0">
-        <h2 className="text-xl font-bold text-gray-800">#{company.id?.substring(0,3) || 148} {company.name}</h2>
+        <h2 className="text-[15px] font-medium text-gray-800">#{company.id?.substring(0,3) || 148} {company.name}</h2>
         <ChevronDown className="w-4 h-4 text-gray-500 cursor-pointer" />
       </div>
 
@@ -73,7 +73,7 @@ export function CompanyDetailClient({ company }: { company: any }) {
         {/* Left Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto custom-scrollbar flex-shrink-0">
           <div className="p-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-800">Tiểu sử</h3>
+            <h3 className="font-medium text-gray-800">Tiểu sử</h3>
           </div>
           <ul className="py-2">
             {menus.map((menu) => {
@@ -103,7 +103,7 @@ export function CompanyDetailClient({ company }: { company: any }) {
         </div>
 
         {/* Right Content */}
-        <div className="flex-1 bg-gray-50/50 overflow-y-auto p-6 custom-scrollbar">
+        <div className="flex-1 bg-gray-50/50 overflow-y-auto p-4 custom-scrollbar">
           {activeMenu === "profile" && (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm max-w-5xl mx-auto">
               
@@ -130,7 +130,7 @@ export function CompanyDetailClient({ company }: { company: any }) {
 
               {/* Form Content */}
               {activeTab === "info" && (
-                <form onSubmit={handleSave} className="p-6">
+                <form onSubmit={handleSave} className="p-4">
                   <label className="flex items-center gap-2 cursor-pointer mb-6">
                     <input 
                       type="checkbox" 
@@ -195,7 +195,7 @@ export function CompanyDetailClient({ company }: { company: any }) {
                     <div className="grid grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                          <span className="w-3.5 h-3.5 rounded-full border border-gray-400 text-[9px] flex items-center justify-center font-bold text-gray-500">?</span> Đơn vị tiền
+                          <span className="w-3.5 h-3.5 rounded-full border border-gray-400 text-[9px] flex items-center justify-center font-medium text-gray-500">?</span> Đơn vị tiền
                         </label>
                         <div className="relative">
                           <select 

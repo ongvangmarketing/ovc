@@ -1,5 +1,12 @@
-import { redirect } from "next/navigation";
+import { getWorkspaceDashboard } from "@/app/actions/dashboard";
+import { DashboardContainer, WorkspaceDashboard } from "./dashboard/dashboard-client";
 
-export default function WorkspaceIndex() {
-  redirect("/workspace/dashboard");
+export default async function WorkspaceIndex() {
+  const data = await getWorkspaceDashboard();
+  
+  return (
+    <DashboardContainer>
+      <WorkspaceDashboard data={data} period="6m" />
+    </DashboardContainer>
+  );
 }

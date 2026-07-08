@@ -35,9 +35,9 @@ export default async function InstructorDetailPage({ params }: { params: Promise
         )}
       />
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="quote-panel"><p className="text-sm text-slate-500">Khóa phụ trách</p><strong className="mt-2 block text-xl">{instructor.instructorCourses.length}</strong></div>
-        <div className="quote-panel"><p className="text-sm text-slate-500">Trạng thái</p><strong className="mt-2 block text-xl">{instructor.isActive ? "Đang hoạt động" : "Tạm khóa"}</strong></div>
-        <div className="quote-panel"><p className="text-sm text-slate-500">Hồ sơ</p><strong className="mt-2 block text-xl">{instructor.bio || "Chưa có"}</strong></div>
+        <div className="quote-panel"><p className="text-sm text-slate-500">Khóa phụ trách</p><strong className="mt-2 block text-[15px]">{instructor.instructorCourses.length}</strong></div>
+        <div className="quote-panel"><p className="text-sm text-slate-500">Trạng thái</p><strong className="mt-2 block text-[15px]">{instructor.isActive ? "Đang hoạt động" : "Tạm khóa"}</strong></div>
+        <div className="quote-panel"><p className="text-sm text-slate-500">Hồ sơ</p><strong className="mt-2 block text-[15px]">{instructor.bio || "Chưa có"}</strong></div>
       </section>
       <TrainingPanel title="Khóa đang phụ trách" description={`${instructor.instructorCourses.length} khóa`}>
         <div className="divide-y divide-slate-100">

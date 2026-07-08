@@ -40,7 +40,7 @@ export default async function WebhooksPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-950 flex items-center gap-2">
+        <h1 className="text-[15px] font-medium text-gray-950 flex items-center gap-2">
           <div className="h-10 w-10 bg-indigo-100 rounded-xl flex items-center justify-center border border-indigo-200">
             <Link2 className="h-5 w-5 text-indigo-700" />
           </div>
@@ -50,8 +50,8 @@ export default async function WebhooksPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-4">Tạo Webhook Mới</h3>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <h3 className="font-medium text-gray-900 mb-4">Tạo Webhook Mới</h3>
             <form action={createWebhook} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tên gợi nhớ</label>
@@ -74,8 +74,8 @@ export default async function WebhooksPage() {
             </form>
           </div>
           
-          <div className="bg-blue-50 rounded-xl border border-blue-100 p-6">
-            <h4 className="font-semibold text-blue-900 flex items-center mb-2"><Globe className="w-5 h-5 mr-2" /> Hướng dẫn Facebook Ads</h4>
+          <div className="bg-blue-50 rounded-xl border border-blue-100 p-4">
+            <h4 className="font-medium text-blue-900 flex items-center mb-2"><Globe className="w-5 h-5 mr-2" /> Hướng dẫn Facebook Ads</h4>
             <p className="text-sm text-blue-800 mb-3">Copy URL Webhook tương ứng dán vào mục <strong>CRM Setup</strong> của Facebook Ads Manager. Hệ thống sẽ tự động map các trường thông tin cơ bản.</p>
           </div>
         </div>

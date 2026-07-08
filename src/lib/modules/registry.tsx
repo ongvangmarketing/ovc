@@ -165,9 +165,10 @@ export const moduleDefinitions: PlatformModuleDefinition[] = [
     nav: {
       code: "FINANCE",
       label: "Tài chính",
-      href: "/workspace/finance/invoices",
+      href: "/workspace/finance/overview",
       icon: <CircleDollarSign className="h-5 w-5" />,
       children: [
+        { label: "Tổng quan", href: "/workspace/finance/overview", available: true },
         { label: "Báo giá", href: "/workspace/finance/quotations", available: true },
         { label: "Hợp đồng", href: "/workspace/finance/contracts", available: true },
         { label: "Hóa đơn", href: "/workspace/finance/invoices", available: true },
@@ -384,7 +385,7 @@ export const moduleDefinitions: PlatformModuleDefinition[] = [
 ];
 
 export const workNavigation: ModuleNavItem[] = [
-  { code: "WORKSPACE", label: "Tổng quan", href: "/workspace/dashboard", icon: <LayoutGrid className="h-5 w-5" /> },
+  { code: "WORKSPACE", label: "Điều hành", href: "/workspace/dashboard", icon: <LayoutGrid className="h-5 w-5" /> },
 ];
 
 export const legacyModuleAliases: Record<string, PlatformModuleCode> = {

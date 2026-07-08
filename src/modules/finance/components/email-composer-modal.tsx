@@ -85,7 +85,7 @@ export function EmailComposerModal({
       <div className="flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white shadow-2xl">
         <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-4">
           <div>
-            <h2 className="text-xl font-bold text-slate-950">{title}</h2>
+            <h2 className="text-[15px] font-medium text-slate-950">{title}</h2>
             <p className="text-sm text-slate-500">Email được render sẵn, có thể thêm người nhận và chỉnh nội dung nếu cần.</p>
           </div>
           <button
@@ -105,7 +105,7 @@ export function EmailComposerModal({
             <div className="grid gap-5 lg:grid-cols-[340px_minmax(0,1fr)]">
               <div className="space-y-4">
                 <label className="block space-y-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <span className="text-sm font-semibold text-slate-700">Email nhận</span>
+                  <span className="text-sm font-medium text-slate-700">Email nhận</span>
                   <textarea
                     value={to}
                     onChange={(event) => setTo(event.target.value)}
@@ -117,7 +117,7 @@ export function EmailComposerModal({
                 </label>
 
                 <label className="block space-y-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <span className="text-sm font-semibold text-slate-700">Tiêu đề</span>
+                  <span className="text-sm font-medium text-slate-700">Tiêu đề</span>
                   <input
                     value={subject}
                     onChange={(event) => setSubject(event.target.value)}
@@ -127,11 +127,11 @@ export function EmailComposerModal({
                 </label>
 
                 <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <div className="mb-3 text-sm font-semibold text-slate-700">File PDF render</div>
+                  <div className="mb-3 text-sm font-medium text-slate-700">File PDF render</div>
                   <button
                     type="button"
                     onClick={() => setAttachPdf((value) => !value)}
-                    className={`w-full rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                    className={`w-full rounded-2xl px-4 py-3 text-sm font-medium transition ${
                       attachPdf
                         ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200"
                         : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
@@ -144,7 +144,7 @@ export function EmailComposerModal({
                 <button
                   type="button"
                   onClick={toggleEditContent}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-orange-200 hover:text-orange-600"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:border-orange-200 hover:text-orange-600"
                 >
                   {isEditingContent ? "Xong chỉnh sửa" : "Sửa trực tiếp trên email"}
                 </button>
@@ -153,12 +153,12 @@ export function EmailComposerModal({
               <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
                 <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
                   <div>
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Preview email</div>
-                    <div className="mt-1 text-sm font-bold text-slate-900">{subject || "Chưa có tiêu đề"}</div>
+                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Preview email</div>
+                    <div className="mt-1 text-sm font-medium text-slate-900">{subject || "Chưa có tiêu đề"}</div>
                   </div>
                 </div>
                 {isEditingContent ? (
-                  <div className="max-h-[520px] overflow-y-auto bg-white p-5">
+                  <div className="max-h-[520px] overflow-y-auto bg-white p-4">
                     <iframe
                       ref={editorFrameRef}
                       title="Sửa nội dung email"
@@ -169,9 +169,9 @@ export function EmailComposerModal({
                     <p className="mt-3 text-center text-xs text-slate-400">Bấm trực tiếp vào chữ trong email để sửa.</p>
                   </div>
                 ) : (
-                  <div className="max-h-[520px] overflow-y-auto bg-white p-5">
+                  <div className="max-h-[520px] overflow-y-auto bg-white p-4">
                     <div className="mx-auto max-w-[680px] rounded-2xl border border-slate-100 bg-white shadow-sm">
-                      <div className="email-preview-content p-5 text-sm leading-6 text-slate-700" dangerouslySetInnerHTML={{ __html: html || "<p>Chưa có nội dung email.</p>" }} />
+                      <div className="email-preview-content p-4 text-sm leading-6 text-slate-700" dangerouslySetInnerHTML={{ __html: html || "<p>Chưa có nội dung email.</p>" }} />
                     </div>
                   </div>
                 )}
@@ -181,14 +181,14 @@ export function EmailComposerModal({
         </div>
 
         <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 px-6 py-4">
-          <button type="button" onClick={onClose} className="rounded-2xl border border-slate-200 px-5 py-3 font-semibold text-slate-600">
+          <button type="button" onClick={onClose} className="rounded-2xl border border-slate-200 px-5 py-3 font-medium text-slate-600">
             Hủy
           </button>
           <button
             type="button"
             disabled={isLoading || isPending}
             onClick={sendPayload}
-            className="rounded-2xl bg-slate-950 px-5 py-3 font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-2xl bg-slate-950 px-5 py-3 font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isPending ? "Đang gửi..." : "Gửi email"}
           </button>

@@ -27,11 +27,11 @@ export function InvoicePaymentModal({
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
-        <div className="p-5 border-b">
-          <h3 className="text-lg font-bold text-gray-900">Ghi nhận thanh toán</h3>
+        <div className="p-4 border-b">
+          <h3 className="text-[15px] font-medium text-gray-900">Ghi nhận thanh toán</h3>
         </div>
         
-        <div className="p-5 space-y-4">
+        <div className="p-4 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Số tiền thanh toán (VNĐ)</label>
             <input 

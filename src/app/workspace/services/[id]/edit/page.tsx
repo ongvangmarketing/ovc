@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { ArrowLeft, CheckCircle2, Clock3, Layers3, Pencil, Plus, Trash2 } from "lucide-react";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 
 import { createServiceOption, deleteServiceOption, getService, updateService, updateServiceOption } from "@/app/actions/services-crud";
 
@@ -139,11 +140,9 @@ export default function EditServicePage(props: { params: Promise<{ id: string }>
 
             <label className="block">
               <span className="mb-1.5 block text-[15px] font-light text-slate-700">Mô tả tư vấn</span>
-              <textarea
-                rows={2}
+              <TiptapEditor
                 value={service.description || ""}
-                onChange={(event) => setService({ ...service, description: event.target.value })}
-                className="quote-input"
+                onChange={(content) => setService({ ...service, description: content })}
               />
             </label>
 
@@ -177,7 +176,7 @@ export default function EditServicePage(props: { params: Promise<{ id: string }>
 
                 <label className="block md:col-span-2">
                   <span className="mb-1.5 block text-[15px] font-light text-slate-700">Mô tả chốt khách</span>
-                  <textarea rows={3} value={optionData.description} onChange={(event) => setOptionData({ ...optionData, description: event.target.value })} className="quote-input" />
+                  <TiptapEditor value={optionData.description} onChange={(content) => setOptionData({ ...optionData, description: content })} />
                 </label>
 
                 <label className="block">

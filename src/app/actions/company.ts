@@ -3,7 +3,6 @@
 import { requireAuth } from "@/lib/auth/require-auth";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
 
 export async function createCompanyAction(formData: FormData) {
   const session = await requireAuth();
@@ -27,34 +26,24 @@ export async function createCompanyAction(formData: FormData) {
     industry: industry || null,
     address: address || null,
     description: description || null,
-    customFields: taxCode ? { taxCode } : undefined,
+    taxCode: taxCode || null,
   };
 
-  let existingCompany: { id: string; customFields: unknown } | null = null;
+  let existingCompany: { id: string } | null = null;
   if (taxCode) {
-    const companies = await db.company.findMany({
-      where: { organizationId: session.organizationId },
-      select: { id: true, customFields: true },
+    existingCompany = await db.company.findFirst({
+      where: {
+        organizationId: session.organizationId,
+        taxCode,
+      },
+      select: { id: true },
     });
-    existingCompany = companies.find((company) => {
-      const fields = company.customFields;
-      if (!fields || typeof fields !== "object" || Array.isArray(fields)) return false;
-      return String((fields as Record<string, unknown>).taxCode || "").trim() === taxCode;
-    }) || null;
   }
 
   const company = existingCompany
     ? await db.company.update({
         where: { id: existingCompany.id, organizationId: session.organizationId },
-        data: {
-          ...companyData,
-          customFields: {
-            ...((existingCompany.customFields && typeof existingCompany.customFields === "object" && !Array.isArray(existingCompany.customFields))
-              ? existingCompany.customFields as Record<string, unknown>
-              : {}),
-            taxCode,
-          },
-        },
+        data: companyData,
       })
     : await db.company.create({
         data: {
@@ -81,14 +70,6 @@ export async function updateCompanyAction(id: string, formData: FormData) {
 
   if (!name) throw new Error("Tên Công ty là bắt buộc");
 
-  const current = await db.company.findFirst({
-    where: { id, organizationId: session.organizationId },
-    select: { customFields: true },
-  });
-  const currentFields = current?.customFields && typeof current.customFields === "object" && !Array.isArray(current.customFields)
-    ? current.customFields as Record<string, unknown>
-    : {};
-
   await db.company.update({
     where: { id, organizationId: session.organizationId },
     data: {
@@ -99,7 +80,7 @@ export async function updateCompanyAction(id: string, formData: FormData) {
       industry: industry || null,
       address: address || null,
       description: description || null,
-      customFields: taxCode ? { ...currentFields, taxCode } : currentFields as Prisma.InputJsonValue,
+      taxCode: taxCode || null,
     }
   });
 

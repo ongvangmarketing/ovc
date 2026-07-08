@@ -36,9 +36,9 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
         )}
       />
       <section className="grid gap-4 md:grid-cols-3">
-        <div className="quote-panel"><p className="text-sm text-slate-500">Số khóa</p><strong className="mt-2 block text-xl">{student.enrollments.length}</strong></div>
-        <div className="quote-panel"><p className="text-sm text-slate-500">Trạng thái</p><strong className="mt-2 block text-xl">{student.isActive ? "Đang hoạt động" : "Tạm khóa"}</strong></div>
-        <div className="quote-panel"><p className="text-sm text-slate-500">Ghi chú</p><strong className="mt-2 block text-xl">{student.bio || "Chưa có"}</strong></div>
+        <div className="quote-panel"><p className="text-sm text-slate-500">Số khóa</p><strong className="mt-2 block text-[15px]">{student.enrollments.length}</strong></div>
+        <div className="quote-panel"><p className="text-sm text-slate-500">Trạng thái</p><strong className="mt-2 block text-[15px]">{student.isActive ? "Đang hoạt động" : "Tạm khóa"}</strong></div>
+        <div className="quote-panel"><p className="text-sm text-slate-500">Ghi chú</p><strong className="mt-2 block text-[15px]">{student.bio || "Chưa có"}</strong></div>
       </section>
       <TrainingPanel title="Khóa đang học" description={`${student.enrollments.length} lượt ghi danh`}>
         <div className="divide-y divide-slate-100">

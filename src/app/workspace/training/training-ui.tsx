@@ -45,7 +45,7 @@ export function TrainingHeader({ title, description, action }: { title: string; 
           <GraduationCap className="h-4 w-4 text-orange-500" />
           Đào tạo / {title}
         </div>
-        <h1 className="text-2xl font-semibold text-slate-950">{title}</h1>
+        <h1 className="text-[15px] font-medium text-slate-950">{title}</h1>
         <p className="mt-1 text-[14px] font-light text-slate-500">{description}</p>
       </div>
       {action ? <div className="flex items-center gap-3">{action}</div> : null}
@@ -72,7 +72,7 @@ export function TrainingTabs({ active }: { active: string }) {
         <Link
           key={item.id}
           href={item.href}
-          className={`shrink-0 rounded-xl px-4 py-2 text-sm font-semibold transition ${active === item.id ? "bg-orange-500 text-white shadow-sm" : "text-slate-500 hover:bg-orange-50 hover:text-orange-600"}`}
+          className={`shrink-0 rounded-xl px-4 py-2 text-sm font-medium transition ${active === item.id ? "bg-orange-500 text-white shadow-sm" : "text-slate-500 hover:bg-orange-50 hover:text-orange-600"}`}
         >
           {item.label}
         </Link>
@@ -98,13 +98,13 @@ export function TrainingStatCards({ stats }: { stats: { revenue: number; student
       {items.map((item) => {
         const Icon = item.icon;
         return (
-          <article key={item.label} className="quote-panel p-5">
+          <article key={item.label} className="quote-panel p-4">
             <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl ${item.tone}`}>
               <Icon className="h-5 w-5" />
             </div>
             <p className="text-sm font-medium text-slate-500">{item.label}</p>
-            <strong className="mt-2 block text-2xl font-bold text-slate-950">{item.value}</strong>
-            <small className="mt-2 block text-xs font-semibold text-emerald-600">{item.note}</small>
+            <strong className="mt-2 block text-[15px] font-medium text-slate-950">{item.value}</strong>
+            <small className="mt-2 block text-xs font-medium text-emerald-600">{item.note}</small>
           </article>
         );
       })}
@@ -116,10 +116,10 @@ export function TrainingListKpis({ items }: { items: { label: string; value: Rea
   return (
     <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {items.map((item) => (
-        <article key={item.label} className="quote-panel p-5">
+        <article key={item.label} className="quote-panel p-4">
           <p className="text-sm font-medium text-slate-500">{item.label}</p>
-          <strong className="mt-2 block text-2xl font-bold text-slate-950">{item.value}</strong>
-          {item.note ? <small className="mt-2 block text-xs font-semibold text-emerald-600">{item.note}</small> : null}
+          <strong className="mt-2 block text-[15px] font-medium text-slate-950">{item.value}</strong>
+          {item.note ? <small className="mt-2 block text-xs font-medium text-emerald-600">{item.note}</small> : null}
         </article>
       ))}
     </section>
@@ -150,9 +150,9 @@ export function CourseTable({ courses }: { courses: TrainingCourseRow[] }) {
                 <span className="line-clamp-1 text-xs text-slate-500">{course.description}</span>
               </td>
               <td className="px-4 py-4">{course.instructor}</td>
-              <td className="px-4 py-4"><span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-600">{courseStatusLabel[course.status] || course.status}</span></td>
+              <td className="px-4 py-4"><span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-600">{courseStatusLabel[course.status] || course.status}</span></td>
               <td className="px-4 py-4">{course.classes} lớp · {course.enrollments} học viên</td>
-              <td className="px-4 py-4 text-right font-bold text-slate-950">{currency.format(course.price)}</td>
+              <td className="px-4 py-4 text-right font-medium text-slate-950">{currency.format(course.price)}</td>
               <td className="px-4 py-4 text-right">
                 <div className="inline-flex gap-2">
                   <IconLink href={`/workspace/courses/${course.id}`} title="Vận hành"><Eye className="h-4 w-4" /></IconLink>
@@ -180,7 +180,7 @@ export function StudentTable({ students }: { students: TrainingStudentRow[] }) {
           </div>
           <div className="text-sm text-slate-600">{student.enrollments} khóa · {student.active} đang học · {student.completed} hoàn thành</div>
           <div>
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-500"><span>Tiến độ</span><span>{student.progress}%</span></div>
+            <div className="flex items-center justify-between text-xs font-medium text-slate-500"><span>Tiến độ</span><span>{student.progress}%</span></div>
             <div className="mt-2 h-2 rounded-full bg-slate-100"><div className="h-full rounded-full bg-orange-500" style={{ width: `${student.progress}%` }} /></div>
           </div>
           <div className="flex items-center gap-2">
@@ -229,7 +229,7 @@ export function ClassTable({ classes }: { classes: TrainingClassRow[] }) {
               <strong className="text-slate-950">{item.name}</strong>
               <p className="mt-1 text-sm text-slate-500">{item.course} · GV: {item.instructor}</p>
             </div>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${item.isActive ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>{item.isActive ? "Đang mở" : "Đã đóng"}</span>
+            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${item.isActive ? "bg-emerald-50 text-emerald-600" : "bg-slate-100 text-slate-500"}`}>{item.isActive ? "Đang mở" : "Đã đóng"}</span>
           </div>
           <div className="mt-4 grid gap-3 text-sm text-slate-600">
             <span>Mã: <b>{item.code}</b></span>
@@ -271,10 +271,10 @@ export function TuitionTable({ tuition }: { tuition: TrainingTuitionRow[] }) {
               <td className="px-4 py-4"><strong className="block text-slate-950">{item.student}</strong><span className="text-xs text-slate-500">{item.email}</span></td>
               <td className="px-4 py-4"><strong className="block text-slate-800">{item.course}</strong><span className="text-xs text-slate-500">{item.className}</span></td>
               <td className="px-4 py-4">{formatDate(item.enrolledAt)}</td>
-              <td className="px-4 py-4 text-right font-semibold text-slate-950">{currency.format(item.tuitionFee)}</td>
-              <td className="px-4 py-4 text-right font-semibold text-emerald-600">{currency.format(item.paidAmount)}</td>
-              <td className="px-4 py-4 text-right font-semibold text-red-600">{currency.format(item.remainingAmount)}</td>
-              <td className="px-4 py-4"><span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-bold text-orange-600">{item.paymentStatus}</span></td>
+              <td className="px-4 py-4 text-right font-medium text-slate-950">{currency.format(item.tuitionFee)}</td>
+              <td className="px-4 py-4 text-right font-medium text-emerald-600">{currency.format(item.paidAmount)}</td>
+              <td className="px-4 py-4 text-right font-medium text-red-600">{currency.format(item.remainingAmount)}</td>
+              <td className="px-4 py-4"><span className="rounded-full bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-600">{item.paymentStatus}</span></td>
               <td className="px-4 py-4 text-right">
                 <div className="inline-flex gap-2">
                   <IconLink href={`/workspace/training/tuition/${item.id}`} title="Xem chi tiết"><Eye className="h-4 w-4" /></IconLink>
@@ -297,7 +297,7 @@ export function InstructorTable({ instructors }: { instructors: TrainingInstruct
       {instructors.map((item) => (
         <article key={item.id} className="rounded-xl border border-slate-100 bg-white p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-600">{item.name.slice(0, 2).toUpperCase()}</div>
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-100 text-sm font-medium text-orange-600">{item.name.slice(0, 2).toUpperCase()}</div>
             <div>
               <strong className="block text-slate-950">{item.name}</strong>
               <span className="text-sm text-slate-500">{item.email}</span>
@@ -359,7 +359,7 @@ export function CertificateTable({ certificates }: { certificates: TrainingCerti
               <td className="px-4 py-4"><strong className="block text-slate-950">{item.student}</strong><span className="text-xs text-slate-500">{item.email}</span></td>
               <td className="px-4 py-4">{item.course}</td>
               <td className="px-4 py-4">{item.className}</td>
-              <td className="px-4 py-4"><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600">{enrollmentStatusLabel[item.status] || item.status} · {item.progress}%</span></td>
+              <td className="px-4 py-4"><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-600">{enrollmentStatusLabel[item.status] || item.status} · {item.progress}%</span></td>
               <td className="px-4 py-4">{formatDate(item.issuedAt)}</td>
               <td className="px-4 py-4 text-right">
                 <IconLink href={`/workspace/training/tuition/${item.id}`} title="Xem chi tiết"><Eye className="h-4 w-4" /></IconLink>

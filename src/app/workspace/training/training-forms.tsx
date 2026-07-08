@@ -1,4 +1,6 @@
+import { type ReactNode } from "react";
 import Link from "next/link";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 import type { Class, Course, Enrollment, PotentialStudent, User } from "@prisma/client";
 
 import type { TrainingFormOptions } from "@/lib/training";
@@ -7,7 +9,7 @@ import { TuitionFormClient } from "./tuition-form-client";
 type Action = (formData: FormData) => Promise<void>;
 
 const inputClass = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 outline-none transition focus:border-orange-300 focus:ring-4 focus:ring-orange-50";
-const labelClass = "space-y-1.5 text-sm font-semibold text-slate-600";
+const labelClass = "space-y-1.5 text-sm font-medium text-slate-600";
 const placeholderEmailDomain = "@no-email.ovc.local";
 
 function dateInput(value?: Date | string | null) {
@@ -43,7 +45,7 @@ export function FormShell({
     <form action={action} className="quote-panel space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-950">{title}</h2>
+          <h2 className="text-[15px] font-medium text-slate-950">{title}</h2>
           <p className="mt-1 text-sm text-slate-500">{description}</p>
         </div>
         <div className="flex gap-2">
@@ -66,7 +68,10 @@ export function CourseForm({ action, course, options }: { action: Action; course
             {options.instructors.map((item) => <option key={item.id} value={item.id}>{item.name} - {item.email}</option>)}
           </select>
         </label>
-        <label className={`${labelClass} md:col-span-2`}>Mô tả<textarea name="description" defaultValue={course?.description || ""} rows={4} className={inputClass} /></label>
+        <div className="md:col-span-2">
+          <label className="block text-[13px] font-medium text-slate-700 mb-1">Mô tả</label>
+          <TiptapEditor name="description" defaultValue={course?.description || ""} />
+        </div>
         <label className={labelClass}>Trạng thái
           <select name="status" defaultValue={course?.status || "DRAFT"} className={inputClass}>
             <option value="DRAFT">Bản nháp</option>
@@ -86,7 +91,7 @@ export function CourseForm({ action, course, options }: { action: Action; course
         <label className={labelClass}>Ngôn ngữ<input name="language" defaultValue={course?.language || "vi"} className={inputClass} /></label>
         <label className={labelClass}>Tiền tệ<input name="currency" defaultValue={course?.currency || "VND"} className={inputClass} /></label>
       </div>
-      <div className="flex flex-wrap gap-4 text-sm font-semibold text-slate-600">
+      <div className="flex flex-wrap gap-4 text-sm font-medium text-slate-600">
         <label className="flex items-center gap-2"><input name="isPublic" type="checkbox" defaultChecked={course?.isPublic || false} /> Công khai</label>
         <label className="flex items-center gap-2"><input name="isFeatured" type="checkbox" defaultChecked={course?.isFeatured || false} /> Nổi bật</label>
       </div>
@@ -111,7 +116,7 @@ export function ClassForm({ action, item, options }: { action: Action; item?: (C
         <label className={labelClass}>Địa điểm<input name="location" defaultValue={item?.location || ""} className={inputClass} /></label>
         <label className={labelClass}>Lịch học<input name="schedule" defaultValue={typeof item?.schedule === "object" && item?.schedule && "note" in item.schedule ? String(item.schedule.note || "") : ""} className={inputClass} /></label>
       </div>
-      <label className="flex items-center gap-2 text-sm font-semibold text-slate-600"><input name="isActive" type="checkbox" defaultChecked={item?.isActive ?? true} /> Lớp đang hoạt động</label>
+      <label className="flex items-center gap-2 text-sm font-medium text-slate-600"><input name="isActive" type="checkbox" defaultChecked={item?.isActive ?? true} /> Lớp đang hoạt động</label>
     </FormShell>
   );
 }
@@ -137,7 +142,10 @@ export function StudentForm({
             <option value="off">Tạm khóa</option>
           </select>
         </label>
-        <label className={`${labelClass} md:col-span-2`}>Ghi chú<textarea name="bio" defaultValue={student?.bio || defaults?.note || ""} rows={4} className={inputClass} /></label>
+        <div className="md:col-span-2">
+          <label className="block text-[13px] font-medium text-slate-700 mb-1">Ghi chú</label>
+          <TiptapEditor name="bio" defaultValue={student?.bio || defaults?.note || ""} />
+        </div>
       </div>
     </FormShell>
   );
@@ -156,7 +164,10 @@ export function InstructorForm({ action, instructor }: { action: Action; instruc
             <option value="off">Tạm khóa</option>
           </select>
         </label>
-        <label className={`${labelClass} md:col-span-2`}>Hồ sơ giảng viên<textarea name="bio" defaultValue={instructor?.bio || ""} rows={4} className={inputClass} /></label>
+        <div className="md:col-span-2">
+          <label className="block text-[13px] font-medium text-slate-700 mb-1">Hồ sơ giảng viên</label>
+          <TiptapEditor name="bio" defaultValue={instructor?.bio || ""} />
+        </div>
       </div>
     </FormShell>
   );
@@ -181,7 +192,10 @@ export function PotentialStudentForm({ action, student }: { action: Action; stud
           </select>
         </label>
         <label className={labelClass}>Lịch hẹn lại<input name="nextFollowUpAt" type="date" defaultValue={dateInput(student?.nextFollowUpAt)} className={inputClass} /></label>
-        <label className={`${labelClass} md:col-span-2`}>Ghi chú<textarea name="note" defaultValue={student?.note || ""} rows={4} className={inputClass} /></label>
+        <div className="md:col-span-2">
+          <label className="block text-[13px] font-medium text-slate-700 mb-1">Ghi chú</label>
+          <TiptapEditor name="note" defaultValue={student?.note || ""} />
+        </div>
       </div>
     </FormShell>
   );

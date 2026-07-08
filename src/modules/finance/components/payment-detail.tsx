@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowDownLeft, Copy, Download, Edit3, Eye, FileText, Mail, ReceiptText, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils/cn";
 
 import { deletePayment, getPaymentEmailDraft, sendPaymentEmail, type FinanceEmailSendPayload } from "@/app/actions/finance-crud";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { EmailComposerModal, type FinanceEmailDraft } from "./email-composer-modal";
+import { DocumentNavigator } from "./finance-detail-widgets";
 import { useState } from "react";
 
 type PaymentDetailData = {
@@ -92,6 +94,13 @@ export function PaymentDetailView({ data }: { data: PaymentDetailData }) {
   const paymentNumber = data.number || data.reference || data.id.slice(-8).toUpperCase();
   const receiptUrl = `/workspace/finance/payments/${data.id}/receipt`;
   const receiptPdfUrl = `${receiptUrl}/pdf`;
+  const isCompanyCustomer = !!data.invoice?.contact?.company;
+  const customerCompany = data.invoice?.contact?.company?.name || '';
+  const customerTaxCode = data.invoice?.contact?.company?.taxCode || data.invoice?.contact?.taxCode || '';
+  const customerAddress = data.invoice?.contact?.company?.address || data.invoice?.contact?.address || '';
+  const customerPhone = data.invoice?.contact?.company?.phone || data.invoice?.contact?.phone || '';
+  const customerEmail = data.invoice?.contact?.company?.email || data.invoice?.contact?.email || '';
+  const customerPerson = data.invoice?.contact ? `${data.invoice.contact.firstName || ''} ${data.invoice.contact.lastName || ''}`.trim() || data.invoice.contact.name : '';
 
   const deleteMutation = useMutation({
     mutationFn: () => deletePayment(data.id),
@@ -131,126 +140,156 @@ export function PaymentDetailView({ data }: { data: PaymentDetailData }) {
   };
 
   return (
-    <div className="quote-detail-page">
-      <header className="quote-detail-hero">
-        <div className="quote-detail-title">
-          <div className="quote-detail-icon">
+    <div className="mx-auto w-full max-w-[1440px] px-6 py-10 lg:px-12 bg-white min-h-[calc(100vh-64px)] animate-in fade-in duration-300">
+      <header className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#eaeaea] pb-6">
+        <div className="flex items-center gap-4">
+          <div className="hidden">
             <ArrowDownLeft className="h-7 w-7" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <h1>{paymentNumber}</h1>
-              <span className={`quote-status quote-status-${data.status.toLowerCase()}`}>{statusLabel[data.status] || data.status}</span>
+              <h1 className="text-[36px] font-medium tracking-tighter text-black leading-none">{paymentNumber}</h1>
+              <span className={cn("px-2.5 py-1 rounded-full text-[13px] font-medium border", data.status === "DRAFT" ? "bg-gray-50 border-gray-200 text-gray-700" : data.status === "SENT" ? "bg-blue-50 border-blue-200 text-blue-700" : data.status === "ACCEPTED" ? "bg-green-50 border-green-200 text-green-700" : data.status === "REJECTED" ? "bg-red-50 border-red-200 text-red-700" : "bg-purple-50 border-purple-200 text-purple-700")}>{statusLabel[data.status] || data.status}</span>
             </div>
             <p>{methodLabel[data.method] || data.method} · Ngày thanh toán: {formatDateTime(data.paidAt || data.createdAt)}</p>
           </div>
         </div>
-        <div className="quote-detail-top-actions">
-          <Link href={receiptPdfUrl} target="_blank" className="quote-detail-top-button">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={receiptPdfUrl} target="_blank" className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors">
             <FileText className="h-4 w-4" />
             Xem PDF
           </Link>
-          <button type="button" onClick={openSendModal} disabled={sendEmailMutation.isPending || isEmailDraftLoading} className="quote-detail-top-button">
+          <button type="button" onClick={openSendModal} disabled={sendEmailMutation.isPending || isEmailDraftLoading} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors">
             <Mail className="h-4 w-4" />
             {sendEmailMutation.isPending ? "Đang gửi" : "Gửi email"}
           </button>
-          <Link href={`/workspace/finance/payments/${data.id}/edit`} className="quote-detail-top-button">
+          <Link href={`/workspace/finance/payments/${data.id}/edit`} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors">
             <Edit3 className="h-4 w-4" />
             Chỉnh sửa
           </Link>
-          <button type="button" onClick={() => setIsDeleteOpen(true)} className="quote-detail-top-button quote-detail-delete">
+          <button type="button" onClick={() => setIsDeleteOpen(true)} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-red-600 rounded-lg hover:bg-red-50 hover:border-red-200 transition-colors">
             <Trash2 className="h-4 w-4" />
             Xóa
           </button>
         </div>
       </header>
 
-      <section className="quote-detail-summary">
-        <div>
-          <span>Khách hàng</span>
-          <strong>{customerName(data)}</strong>
-          <p>{data.invoice?.contact?.phone || "Chưa có số điện thoại"}</p>
-          <p>{data.invoice?.contact?.email || "Chưa có email"}</p>
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4 mb-10">
+        <div className="lg:col-span-2">
+          <span className="text-[11px] text-gray-400 font-medium uppercase tracking-widest block mb-4">Khách hàng</span>
+          <strong className="text-[20px] font-medium text-black block leading-tight mb-1">
+            {isCompanyCustomer ? customerCompany : (customerPerson || customerEmail || "Chưa có thông tin")}
+          </strong>
+          {isCompanyCustomer && (
+            <p className="text-[15px] text-gray-500 mb-6">
+              Mã số thuế: {customerTaxCode || "Chưa cập nhật"}
+            </p>
+          )}
+          {!isCompanyCustomer && <div className="mb-6" />}
+
+          <div className="grid gap-3 max-w-xl">
+            {isCompanyCustomer && customerPerson && (
+              <div className="flex text-[14px]">
+                <span className="text-gray-500 w-32 shrink-0 font-light">Đại diện:</span>
+                <span className="text-gray-900">{customerPerson}</span>
+              </div>
+            )}
+            {customerAddress && (
+              <div className="flex text-[14px]">
+                <span className="text-gray-500 w-32 shrink-0 font-light">Địa chỉ:</span>
+                <span className="text-gray-900">{customerAddress}</span>
+              </div>
+            )}
+            <div className="flex text-[14px]">
+              <span className="text-gray-500 w-32 shrink-0 font-light">Điện thoại:</span>
+              <span className="text-gray-900">{customerPhone || "—"}</span>
+            </div>
+            <div className="flex text-[14px]">
+              <span className="text-gray-500 w-32 shrink-0 font-light">Email:</span>
+              <span className="text-gray-900">{customerEmail || "—"}</span>
+            </div>
+          </div>
         </div>
-        <div>
-          <span>Hóa đơn</span>
-          <strong>{data.invoice?.number || "Không gắn hóa đơn"}</strong>
-          <p>{data.invoice?.id ? "Liên kết hóa đơn thanh toán" : "Chưa liên kết hóa đơn"}</p>
-        </div>
-        <div>
-          <span>Số tiền thanh toán</span>
-          <strong className="text-emerald-600">{formatMoney(data.amount, data.currency)}</strong>
-          <p>{statusLabel[data.status] || data.status}</p>
-        </div>
-        <div>
-          <span>Tham chiếu</span>
-          <strong>{paymentNumber}</strong>
-          <p>{methodLabel[data.method] || data.method}</p>
+        <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-[#eaeaea] pt-6 lg:pt-0 lg:pl-8">
+          <span className="text-[11px] text-gray-400 font-medium uppercase tracking-widest block mb-2">Hóa đơn</span>
+          <strong className="text-[20px] font-medium text-black block mb-1">{data.invoice?.number || "Không gắn hóa đơn"}</strong>
+          <p className="text-[14px] text-gray-600 mb-1">{data.invoice?.id ? "Liên kết hóa đơn thanh toán" : "Chưa liên kết hóa đơn"}</p>
+          <p className="text-[14px] text-gray-600">Ngày tạo: {formatDateTime(data.createdAt)}</p>
         </div>
       </section>
 
-      <div className="quote-detail-layout">
-        <main className="space-y-5">
-          <section className="quote-detail-card">
-            <h2>Thông tin phiếu thanh toán</h2>
-            <div className="quote-side-list">
-              <div><span>Mã phiếu</span><strong>{paymentNumber}</strong></div>
-              <div><span>Phương thức</span><strong>{methodLabel[data.method] || data.method}</strong></div>
-              <div><span>Trạng thái</span><strong>{statusLabel[data.status] || data.status}</strong></div>
-              <div><span>Ngày thanh toán</span><strong>{formatDateTime(data.paidAt || data.createdAt)}</strong></div>
-              <div><span>Ngày tạo</span><strong>{formatDateTime(data.createdAt)}</strong></div>
-              <div><span>Cập nhật</span><strong>{formatDateTime(data.updatedAt)}</strong></div>
+      <div className="flex flex-col lg:flex-row gap-8">
+        <main className="flex-1 space-y-5">
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
+            <div className="mb-4">
+              <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Thông tin phiếu thanh toán</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-[13px] mt-4">
+              <div className="text-slate-500 font-light">Mã phiếu</div><div className="font-medium text-right text-black">{paymentNumber}</div>
+              <div className="text-slate-500 font-light">Phương thức</div><div className="font-medium text-right text-black">{methodLabel[data.method] || data.method}</div>
+              <div className="text-slate-500 font-light">Trạng thái</div><div className="font-medium text-right text-black">{statusLabel[data.status] || data.status}</div>
+              <div className="text-slate-500 font-light">Ngày thanh toán</div><div className="font-medium text-right text-black">{formatDateTime(data.paidAt || data.createdAt)}</div>
+              <div className="text-slate-500 font-light">Ngày tạo</div><div className="font-medium text-right text-black">{formatDateTime(data.createdAt)}</div>
+              <div className="text-slate-500 font-light">Cập nhật</div><div className="font-medium text-right text-black">{formatDateTime(data.updatedAt)}</div>
             </div>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Ghi chú</h2>
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
+            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Ghi chú</h2>
             <div className="contract-terms">{data.notes || "Chưa có ghi chú."}</div>
           </section>
         </main>
 
-        <aside className="space-y-5">
-          <section className="quote-detail-card">
-            <h2>Tài liệu phiếu thu</h2>
+        <aside className="w-full lg:w-[340px] shrink-0 space-y-5">
+          <DocumentNavigator
+            basePath="/workspace/finance/payments"
+            currentNumber={data.number}
+            previous={data.previousDocument}
+            next={data.nextDocument}
+          />
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
+            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Tài liệu phiếu thu</h2>
             <div className="contract-document-box">
               <ReceiptText className="h-10 w-10 text-emerald-600" />
               <strong>{paymentNumber}</strong>
               <span>{formatMoney(data.amount, data.currency)}</span>
             </div>
-            <Link href={receiptPdfUrl} target="_blank" className="quote-detail-action w-full mt-3">
+            <Link href={receiptPdfUrl} target="_blank" className="w-full flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors mt-3">
               <Download className="h-4 w-4" />
               Tải xuống
             </Link>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Giá trị & liên kết</h2>
-            <div className="quote-side-list">
-              <div><span>Số tiền</span><strong>{formatMoney(data.amount, data.currency)}</strong></div>
-              <div><span>Hóa đơn</span><strong>{data.invoice?.number || "--"}</strong></div>
-              <div><span>Tổng hóa đơn</span><strong>{formatMoney(data.invoice?.total, data.currency)}</strong></div>
-              <div><span>Còn phải thu</span><strong>{formatMoney(data.invoice?.amountDue, data.currency)}</strong></div>
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
+            <div className="mb-4">
+              <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Giá trị & liên kết</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-[13px] mt-4">
+              <div className="text-slate-500 font-light">Số tiền</div><div className="font-medium text-right text-black">{formatMoney(data.amount, data.currency)}</div>
+              <div className="text-slate-500 font-light">Hóa đơn</div><div className="font-medium text-right text-black">{data.invoice?.number || "--"}</div>
+              <div className="text-slate-500 font-light mt-2">Tổng hóa đơn</div><div className="font-medium text-right text-black mt-2">{formatMoney(data.invoice?.total, data.currency)}</div>
+              <div className="text-slate-500 font-light mt-2">Còn phải thu</div><div className="font-medium text-orange-600 text-[14px] text-right mt-2">{formatMoney(data.invoice?.amountDue, data.currency)}</div>
             </div>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Thao tác</h2>
-            <div className="quote-side-actions">
-              <Link href={receiptUrl} target="_blank" className="quote-detail-action">
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
+            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Thao tác</h2>
+            <div className="grid gap-3">
+              <Link href={receiptUrl} target="_blank" className="flex items-center justify-center gap-2 px-4 h-9 bg-black text-white text-[14px] font-medium rounded-lg hover:bg-gray-800 transition-colors w-full">
                 <Eye className="h-4 w-4" />
                 Xem phiếu thu
               </Link>
               {data.invoice?.id ? (
-                <Link href={`/workspace/finance/invoices/${data.invoice.id}`} className="quote-detail-action">
+                <Link href={`/workspace/finance/invoices/${data.invoice.id}`} className="flex items-center justify-center gap-2 px-4 h-9 bg-black text-white text-[14px] font-medium rounded-lg hover:bg-gray-800 transition-colors w-full">
                   <FileText className="h-4 w-4" />
                   Xem hóa đơn
                 </Link>
               ) : null}
-              <Link href={`/workspace/finance/payments/${data.id}/edit`} className="quote-detail-action">
+              <Link href={`/workspace/finance/payments/${data.id}/edit`} className="flex items-center justify-center gap-2 px-4 h-9 bg-black text-white text-[14px] font-medium rounded-lg hover:bg-gray-800 transition-colors w-full">
                 <Edit3 className="h-4 w-4" />
                 Chỉnh sửa
               </Link>
-              <button type="button" onClick={copyId} className="quote-detail-action">
+              <button type="button" onClick={copyId} className="flex items-center justify-center gap-2 px-4 h-9 bg-black text-white text-[14px] font-medium rounded-lg hover:bg-gray-800 transition-colors w-full">
                 <Copy className="h-4 w-4" />
                 {copied ? "Đã copy" : "Copy mã phiếu"}
               </button>

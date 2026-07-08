@@ -16,7 +16,7 @@ export function SettingsClient() {
   return (
     <>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-950 flex items-center gap-2">
+        <h1 className="text-[15px] font-medium text-gray-950 flex items-center gap-2">
           <div className="h-10 w-10 bg-indigo-100 rounded-xl flex items-center justify-center border border-indigo-200">
             <Zap className="h-5 w-5 text-indigo-700" />
           </div>
@@ -56,8 +56,8 @@ export function SettingsClient() {
         {/* Settings Content */}
         <div className="col-span-2 space-y-6">
           {activeTab === "ai_scoring" && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-4 mb-4">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+              <h3 className="text-[15px] font-medium text-gray-900 border-b border-gray-100 pb-4 mb-4">
                 Cấu hình AI Scoring (Chấm điểm Lead)
               </h3>
               <p className="text-sm text-gray-500 mb-6">
@@ -91,7 +91,7 @@ export function SettingsClient() {
               </div>
               
               <div className="mt-6 bg-blue-50 border border-blue-100 p-4 rounded-xl">
-                <h4 className="font-semibold text-blue-900 flex items-center mb-1 text-sm"><Zap className="w-4 h-4 mr-1.5"/> Ngưỡng đánh giá (Thresholds)</h4>
+                <h4 className="font-medium text-blue-900 flex items-center mb-1 text-sm"><Zap className="w-4 h-4 mr-1.5"/> Ngưỡng đánh giá (Thresholds)</h4>
                 <p className="text-xs text-blue-800">
                   Dưới 15 điểm: <strong>Lead Lạnh</strong> <br/>
                   Từ 15 - 30 điểm: <strong>Lead Ấm</strong> <br/>
@@ -102,8 +102,8 @@ export function SettingsClient() {
           )}
 
           {activeTab === "duplicate" && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
-              <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-4 mb-4">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+              <h3 className="text-[15px] font-medium text-gray-900 border-b border-gray-100 pb-4 mb-4">
                 Quy tắc chống trùng lặp (Duplicate rules)
               </h3>
               <p className="text-sm text-gray-500 mb-6">Xác định các trường hợp bị coi là trùng lặp.</p>
@@ -121,14 +121,14 @@ export function SettingsClient() {
           )}
 
           {activeTab === "assignment" && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col items-center justify-center py-12 text-gray-500">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col items-center justify-center py-12 text-gray-500">
               <Users className="w-12 h-12 text-gray-300 mb-3" />
               <p>Chức năng phân công Sale tự động (Round-robin) đang được phát triển.</p>
             </div>
           )}
 
           {activeTab === "notifications" && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col items-center justify-center py-12 text-gray-500">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col items-center justify-center py-12 text-gray-500">
               <Bell className="w-12 h-12 text-gray-300 mb-3" />
               <p>Cấu hình Webhook/Zalo Notification đang được phát triển.</p>
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Edit3, Save, X, Banknote, CreditCard, Wallet, Calendar, AlertCircle, FileText, Download } from "lucide-react";
@@ -8,7 +8,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 
 import { updateTuitionInline } from "./actions";
+import { formatCurrency } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 
 type TuitionData = {
   id: string;
@@ -137,14 +139,14 @@ export function TuitionDetailWorkspace({ initialData }: { initialData: TuitionDa
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div className="h-4 w-px bg-border" />
-          <h1 className="text-sm font-semibold text-foreground">Biên lai Học phí</h1>
-          <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold border", statusColor)}>
+          <h1 className="text-sm font-medium text-foreground">Biên lai Học phí</h1>
+          <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-medium border", statusColor)}>
             {data.paymentStatus === "PAID" ? "Hoàn thành" : data.paymentStatus === "PARTIAL" ? "Đóng 1 phần" : "Chưa nộp"}
           </span>
         </div>
         <div className="flex items-center gap-2">
           {financeInvoiceId ? (
-            <Link href={`/workspace/finance/invoices/${financeInvoiceId}`} className="flex h-8 items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors">
+            <Link href={`/workspace/finance/invoices/${financeInvoiceId}`} className="flex h-8 items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-medium text-indigo-700 hover:bg-indigo-100 transition-colors">
               <FileText className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Xem Hóa Đơn HP</span>
             </Link>
@@ -179,19 +181,19 @@ export function TuitionDetailWorkspace({ initialData }: { initialData: TuitionDa
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-4 lg:p-8">
         <div className="mx-auto max-w-4xl">
           {/* A4 Paper Style Document */}
           <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-8 sm:p-12 shadow-sm print:m-0 print:border-none print:shadow-none print:p-0">
             {/* Header */}
             <div className="flex flex-wrap items-start justify-between gap-6 border-b border-slate-100 pb-8">
               <div>
-                <h2 className="text-3xl font-bold tracking-tight text-slate-900">PHIẾU THU HỌC PHÍ</h2>
+                <h2 className="text-3xl font-medium tracking-tight text-slate-900">PHIẾU THU HỌC PHÍ</h2>
                 <p className="mt-2 text-sm text-slate-500">Mã GD: #{data.id.slice(-8).toUpperCase()}</p>
                 <p className="mt-1 text-sm text-slate-500">Ngày lập: {formatDate(data.createdAt)}</p>
               </div>
               <div className="text-right">
-                <h3 className="text-lg font-semibold text-slate-900">Thông tin học viên</h3>
+                <h3 className="text-[15px] font-medium text-slate-900">Thông tin học viên</h3>
                 <p className="mt-1 font-medium text-slate-700">{data.student.name}</p>
                 <p className="mt-1 text-sm text-slate-500">{data.student.email}</p>
                 <p className="mt-1 text-sm text-slate-500">{data.student.phone || "Chưa có SĐT"}</p>
@@ -202,7 +204,7 @@ export function TuitionDetailWorkspace({ initialData }: { initialData: TuitionDa
             <div className="mt-8 grid gap-6 sm:grid-cols-2">
               <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
                 <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Khóa học / Lớp</p>
-                <p className="mt-2 font-semibold text-slate-900">{data.course.title}</p>
+                <p className="mt-2 font-medium text-slate-900">{data.course.title}</p>
                 <p className="mt-1 text-sm text-slate-600">{data.class?.name || "Chưa xếp lớp"}</p>
               </div>
               <div className="rounded-xl border border-slate-100 bg-slate-50/50 p-4">
@@ -210,7 +212,7 @@ export function TuitionDetailWorkspace({ initialData }: { initialData: TuitionDa
                 <select 
                   value={data.paymentStatus}
                   onChange={(e) => handleStatusChange(e.target.value)}
-                  className="mt-2 block w-full rounded-lg border-slate-200 bg-white text-sm font-semibold text-slate-900 focus:border-primary focus:ring-primary shadow-sm"
+                  className="mt-2 block w-full rounded-lg border-slate-200 bg-white text-sm font-medium text-slate-900 focus:border-primary focus:ring-primary shadow-sm"
                 >
                   <option value="PENDING">Chưa nộp</option>
                   <option value="unpaid">Chưa nộp</option>
@@ -264,7 +266,7 @@ export function TuitionDetailWorkspace({ initialData }: { initialData: TuitionDa
 
             {/* Totals Summary */}
             <div className="mt-6 flex justify-end">
-              <div className="w-full max-w-sm space-y-3 rounded-xl bg-slate-50 p-5">
+              <div className="w-full max-w-sm space-y-3 rounded-xl bg-slate-50 p-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Tổng học phí</span>
                   <span className="font-medium text-slate-900">{formatMoney(data.tuitionFee)}</span>
@@ -275,8 +277,8 @@ export function TuitionDetailWorkspace({ initialData }: { initialData: TuitionDa
                 </div>
                 <div className="h-px bg-slate-200" />
                 <div className="flex justify-between">
-                  <span className="font-semibold text-slate-900">Cần thu thêm</span>
-                  <span className="text-lg font-bold text-red-600">{formatMoney(remaining)}</span>
+                  <span className="font-medium text-slate-900">Cần thu thêm</span>
+                  <span className="text-[15px] font-medium text-red-600">{formatMoney(remaining)}</span>
                 </div>
               </div>
             </div>
@@ -284,7 +286,7 @@ export function TuitionDetailWorkspace({ initialData }: { initialData: TuitionDa
             {/* Editable Note */}
             <div className="mt-8 border-t border-slate-100 pt-8">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2"><FileText className="h-4 w-4 text-slate-400"/> Ghi chú thanh toán</h4>
+                <h4 className="text-sm font-medium text-slate-900 flex items-center gap-2"><FileText className="h-4 w-4 text-slate-400"/> Ghi chú thanh toán</h4>
                 {!isEditingNote && (
                   <button onClick={() => setIsEditingNote(true)} className="text-xs font-medium text-primary hover:text-primary/80">Sửa ghi chú</button>
                 )}
@@ -292,12 +294,10 @@ export function TuitionDetailWorkspace({ initialData }: { initialData: TuitionDa
               
               {isEditingNote ? (
                 <div className="space-y-3">
-                  <textarea
+                  <TiptapEditor
                     value={draftNote}
-                    onChange={(e) => setDraftNote(e.target.value)}
+                    onChange={(content) => setDraftNote(content)}
                     placeholder="Nhập ghi chú cho biên lai này..."
-                    className="w-full rounded-xl border-slate-200 text-sm focus:border-primary focus:ring-primary shadow-sm min-h-[100px] resize-y p-3"
-                    autoFocus
                   />
                   <div className="flex items-center gap-2">
                     <button onClick={handleSaveNote} disabled={isSaving} className="flex h-8 items-center gap-2 rounded-lg bg-primary px-3 text-xs font-medium text-white hover:bg-primary/90">
@@ -328,12 +328,12 @@ export function TuitionDetailWorkspace({ initialData }: { initialData: TuitionDa
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
             <motion.div initial={{ opacity: 0, scale: 0.96, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.96, y: 16 }} className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl">
               <div className="flex items-center justify-between border-b border-border p-4">
-                <h3 className="font-semibold text-foreground flex items-center gap-2"><Wallet className="h-4 w-4 text-primary"/> Ghi nhận thanh toán</h3>
+                <h3 className="font-medium text-foreground flex items-center gap-2"><Wallet className="h-4 w-4 text-primary"/> Ghi nhận thanh toán</h3>
                 <button onClick={() => setIsPaymentModalOpen(false)} className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <form onSubmit={handleRecordPayment} className="p-5 space-y-4">
+              <form onSubmit={handleRecordPayment} className="p-4 space-y-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">Số tiền thanh toán (VNĐ)</label>
                   <input
@@ -346,7 +346,7 @@ export function TuitionDetailWorkspace({ initialData }: { initialData: TuitionDa
                       setPaymentAmount(val ? Number(val).toLocaleString("vi-VN") : "");
                     }}
                     placeholder={`Tối đa: ${remaining.toLocaleString("vi-VN")}`}
-                    className="w-full rounded-xl border-slate-200 p-3 text-lg font-bold focus:border-primary focus:ring-primary shadow-sm"
+                    className="w-full rounded-xl border-slate-200 p-3 text-[15px] font-medium focus:border-primary focus:ring-primary shadow-sm"
                   />
                 </div>
                 <div className="rounded-xl bg-blue-50 p-4 text-sm text-blue-800 flex gap-3">

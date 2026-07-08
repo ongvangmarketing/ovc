@@ -10,7 +10,8 @@ import { getUnreadNotifications, markNotificationsRead } from "@/app/actions/not
 
 
 const PAGE_TITLES: Record<string, string> = {
-  "/workspace/dashboard": "Tổng quan",
+  "/workspace": "Trang chủ",
+  "/workspace/dashboard": "Điều hành",
   "/workspace/crm": "CRM",
   "/workspace/crm/contacts": "Khách hàng",
   "/workspace/crm/companies": "Công ty",
@@ -49,7 +50,7 @@ const QUICK_CREATE_ITEMS = [
 
 const SEARCH_NAV_ITEMS = [
   { label: "Trang chủ", description: "Mở workspace", href: "/workspace" },
-  { label: "Tổng quan", description: "Tổng quan hoạt động", href: "/workspace/dashboard" },
+  { label: "Điều hành", description: "Tổng quan hoạt động", href: "/workspace/dashboard" },
   { label: "Trung tâm Lead", description: "Tổng quan, danh sách Lead, trình tạo Form, Webhooks", href: "/workspace/leads/dashboard" },
   { label: "Danh sách Lead", description: "Danh sách khách hàng tiềm năng", href: "/workspace/leads" },
   { label: "CRM", description: "Khách hàng, công ty, cơ hội", href: "/workspace/crm" },

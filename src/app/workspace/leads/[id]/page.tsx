@@ -49,11 +49,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xl font-bold border border-indigo-200 shadow-sm">
+            <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-[15px] font-medium border border-indigo-200 shadow-sm">
               {lead.fullName.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-950 flex items-center gap-2">
+              <h1 className="text-[15px] font-medium text-gray-950 flex items-center gap-2">
                 {lead.fullName}
                 {lead.status === 'DUPLICATE' && (
                   <span className="inline-flex items-center rounded-md bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700 border border-orange-200">
@@ -104,8 +104,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Cột 1: Thông tin cơ bản */}
         <div className="space-y-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <h3 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
               <UserCircle className="w-5 h-5 text-gray-400" />
               Thông tin liên hệ
             </h3>
@@ -129,7 +129,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </div>
 
             <div className="mt-6 pt-5 border-t border-gray-100">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Nguồn gốc (Source)</h3>
+              <h3 className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Nguồn gốc (Source)</h3>
               <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
                 <div className="flex items-center gap-2 mb-2">
                   <Target className="w-4 h-4 text-indigo-500" />
@@ -159,7 +159,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </div>
 
             <div className="mt-6 pt-5 border-t border-gray-100">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-3">Phân bổ</h3>
+              <h3 className="text-xs font-medium uppercase tracking-wider text-gray-500 mb-3">Phân bổ</h3>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {lead.assignee ? (
@@ -176,13 +176,13 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <h3 className="font-medium text-gray-900 flex items-center gap-2">
                   <Star className="w-5 h-5 text-orange-400" />
                   AI Lead Scoring
                 </h3>
-                <span className="text-2xl font-bold text-orange-600">{lead.score}</span>
+                <span className="text-[15px] font-medium text-orange-600">{lead.score}</span>
              </div>
              <p className="text-xs text-gray-500 leading-relaxed">
                Điểm số này được tính toán dựa trên mức độ hoàn thiện hồ sơ và nguồn gốc tương tác của Lead. 
@@ -194,8 +194,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         {/* Cột 2 & 3: Timeline & Activities */}
         <div className="lg:col-span-2 space-y-6">
           {/* Notes */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+            <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
               <MessageSquare className="w-5 h-5 text-gray-400" />
               Ghi chú từ khách hàng
             </h3>
@@ -211,7 +211,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           {/* Timeline */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
              <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <h3 className="font-medium text-gray-900 flex items-center gap-2">
                   <History className="w-5 h-5 text-gray-400" />
                   Lịch sử chăm sóc (Timeline)
                 </h3>
@@ -219,7 +219,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                   <Plus className="h-3 w-3 mr-1" /> Ghi nhận
                 </button>
              </div>
-             <div className="p-5">
+             <div className="p-4">
                 {lead.activities.length === 0 ? (
                   <div className="text-center py-8">
                     <History className="mx-auto h-8 w-8 text-gray-300 mb-2" />

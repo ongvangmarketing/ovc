@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Search, X } from "lucide-react";
+import { CalendarDays, Save, User, Building2, ExternalLink, Loader2, Search, X } from "lucide-react";
+import Link from "next/link";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 
 import { createContact, lookupCompanyByTaxCode, updateContact, type ContactPayload } from "@/app/actions/crm";
 import { cn } from "@/lib/utils/cn";
@@ -571,7 +573,11 @@ export function ContactFormClient({
               <input value={tagText} onChange={(event) => setTagText(event.target.value)} className="quote-input" placeholder="VIP, business, chăm sóc lại" />
             </Field>
             <Field label="Ghi chú" className="lg:col-span-4">
-              <textarea value={form.notes || ""} onChange={(event) => update("notes", event.target.value)} className="quote-input min-h-32 resize-y" placeholder="Ghi chú nội bộ, nhu cầu, lịch sử trao đổi..." />
+              <TiptapEditor 
+                value={form.notes || ""} 
+                onChange={(content) => update("notes", content)} 
+                placeholder="Ghi chú nội bộ, nhu cầu, lịch sử trao đổi..." 
+              />
             </Field>
           </div>
         </section>

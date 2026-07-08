@@ -23,42 +23,54 @@ export default async function PortalReportsPage() {
   const adsLeads = data.socialReports.reduce((sum, report) => sum + report.adsTotals.leads, 0);
 
   return (
-    <div className="mx-auto max-w-[1440px] p-6 lg:p-8 animate-in fade-in duration-500 grid gap-5">
-      <section className="quote-detail-hero">
-        <div className="quote-detail-title">
-            <div className="quote-detail-icon"><BarChart3 className="h-6 w-6" /></div>
-            <div>
-            <h1>Báo cáo Social Marketing</h1>
-            <p>Khách chỉ thấy Page hoặc Ads đã được bật trong từng dự án.</p>
-          </div>
-        </div>
+    <div className="mx-auto max-w-[1500px] px-6 py-12 lg:px-8 animate-in fade-in duration-500 font-sans">
+      
+      {/* Vercel Header */}
+      <section className="mb-12">
+        <h1 className="text-[56px] font-medium tracking-tight text-black leading-tight">
+          Báo cáo Social Marketing
+        </h1>
+        <p className="mt-4 text-[16px] text-gray-500 max-w-2xl">
+          Theo dõi mức độ tương tác và ngân sách quảng cáo của tất cả các chiến dịch trong dự án. Khách hàng chỉ xem được Page hoặc Ads đã được bật.
+        </p>
       </section>
 
-      <section className="portal-metric-grid grid gap-4 lg:grid-cols-4">
+      {/* Vercel Metrics Grid */}
+      <section className="grid gap-4 lg:grid-cols-4 mb-16">
         <ReportCard label="Page Reach" value={pageReach.toLocaleString("vi-VN")} />
         <ReportCard label="Page Engagement" value={pageEngagement.toLocaleString("vi-VN")} />
         <ReportCard label="Ads Spend" value={formatCurrency(adsSpend)} />
         <ReportCard label="Ads Lead" value={adsLeads.toLocaleString("vi-VN")} />
       </section>
 
-      <section className="quote-detail-card">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      {/* Vercel Content Section */}
+      <section className="border-t border-[#eaeaea] pt-12">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h2 className="flex items-center gap-2"><Megaphone className="h-5 w-5 text-blue-600" />Facebook Report theo dự án</h2>
-            <p className="mt-1 text-sm text-slate-500">Dữ liệu đọc từ nguồn Social đã gắn ở phần Sửa dự án.</p>
+            <h2 className="text-[24px] font-medium tracking-tight text-black flex items-center gap-2">
+              <Megaphone className="h-5 w-5" />
+              Chi tiết Facebook Report
+            </h2>
+            <p className="mt-1 text-[14px] text-gray-500">Dữ liệu đọc từ nguồn Social đã gắn ở phần Sửa dự án.</p>
           </div>
-          <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">30 ngày gần nhất</span>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-gray-100 px-3 py-1 text-[13px] font-medium text-black">30 ngày gần nhất</span>
+          </div>
         </div>
 
         {!data.socialMarketingEnabled ? (
-          <div className="mt-5 rounded-2xl border border-dashed border-orange-200 bg-orange-50 p-5 text-sm text-orange-800">
-            Social Marketing chưa bật cho portal này, nên khách chưa thấy report Facebook.
+          <div className="rounded-md border border-[#eaeaea] bg-gray-50 p-6 flex flex-col items-center justify-center text-center">
+            <p className="text-[14px] font-medium text-black">Tính năng chưa được kích hoạt</p>
+            <p className="mt-1 text-[13px] text-gray-500">Social Marketing chưa bật cho portal này, nên khách chưa thấy report Facebook.</p>
           </div>
         ) : data.socialReports.length ? (
           <PortalReportsTabs reports={data.socialReports} />
         ) : (
-          <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-sm text-slate-600">
-            Chưa có nguồn Facebook nào cho portal này. Cần gán dự án cho khách hàng <strong>{data.contact.email}</strong>, rồi vào Sửa dự án tick Facebook Page hoặc Facebook Ads.
+          <div className="rounded-md border border-[#eaeaea] bg-gray-50 p-6 flex flex-col items-center justify-center text-center">
+            <p className="text-[14px] font-medium text-black">Chưa có nguồn dữ liệu</p>
+            <p className="mt-1 text-[13px] text-gray-500 max-w-md">
+              Cần gán dự án cho khách hàng <strong className="text-black font-semibold">{data.contact.email}</strong>, rồi vào Sửa dự án tick Facebook Page hoặc Facebook Ads.
+            </p>
           </div>
         )}
       </section>
@@ -68,9 +80,11 @@ export default async function PortalReportsPage() {
 
 function ReportCard({ label, value, danger = false }: { label: string; value: string; danger?: boolean }) {
   return (
-    <div className="quote-detail-card">
-      <span className="text-slate-500">{label}</span>
-      <strong className={`mt-2 block text-xl ${danger ? "text-red-500" : "text-slate-950"}`}>{value}</strong>
+    <div className="rounded-xl border border-[#eaeaea] bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+      <span className="text-[13px] font-medium text-gray-500">{label}</span>
+      <strong className={`mt-2 block text-[32px] font-medium tracking-tight ${danger ? "text-red-500" : "text-black"}`}>
+        {value}
+      </strong>
     </div>
   );
 }

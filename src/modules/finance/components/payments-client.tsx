@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Download, Edit, Eye, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-
+import { cn } from "@/lib/utils/cn";
 import { deletePayment } from "@/app/actions/finance-crud";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 
@@ -37,12 +37,12 @@ const statusLabel: Record<string, string> = {
 };
 
 const statusColor: Record<string, string> = {
-  PENDING: "rgb(245 158 11)",
-  PROCESSING: "rgb(37 99 235)",
-  COMPLETED: "rgb(16 185 129)",
-  FAILED: "rgb(239 68 68)",
-  REFUNDED: "rgb(124 58 237)",
-  CANCELLED: "rgb(100 116 139)",
+  PENDING: "bg-white border border-[#eaeaea] text-gray-500",
+  PROCESSING: "bg-gray-50 border border-[#eaeaea] text-black",
+  COMPLETED: "bg-gray-100 text-black",
+  FAILED: "bg-white border border-red-200 text-red-600",
+  REFUNDED: "bg-white border border-[#eaeaea] text-gray-500",
+  CANCELLED: "bg-white border border-[#eaeaea] text-gray-400",
 };
 
 const methodLabel: Record<string, string> = {
@@ -117,104 +117,112 @@ export function PaymentsClient({ initialData }: { initialData: PaymentListItem[]
   const totalAmount = filtered.reduce((sum, payment) => sum + asNumber(payment.amount), 0);
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <div className="ml-auto flex items-center gap-3">
-          <button className="h-9 px-4 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors inline-flex items-center gap-2">
+    <div className="mx-auto w-full max-w-[1440px] px-6 py-10 lg:px-12 bg-white min-h-[calc(100vh-64px)]">
+      <div className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[36px] font-medium tracking-tighter text-black leading-none mb-3">Thanh toán</h1>
+          <p className="text-[14px] text-gray-500">{filtered.length} giao dịch thanh toán</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="h-9 px-4 rounded-lg border border-[#eaeaea] text-[14px] font-medium text-black hover:bg-gray-50 transition-colors inline-flex items-center gap-2">
             <Download className="w-4 h-4" /> Xuất
           </button>
-          <Link href="/workspace/finance/payments/create" className="h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors inline-flex items-center gap-2">
+          <Link href="/workspace/finance/payments/create" className="h-9 px-4 rounded-lg bg-black text-white text-[14px] font-medium hover:bg-gray-800 transition-colors inline-flex items-center gap-2 shadow-none">
             <Plus className="w-4 h-4" /> Tạo phiếu thanh toán
           </Link>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="card-base p-4">
-          <p className="text-xs text-muted-foreground mb-1">Tổng phiếu thu</p>
-          <p className="text-lg font-bold tabular-nums text-foreground">{formatMoney(totalAmount)}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="rounded-xl border border-[#eaeaea] bg-white p-6 hover:border-black transition-colors duration-200">
+          <p className="text-[12px] font-medium text-gray-400 uppercase tracking-widest mb-4">Tổng phiếu thu</p>
+          <p className="text-[24px] font-medium tracking-tight text-black">{formatMoney(totalAmount)}</p>
         </div>
-        <div className="card-base p-4">
-          <p className="text-xs text-muted-foreground mb-1">Đã hoàn tất</p>
-          <p className="text-lg font-bold tabular-nums text-emerald-600">{formatMoney(totalCompleted)}</p>
+        <div className="rounded-xl border border-[#eaeaea] bg-white p-6 hover:border-black transition-colors duration-200">
+          <p className="text-[12px] font-medium text-gray-400 uppercase tracking-widest mb-4">Đã hoàn tất</p>
+          <p className="text-[24px] font-medium tracking-tight text-black">{formatMoney(totalCompleted)}</p>
         </div>
-        <div className="card-base p-4">
-          <p className="text-xs text-muted-foreground mb-1">Đang chờ</p>
-          <p className="text-lg font-bold tabular-nums text-amber-600">{filtered.filter((item) => item.status === "PENDING").length}</p>
+        <div className="rounded-xl border border-[#eaeaea] bg-white p-6 hover:border-black transition-colors duration-200">
+          <p className="text-[12px] font-medium text-gray-400 uppercase tracking-widest mb-4">Đang chờ</p>
+          <p className="text-[24px] font-medium tracking-tight text-black">{filtered.filter((item) => item.status === "PENDING").length}</p>
         </div>
-        <div className="card-base p-4">
-          <p className="text-xs text-muted-foreground mb-1">Giao dịch</p>
-          <p className="text-lg font-bold tabular-nums text-foreground">{filtered.length}</p>
+        <div className="rounded-xl border border-[#eaeaea] bg-white p-6 hover:border-black transition-colors duration-200">
+          <p className="text-[12px] font-medium text-gray-400 uppercase tracking-widest mb-4">Giao dịch</p>
+          <p className="text-[24px] font-medium tracking-tight text-black">{filtered.length}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-3 flex-wrap mb-6">
         <div className="relative flex-1 min-w-64 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Tìm mã phiếu, hóa đơn, khách hàng..."
-            className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
+            className="w-full h-10 pl-10 pr-3 rounded-lg border border-[#eaeaea] bg-white text-[14px] text-black focus:outline-none focus:border-black transition-colors"
           />
         </div>
       </div>
 
-      <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto scrollable-x">
-          <table className="w-full min-w-[980px] table-fixed text-sm [&_td]:!px-3 [&_td]:!py-2.5 [&_th]:!px-3 [&_th]:!py-2.5">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="w-[138px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Mã phiếu</th>
-                <th className="w-[140px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Hóa đơn</th>
-                <th className="w-[310px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Khách hàng</th>
-                <th className="w-[128px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Trạng thái</th>
-                <th className="w-[140px] whitespace-nowrap text-right py-3 px-4 text-xs font-medium text-muted-foreground">Số tiền</th>
-                <th className="w-[140px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Ngày thanh toán</th>
-                <th className="py-3 px-4 w-24"></th>
+      <div className="rounded-xl border border-[#eaeaea] bg-white overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-[14px] [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
+            <thead className="bg-gray-50/50 border-b border-[#eaeaea]">
+              <tr>
+                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[160px]">Mã phiếu</th>
+                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[160px]">Hóa đơn</th>
+                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[310px]">Khách hàng</th>
+                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[160px]">Trạng thái</th>
+                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[160px] text-right">Số tiền</th>
+                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px]">Ngày thanh toán</th>
+                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-24"></th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-[#eaeaea]">
               {filtered.map((payment) => {
                 const label = statusLabel[payment.status] || payment.status;
-                const color = statusColor[payment.status] || "rgb(100 116 139)";
+                const color = statusColor[payment.status] || "bg-white border border-[#eaeaea] text-gray-500";
 
                 return (
-                  <tr key={payment.id} onClick={() => router.push(`/workspace/finance/payments/${payment.id}`)} className="cursor-pointer border-b border-border last:border-0 table-row-hover">
-                    <td className="whitespace-nowrap py-3 px-4">
-                      <Link href={`/workspace/finance/payments/${payment.id}`} className="whitespace-nowrap text-sm font-semibold text-blue-600 hover:underline">
+                  <tr key={payment.id} onClick={() => router.push(`/workspace/finance/payments/${payment.id}`)} className="cursor-pointer hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <Link href={`/workspace/finance/payments/${payment.id}`} className="font-medium text-black hover:underline">
                         {payment.number || payment.reference || payment.id.slice(-8).toUpperCase()}
                       </Link>
                     </td>
-                    <td className="whitespace-nowrap py-3 px-4">
+                    <td className="px-6 py-4">
                       {payment.invoice?.id ? (
-                        <Link href={`/workspace/finance/invoices/${payment.invoice.id}`} className="text-sm font-medium text-foreground hover:text-blue-600 hover:underline">
+                        <Link href={`/workspace/finance/invoices/${payment.invoice.id}`} className="font-medium text-black hover:underline">
                           {payment.invoice.number || "Không có mã"}
                         </Link>
                       ) : (
-                        <span className="text-muted-foreground">Không gắn hóa đơn</span>
+                        <span className="text-gray-400">Không gắn hóa đơn</span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-sm text-muted-foreground">
+                    <td className="px-6 py-4 text-black font-medium">
                       <span className="block truncate">{customerName(payment)}</span>
                     </td>
-                    <td className="whitespace-nowrap py-3 px-4">
-                      <span className="inline-flex min-w-[82px] items-center justify-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold leading-none" style={{ backgroundColor: `${color.replace("rgb", "rgba").replace(")", ", 0.14)")}`, color }}>
+                    <td className="px-6 py-4">
+                      <span className={cn("inline-flex items-center px-2 py-1 rounded-[6px] text-[11px] font-medium uppercase tracking-wide", color)}>
                         {label}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap py-3 px-4 text-right font-semibold tabular-nums text-sm">{formatMoney(payment.amount, payment.currency)}</td>
-                    <td className="whitespace-nowrap py-3 px-4 text-xs text-muted-foreground">{formatDate(payment.paidAt || payment.createdAt)}</td>
-                    <td className="py-3 px-4" onClick={(event) => event.stopPropagation()}>
+                    <td className="px-6 py-4 font-medium text-black text-right">{formatMoney(payment.amount, payment.currency)}</td>
+                    <td className="px-6 py-4 text-gray-500">{formatDate(payment.paidAt || payment.createdAt)}</td>
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2 justify-end">
-                        <Link href={`/workspace/finance/payments/${payment.id}`} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-all" title="Xem chi tiết">
-                          <Eye className="w-3.5 h-3.5" />
+                        <Link href={`/workspace/finance/payments/${payment.id}`} className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-black hover:bg-gray-100 transition-all" title="Xem chi tiết">
+                          <Eye className="w-4 h-4" />
                         </Link>
-                        <Link href={`/workspace/finance/payments/${payment.id}/edit`} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-all" title="Chỉnh sửa">
-                          <Edit className="w-3.5 h-3.5" />
+                        <Link href={`/workspace/finance/payments/${payment.id}/edit`} className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-black hover:bg-gray-100 transition-all" title="Chỉnh sửa">
+                          <Edit className="w-4 h-4" />
                         </Link>
-                        <button type="button" className="w-7 h-7 flex items-center justify-center rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-all" onClick={() => setDeletingId(payment.id)} title="Xóa">
-                          <Trash2 className="w-3.5 h-3.5" />
+                        <button
+                          className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                          onClick={() => setDeletingId(payment.id)}
+                          title="Xóa"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -223,7 +231,7 @@ export function PaymentsClient({ initialData }: { initialData: PaymentListItem[]
               })}
             </tbody>
           </table>
-          {!filtered.length ? <div className="quote-detail-empty m-4">Chưa có giao dịch thanh toán.</div> : null}
+          {!filtered.length ? <div className="p-6 text-center text-gray-500">Chưa có giao dịch thanh toán.</div> : null}
         </div>
       </div>
 

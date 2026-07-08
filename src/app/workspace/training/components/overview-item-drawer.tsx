@@ -109,10 +109,10 @@ function DrawerContent({ item, onClose, onUpdateCourse, onUpdateClass, onUpdateS
       {/* Header */}
       <div className="flex shrink-0 items-start justify-between gap-3 border-b border-border p-4">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-wider text-orange-500">
+          <p className="text-xs font-medium uppercase tracking-wider text-orange-500">
             {item.type === "course" ? "Khóa học" : item.type === "class" ? "Lớp học" : "Học viên"}
           </p>
-          <h2 className="mt-1 truncate text-lg font-bold text-slate-950">
+          <h2 className="mt-1 truncate text-[15px] font-medium text-slate-950">
             {item.type === "course" ? item.data.title : item.type === "class" ? item.data.name : item.data.name}
           </h2>
         </div>
@@ -155,7 +155,7 @@ function CourseDrawerContent({ course, onUpdate }: { course: OverviewCourse; onU
   return (
     <>
       <div className="rounded-2xl bg-gradient-to-br from-orange-50 to-white p-4">
-        <span className={cn("rounded-full px-2.5 py-1 text-xs font-bold", courseStatusTone[course.status])}>
+        <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", courseStatusTone[course.status])}>
           {courseStatusLabel[course.status]}
         </span>
         <p className="mt-3 text-sm text-slate-600">{course.description}</p>
@@ -182,7 +182,7 @@ function CourseDrawerContent({ course, onUpdate }: { course: OverviewCourse; onU
 
       <Link
         href={`/workspace/courses/${course.id}`}
-        className="block w-full rounded-xl border border-orange-200 py-2.5 text-center text-sm font-bold text-orange-600 transition hover:bg-orange-50"
+        className="block w-full rounded-xl border border-orange-200 py-2.5 text-center text-sm font-medium text-orange-600 transition hover:bg-orange-50"
       >
         Xem chi tiết →
       </Link>
@@ -194,7 +194,7 @@ function ClassDrawerContent({ cls, onUpdate }: { cls: OverviewClass; onUpdate?: 
   return (
     <>
       <div className="rounded-2xl bg-gradient-to-br from-emerald-50 to-white p-4">
-        <span className={cn("rounded-full px-2.5 py-1 text-xs font-bold", classStatusTone[cls.status])}>
+        <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", classStatusTone[cls.status])}>
           {classStatusLabel[cls.status]}
         </span>
         <p className="mt-3 text-sm text-slate-600">GV: <strong>{cls.instructor}</strong></p>
@@ -210,7 +210,7 @@ function ClassDrawerContent({ cls, onUpdate }: { cls: OverviewClass; onUpdate?: 
 
       {/* Capacity bar */}
       <div className="rounded-xl bg-slate-50 p-3">
-        <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-500">
+        <div className="mb-2 flex items-center justify-between text-xs font-medium text-slate-500">
           <span>Sĩ số</span>
           <span className="text-slate-800">{cls.students}/{cls.maxStudents}</span>
         </div>
@@ -237,7 +237,7 @@ function ClassDrawerContent({ cls, onUpdate }: { cls: OverviewClass; onUpdate?: 
 
       <Link
         href={`/workspace/training/classes/${cls.id}`}
-        className="block w-full rounded-xl border border-emerald-200 py-2.5 text-center text-sm font-bold text-emerald-600 transition hover:bg-emerald-50"
+        className="block w-full rounded-xl border border-emerald-200 py-2.5 text-center text-sm font-medium text-emerald-600 transition hover:bg-emerald-50"
       >
         Xem chi tiết →
       </Link>
@@ -249,7 +249,7 @@ function StudentDrawerContent({ student, onUpdate }: { student: OverviewStudent;
   return (
     <>
       <div className="rounded-2xl bg-gradient-to-br from-blue-50 to-white p-4">
-        <span className={cn("rounded-full px-2.5 py-1 text-xs font-bold", studentStatusTone[student.status])}>
+        <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", studentStatusTone[student.status])}>
           {studentStatusLabel[student.status]}
         </span>
         <p className="mt-3 text-sm text-slate-600">{student.note}</p>
@@ -262,9 +262,9 @@ function StudentDrawerContent({ student, onUpdate }: { student: OverviewStudent;
 
       {/* Progress */}
       <div className="rounded-xl bg-slate-50 p-3">
-        <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-500">
+        <div className="mb-2 flex items-center justify-between text-xs font-medium text-slate-500">
           <span>Tiến độ tổng thể</span>
-          <span className="text-lg font-bold text-slate-950">{student.progress}%</span>
+          <span className="text-[15px] font-medium text-slate-950">{student.progress}%</span>
         </div>
         {onUpdate ? (
           <input
@@ -300,7 +300,7 @@ function StudentDrawerContent({ student, onUpdate }: { student: OverviewStudent;
 
       <Link
         href={`/workspace/training/students/${student.id}`}
-        className="block w-full rounded-xl border border-blue-200 py-2.5 text-center text-sm font-bold text-blue-600 transition hover:bg-blue-50"
+        className="block w-full rounded-xl border border-blue-200 py-2.5 text-center text-sm font-medium text-blue-600 transition hover:bg-blue-50"
       >
         Xem hồ sơ đầy đủ →
       </Link>
@@ -311,11 +311,11 @@ function StudentDrawerContent({ student, onUpdate }: { student: OverviewStudent;
 function InfoCard({ icon: Icon, label, value }: { icon: typeof Users; label: string; value: string }) {
   return (
     <div className="rounded-xl bg-slate-50 p-3">
-      <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+      <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-slate-500">
         <Icon className="h-3.5 w-3.5" />
         {label}
       </div>
-      <p className="text-sm font-bold text-slate-900">{value}</p>
+      <p className="text-sm font-medium text-slate-900">{value}</p>
     </div>
   );
 }
@@ -333,14 +333,14 @@ function InlineEditField({
 }) {
   return (
     <label className="block rounded-xl bg-slate-50 p-3">
-      <span className="mb-1 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+      <span className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
         {Icon && <Icon className="h-3.5 w-3.5" />}
         {label}
       </span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="block w-full bg-transparent text-sm font-semibold text-slate-900 outline-none transition hover:text-orange-700 focus:text-slate-900"
+        className="block w-full bg-transparent text-sm font-medium text-slate-900 outline-none transition hover:text-orange-700 focus:text-slate-900"
       />
     </label>
   );
@@ -349,7 +349,7 @@ function InlineEditField({
 function ActivityFeed({ items }: { items: string[] }) {
   return (
     <div>
-      <h3 className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Activity</h3>
+      <h3 className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400">Activity</h3>
       <div className="space-y-1.5">
         {items.map((item, i) => (
           <div key={`${item}-${i}`} className="flex items-start gap-2 rounded-xl border border-slate-100 px-3 py-2 text-sm text-slate-600">

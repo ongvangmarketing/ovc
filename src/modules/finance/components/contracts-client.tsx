@@ -16,14 +16,13 @@ const CONTRACT_STATUS_LABELS: Record<string, string> = {
   CONVERTED: "Đã chuyển đổi",
 };
 const CONTRACT_STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-700",
-  SENT: "bg-blue-100 text-blue-700",
-  VIEWED: "bg-purple-100 text-purple-700",
-  SIGNED: "bg-emerald-100 text-emerald-700",
-  CANCELLED: "bg-red-100 text-red-700",
-  CONVERTED: "bg-indigo-100 text-indigo-700",
+  DRAFT: "bg-white border border-[#eaeaea] text-gray-500",
+  SENT: "bg-white border border-[#eaeaea] text-black",
+  VIEWED: "bg-white border border-[#eaeaea] text-black",
+  SIGNED: "bg-gray-100 text-black",
+  CANCELLED: "bg-white border border-[#eaeaea] text-gray-400",
+  CONVERTED: "bg-gray-50 border border-[#eaeaea] text-black",
 };
-import { ViewSwitcher } from "@/components/ui/view-switcher";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getContracts } from "@/app/actions/finance";
@@ -85,38 +84,38 @@ export function ContractsClient() {
   });
 
   const summaryStats = [
-    { label: "Tổng hợp đồng", value: contractRows.reduce((s, i) => s + Number(i.total), 0), color: "text-foreground" },
-    { label: "Đã gửi", value: contractRows.filter((i) => i.status === "SENT").reduce((s, i) => s + Number(i.total), 0), color: "text-blue-600" },
-    { label: "Đã ký", value: contractRows.filter((i) => i.status === "SIGNED").reduce((s, i) => s + Number(i.total), 0), color: "text-emerald-600" },
-    { label: "Đã chuyển đổi", value: contractRows.filter((i) => i.status === "CONVERTED").reduce((s, i) => s + Number(i.total), 0), color: "text-purple-600" },
+    { label: "Tổng hợp đồng", value: contractRows.reduce((s, i) => s + Number(i.total), 0) },
+    { label: "Đã gửi", value: contractRows.filter((i) => i.status === "SENT").reduce((s, i) => s + Number(i.total), 0) },
+    { label: "Đã ký", value: contractRows.filter((i) => i.status === "SIGNED").reduce((s, i) => s + Number(i.total), 0) },
+    { label: "Đã chuyển đổi", value: contractRows.filter((i) => i.status === "CONVERTED").reduce((s, i) => s + Number(i.total), 0) },
   ];
 
 
 
   return (
-    <div className="page-container">
+    <div className="mx-auto w-full max-w-[1440px] px-6 py-10 lg:px-12 bg-white min-h-[calc(100vh-64px)]">
       {/* Header */}
-      <div className="page-header">
+      <div className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Hợp đồng</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">{filtered.length} hợp đồng</p>
+          <h1 className="text-[36px] font-medium tracking-tighter text-black leading-none mb-3">Hợp đồng</h1>
+          <p className="text-[14px] text-gray-500">{filtered.length} hợp đồng</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="h-9 px-4 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors inline-flex items-center gap-2">
+          <button className="h-9 px-4 rounded-lg border border-[#eaeaea] text-[14px] font-medium text-black hover:bg-gray-50 transition-colors inline-flex items-center gap-2">
             <Download className="w-4 h-4" /> Xuất
           </button>
-          <Link href="/workspace/finance/contracts/create" className="h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors inline-flex items-center gap-2">
+          <Link href="/workspace/finance/contracts/create" className="h-9 px-4 rounded-lg bg-black text-white text-[14px] font-medium hover:bg-gray-800 transition-colors inline-flex items-center gap-2 shadow-none">
             <Plus className="w-4 h-4" /> Tạo Hợp đồng
           </Link>
         </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         {summaryStats.map((stat) => (
-          <div key={stat.label} className="card-base p-4">
-            <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
-            <p className={cn("text-lg font-bold tabular-nums", stat.color)}>
+          <div key={stat.label} className="rounded-xl border border-[#eaeaea] bg-white p-6 hover:border-black transition-colors duration-200">
+            <p className="text-[12px] font-medium text-gray-400 uppercase tracking-widest mb-4">{stat.label}</p>
+            <p className="text-[24px] font-medium tracking-tight text-black">
               {formatCurrency(stat.value)}
             </p>
           </div>
@@ -124,101 +123,90 @@ export function ContractsClient() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-64 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm hóa đơn..."
-            className="w-full h-9 pl-9 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all"
+            placeholder="Tìm hợp đồng..."
+            className="w-full h-10 pl-10 pr-3 rounded-lg border border-[#eaeaea] bg-white text-[14px] text-black focus:outline-none focus:border-black transition-colors"
           />
         </div>
 
         {/* Status Filter */}
-        <div className="hidden items-center gap-1 sm:flex">
+        <div className="flex items-center gap-2 flex-wrap">
           {["all", "DRAFT", "SENT", "SIGNED", "CONVERTED", "CANCELLED"].map((s) => (
             <button
               key={s}
               onClick={() => setSelectedStatus(s)}
               className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                "px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors border",
                 selectedStatus === s
-                  ? "bg-primary text-white"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-black text-white border-black"
+                  : "bg-white text-gray-500 border-[#eaeaea] hover:border-gray-400"
               )}
             >
               {s === "all" ? "Tất cả" : (CONTRACT_STATUS_LABELS[s] || s)}
             </button>
           ))}
         </div>
-
-        <div className="ml-auto">
-          <ViewSwitcher value={view} onChange={setView} options={["table", "card"]} />
-        </div>
       </div>
 
       {/* Table */}
-      <div className="card-base overflow-hidden">
-        <div className="overflow-x-auto scrollable-x">
-          <table className="w-full min-w-[900px] table-fixed text-sm [&_td]:!px-3 [&_td]:!py-2.5 [&_th]:!px-3 [&_th]:!py-2.5">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="w-[130px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Số HĐ</th>
-                <th className="w-[370px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Khách hàng</th>
-                <th className="w-[150px] whitespace-nowrap text-left py-3 px-4 text-xs font-medium text-muted-foreground">Trạng thái</th>
-                <th className="w-[140px] whitespace-nowrap text-right font-medium text-muted-foreground py-3 px-4">Tổng tiền</th>
-                <th className="w-[120px] whitespace-nowrap text-left font-medium text-muted-foreground py-3 px-4">Ngày tạo</th>
-                <th className="py-3 px-4 w-24"></th>
+      <div className="rounded-xl border border-[#eaeaea] bg-white overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-[14px] [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
+            <thead className="bg-gray-50/50 border-b border-[#eaeaea]">
+              <tr>
+                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[180px]">Số Hợp đồng</th>
+                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[330px]">Khách hàng</th>
+                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[160px]">Trạng thái</th>
+                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[160px] text-right">Tổng tiền</th>
+                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[160px]">Ngày tạo</th>
+                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-24"></th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-[#eaeaea]">
               {filtered.map((inv) => {
                 const statusColor = CONTRACT_STATUS_COLORS[inv.status] || CONTRACT_STATUS_COLORS["DRAFT"];
                 const statusLabel = CONTRACT_STATUS_LABELS[inv.status] || inv.status;
 
 
                 return (
-                  <tr key={inv.id} onClick={() => router.push(`/workspace/finance/contracts/${inv.id}`)} className="cursor-pointer border-b border-border last:border-0 table-row-hover">
-                    <td className="whitespace-nowrap py-3 px-4">
-                      <Link href={`/workspace/finance/contracts/${inv.id}`} className="whitespace-nowrap text-sm font-semibold text-blue-600 hover:underline">
+                  <tr key={inv.id} onClick={() => router.push(`/workspace/finance/contracts/${inv.id}`)} className="cursor-pointer hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <Link href={`/workspace/finance/contracts/${inv.id}`} className="font-medium text-black hover:underline">
                         {inv.number}
                       </Link>
                     </td>
-                    <td className="py-4 px-4 text-sm text-muted-foreground">
-                      <span className="block truncate">{getCustomerName(inv.contact)}</span>
+                    <td className="px-6 py-4">
+                      <span className="block truncate font-medium text-black">{getCustomerName(inv.contact)}</span>
                     </td>
-                    <td className="whitespace-nowrap py-3 px-4">
-                      <span
-                        className={cn(
-                          "inline-flex min-w-[84px] items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold leading-none whitespace-nowrap",
-                          statusColor
-                        )}
-                      >
-                        {statusLabel}
-                      </span>
+                    <td className="px-6 py-4">
+                      <span className={cn("inline-flex items-center px-2 py-1 rounded-[6px] font-medium text-[11px] uppercase tracking-wide", statusColor)}>{statusLabel}</span>
                     </td>
-                    <td className="whitespace-nowrap py-3 px-4 text-right text-sm font-semibold tabular-nums">{formatCurrency(Number(inv.total))}</td>
-                    <td className="whitespace-nowrap py-3 px-4 text-xs text-muted-foreground">
-                      <span className={""}>
-                        {inv.createdAt ? formatDate(new Date(inv.createdAt)) : "N/A"}
-                      </span>
+                    <td className="px-6 py-4 text-right">
+                      <div className="font-medium text-black">{formatCurrency(Number(inv.total))}</div>
                     </td>
-                    <td className="py-3 px-4" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-6 py-4">
+                      <span className="text-gray-500 text-[14px]">{inv.createdAt ? formatDate(new Date(inv.createdAt)) : "N/A"}</span>
+                    </td>
+                    <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2 justify-end">
-                        <Link href={`/workspace/finance/contracts/${inv.id}`} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-all" title="Xem chi tiết">
-                          <Eye className="w-3.5 h-3.5" />
+                        <Link href={`/workspace/finance/contracts/${inv.id}`} className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-black hover:bg-gray-100 transition-all" title="Xem chi tiết">
+                          <Eye className="w-4 h-4" />
                         </Link>
-                        <Link href={`/workspace/finance/contracts/${inv.id}/edit`} className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-blue-600 hover:bg-blue-50 transition-all" title="Chỉnh sửa">
-                          <Edit className="w-3.5 h-3.5" />
+                        <Link href={`/workspace/finance/contracts/${inv.id}/edit`} className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-black hover:bg-gray-100 transition-all" title="Chỉnh sửa">
+                          <Edit className="w-4 h-4" />
                         </Link>
                         <button 
-                          className="w-7 h-7 flex items-center justify-center rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                          className="w-8 h-8 flex items-center justify-center rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all"
                           onClick={() => setDeletingId(inv.id)}
                           title="Xóa"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>

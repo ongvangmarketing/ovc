@@ -66,8 +66,8 @@ export function FacebookReport({
   const reportInsights = facebookReport ? buildReportInsights(facebookReport) : [];
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[1fr_360px]">
-      <div className="card-base p-5">
+    <div className="w-full">
+      <div className="quote-panel p-5">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div>
             <h3 className="font-bold text-foreground">Báo cáo Facebook của dự án</h3>
@@ -211,13 +211,7 @@ export function FacebookReport({
         )}
       </div>
 
-      <aside className="card-base p-5">
-        <h3 className="mb-4 font-bold text-foreground">Nguồn đang bật</h3>
-        <div className="space-y-3">
-          <SourceRow label="Facebook Page" active={Boolean(facebookReport?.pageEnabled)} />
-          <SourceRow label="Facebook Ads" active={Boolean(facebookReport?.adsEnabled)} />
-        </div>
-      </aside>
+      
     </div>
   );
 }

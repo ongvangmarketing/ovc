@@ -1,4 +1,8 @@
-export type PaymentChannelKey = "company" | "personal";
+function removeAccents(str: string) {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D");
+}
+
+export type PaymentChannelKey = string;
 
 export type PaymentChannel = {
   key: PaymentChannelKey;
@@ -11,7 +15,8 @@ export type PaymentChannel = {
   bankBin: string;
 };
 
-export const paymentChannels: Record<PaymentChannelKey, PaymentChannel> = {
+// Legacy fallback
+export const paymentChannels: Record<string, PaymentChannel> = {
   company: {
     key: "company",
     label: "Kênh thanh toán Công ty",
@@ -36,28 +41,67 @@ export const paymentChannels: Record<PaymentChannelKey, PaymentChannel> = {
 
 export const paymentChannelOptions = Object.values(paymentChannels);
 
-export function normalizePaymentChannelKeys(value: unknown): PaymentChannelKey[] {
-  if (!value) return ["company"];
-  if (Array.isArray(value)) {
-    const keys = value.filter((item): item is PaymentChannelKey => item === "company" || item === "personal");
-    return keys.length ? keys : ["company"];
+export function getDynamicPaymentChannels(paymentMethodsJson: string | undefined | null): PaymentChannel[] {
+  if (!paymentMethodsJson) return paymentChannelOptions;
+  
+  try {
+    const methods = JSON.parse(paymentMethodsJson);
+    if (!Array.isArray(methods) || methods.length === 0) return paymentChannelOptions;
+    
+    return methods.map(m => {
+      // Find BIN from bank_name (e.g., if bank_name is "Vietcombank", we need "VCB", but if not available we can just use short name or a mapping)
+      // For VietQR, bankBin is usually the short name or BIN number. 
+      // In the settings form, bank_name is usually the shortName (e.g. "Techcombank", "Vietcombank", "MB").
+      // We will just use the bank_name directly as bankBin, VietQR often accepts short names.
+      const bankBin = m.bank_name?.split(" ")[0] || "TCB"; 
+      
+      return {
+        key: m.id,
+        label: `Kênh thanh toán ${m.type || "Khác"}`,
+        optionLabel: `${m.type || "Khác"} - ${m.bank_name} ${m.account_number}`,
+        accountName: m.account_name,
+        qrAccountName: removeAccents(m.account_name || "").toUpperCase(),
+        accountNumber: m.account_number,
+        bankName: m.bank_name,
+        bankBin: bankBin,
+      };
+    });
+  } catch {
+    return paymentChannelOptions;
   }
+}
+
+export function normalizePaymentChannelKeys(value: unknown, availableChannels?: PaymentChannel[]): PaymentChannelKey[] {
+  const channels = availableChannels || paymentChannelOptions;
+  const defaultKey = channels[0]?.key || "company";
+  
+  if (!value) return [defaultKey];
+  
+  if (Array.isArray(value)) {
+    const keys = value.filter(item => typeof item === "string");
+    return keys.length ? keys : [defaultKey];
+  }
+  
   if (typeof value === "string") {
     try {
-      return normalizePaymentChannelKeys(JSON.parse(value));
+      const parsed = JSON.parse(value);
+      return normalizePaymentChannelKeys(parsed, availableChannels);
     } catch {
-      return value === "personal" ? ["personal"] : ["company"];
+      return [value];
     }
   }
-  return ["company"];
+  
+  return [defaultKey];
 }
 
-export function getPaymentChannel(key: string | null | undefined) {
-  return key === "personal" ? paymentChannels.personal : paymentChannels.company;
+export function getPaymentChannel(key: string | null | undefined, availableChannels?: PaymentChannel[]): PaymentChannel {
+  const channels = availableChannels || paymentChannelOptions;
+  const found = channels.find(c => c.key === key);
+  return found || channels[0] || (paymentChannels.company as PaymentChannel);
 }
 
-export function getVietQrUrl(key: string | null | undefined, amount?: number | null, content?: string | null) {
-  const channel = getPaymentChannel(key);
+export function getVietQrUrl(key: string | null | undefined, amount?: number | null, content?: string | null, availableChannels?: PaymentChannel[]) {
+  const channel = getPaymentChannel(key, availableChannels);
   const query = new URLSearchParams({ accountName: channel.qrAccountName });
   if (amount && amount > 0) query.set("amount", String(Math.round(amount)));
   if (content) query.set("addInfo", content);

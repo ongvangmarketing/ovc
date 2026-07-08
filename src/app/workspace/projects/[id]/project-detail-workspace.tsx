@@ -1,17 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ArrowLeft, Edit3, Plus, Tag, X, FileUp, Activity, CheckCircle2 } from "lucide-react";
+import { useMemo, useState, useEffect } from "react";
+import { ArrowLeft, Edit3, Plus, Tag, X, FileUp, Activity, CheckCircle2, MessageSquare, Send as SendIcon, Calendar } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { toast } from "sonner";
 import type { TaskStatus } from "@prisma/client";
 
-import { addProjectMember, createTask, removeProjectMember, updateProjectOwner, updateTaskStatus } from "@/app/actions/projects";
+import { addTaskComment, publicAddComment, publicUpdateTaskStatus, publicUpdateTaskColumn, addProjectMember, createTask, removeProjectMember, updateProjectOwner, updateTaskStatus, updateTaskDetails, updateTaskColumn, generateProjectShareToken, revokeProjectShareToken } from "@/app/actions/projects";
+import { Link as LinkIcon, Trash2, Copy, Check, Ellipsis } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatDate, getInitials } from "@/lib/utils/format";
 import { SelectBox } from "@/components/ui/select-box";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 
 import type { ProjectLite } from "./project-detail.types";
 import { baseTabs, columns, fallbackPriority, fallbackStatus, priorityConfig, statusConfig } from "./project-detail.mock";
@@ -19,6 +21,7 @@ import { OverviewDashboard } from "./components/overview-dashboard";
 import { KanbanBoard } from "./components/kanban-board";
 import { ProjectGanttView } from "./components/gantt-timeline";
 import { FacebookReport } from "./components/facebook-report";
+import { ContentOmniView } from "./components/content-omni-view";
 import { MiniMetric } from "./components/common/stat-card";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -31,19 +34,37 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 export function ProjectDetailWorkspace({
-  project,
+  project: initialProject,
   baseHref = "/workspace/projects",
   readOnly = false,
+  guestMode = false,
+  guestShareToken,
 }: {
   project: ProjectLite;
   baseHref?: string;
   readOnly?: boolean;
+  guestMode?: boolean;
+  guestShareToken?: string;
 }) {
+  // Safe deep clone to handle any Decimal or non-serializable objects from Prisma
+  const safeProject = useMemo(() => JSON.parse(JSON.stringify(initialProject)) as ProjectLite, [initialProject]);
+  const project = safeProject;
   const router = useRouter();
   const [tasks, setTasks] = useState(project.tasks || []);
   const [activeTab, setActiveTab] = useState("overview");
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [guestName, setGuestName] = useState("");
+  useEffect(() => {
+    if (guestMode) {
+      const saved = localStorage.getItem("ongvang_guest_name");
+      if (saved) setGuestName(saved);
+    }
+  }, [guestMode]);
+  const [commentingTaskId, setCommentingTaskId] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [shareToken, setShareToken] = useState(project.shareToken);
+  const [copiedLink, setCopiedLink] = useState(false);
   
   // States for Report
   const [reportSource, setReportSource] = useState<"all" | "page" | "ads">("all");
@@ -51,16 +72,29 @@ export function ProjectDetailWorkspace({
   
   // States for Task Creation
   const [targetColumnId, setTargetColumnId] = useState<TaskStatus>("TODO");
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   
   // States for Member Management
   const [memberToAdd, setMemberToAdd] = useState("");
   const [ownerId, setOwnerId] = useState(project.ownerId || project.owner?.id || "");
   const [isMemberSaving, setIsMemberSaving] = useState(false);
   
+  const [taskLists, setTaskLists] = useState(
+    project.taskLists?.length 
+      ? project.taskLists 
+      : [
+          { id: "TODO", name: "Cần làm", order: 1000 },
+          { id: "IN_PROGRESS", name: "Đang làm", order: 2000 },
+          { id: "IN_REVIEW", name: "Đang duyệt", order: 3000 },
+          { id: "DONE", name: "Hoàn tất", order: 4000 },
+        ]
+  );
+  
   const [taskForm, setTaskForm] = useState({
     title: "",
     description: "",
     status: "TODO" as TaskStatus,
+    taskListId: "" as string,
     priority: "MEDIUM" as "LOW" | "MEDIUM" | "HIGH" | "URGENT",
     startDate: new Date().toISOString().split("T")[0],
     dueDate: "",
@@ -70,11 +104,15 @@ export function ProjectDetailWorkspace({
     subtasks: [] as Array<{ id: string; title: string; done: boolean }>,
     subtaskDraft: "",
     attachmentNames: [] as string[],
+    comments: [] as Array<any>,
+    commentDraft: "",
   });
 
   const status = statusConfig[project.status || "ACTIVE"] || fallbackStatus;
   const priority = priorityConfig[project.priority || "MEDIUM"] || fallbackPriority;
-  const tabs = project.socialMarketingEnabled ? [...baseTabs, { id: "report", label: "Báo cáo", icon: Activity }] : baseTabs;
+  const tabs = project.socialMarketingEnabled 
+    ? [...baseTabs, { id: "calendar", label: "Lịch nội dung", icon: Calendar }, { id: "report", label: "Báo cáo", icon: Activity }] 
+    : baseTabs;
   const activeTabLabel = tabs.find((tab) => tab.id === activeTab)?.label || "Tổng quan";
   
   // Derived metrics
@@ -87,11 +125,14 @@ export function ProjectDetailWorkspace({
   }).length;
 
   const taskStats = useMemo(() => {
-    return columns.map((column) => ({
-      ...column,
-      count: tasks.filter((task) => task.status === column.id).length,
+    return taskLists.map((list) => ({
+      id: list.id,
+      title: list.name,
+      tone: "bg-slate-50 border-slate-200",
+      dot: list.color || "bg-slate-400",
+      count: tasks.filter((task) => (task.taskListId || task.status) === list.id).length,
     }));
-  }, [tasks]);
+  }, [tasks, taskLists]);
 
   const timelinePhases = useMemo(() => {
     const datedTasks = tasks.filter((task) => task.startDate || task.dueDate).slice(0, 5);
@@ -101,7 +142,7 @@ export function ProjectDetailWorkspace({
         title: task.title,
         start: task.startDate ? formatDate(task.startDate as string|Date) : "Chưa đặt",
         end: task.dueDate ? formatDate(task.dueDate as string|Date) : "Chưa đặt",
-        status: columns.find((column) => column.id === task.status)?.title || "Cần làm",
+        status: taskLists.find((list) => list.id === (task.taskListId || task.status))?.name || "Cần làm",
       }));
     }
 
@@ -120,6 +161,37 @@ export function ProjectDetailWorkspace({
     const activeIds = new Set(project.members?.map((member) => member.userId) || []);
     return (project.availableMembers || []).filter((member) => !activeIds.has(member.userId));
   }, [project.availableMembers, project.members]);
+
+  
+  const handleGenerateShareToken = async () => {
+    const res = await generateProjectShareToken(project.id);
+    if (res.success && res.token) {
+      setShareToken(res.token);
+      toast.success("Đã tạo link chia sẻ");
+    } else {
+      toast.error(res.error || "Không thể tạo link chia sẻ");
+    }
+  };
+
+  const handleRevokeShareToken = async () => {
+    if (!confirm("Bạn có chắc chắn muốn vô hiệu hóa link này? Khách hàng sẽ không thể truy cập được nữa.")) return;
+    const res = await revokeProjectShareToken(project.id);
+    if (res.success) {
+      setShareToken(null);
+      toast.success("Đã thu hồi link chia sẻ");
+    } else {
+      toast.error(res.error || "Không thể thu hồi link chia sẻ");
+    }
+  };
+
+  const copyShareLink = () => {
+    if (!shareToken) return;
+    const url = `${window.location.origin}/share/p/${shareToken}`;
+    navigator.clipboard.writeText(url);
+    setCopiedLink(true);
+    toast.success("Đã copy link");
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
 
   const handleAddMember = async () => {
     if (!memberToAdd) return;
@@ -170,14 +242,33 @@ export function ProjectDetailWorkspace({
     event.dataTransfer.setData("taskId", taskId);
   };
 
-  const handleDrop = async (event: React.DragEvent, statusId: string) => {
+  const handleDrop = async (event: React.DragEvent, columnId: string) => {
     event.preventDefault();
     if (readOnly) return;
     const taskId = event.dataTransfer.getData("taskId");
     if (!taskId) return;
     const previousTasks = [...tasks];
-    setTasks((current) => current.map((task) => task.id === taskId ? { ...task, status: statusId } : task));
-    const res = await updateTaskStatus(taskId, project.id, statusId as TaskStatus);
+    
+    // We check if it's a default TaskStatus column or a TaskList custom column.
+    // If it's a default one (TODO, IN_PROGRESS...), we update status.
+    // If it's a cuid (custom taskList), we update taskListId.
+    const isDefaultStatus = ["BACKLOG", "TODO", "IN_PROGRESS", "IN_REVIEW", "DONE", "CANCELLED"].includes(columnId);
+    
+    setTasks((current) => current.map((task) => task.id === taskId ? { 
+      ...task, 
+      status: isDefaultStatus ? columnId : task.status,
+      taskListId: columnId 
+    } : task));
+    
+    // We call an action to update column using the newly created updateTaskColumn
+    let res;
+    if (guestMode && guestShareToken) { res = await publicUpdateTaskColumn(guestShareToken, taskId, columnId); } else { res = await updateTaskColumn(taskId, project.id, columnId); }
+    
+    // Also if it's a default status, we should update the status enum
+    if (isDefaultStatus) {
+      if (guestMode && guestShareToken) { await publicUpdateTaskStatus(guestShareToken, taskId, columnId as TaskStatus); } else { await updateTaskStatus(taskId, project.id, columnId as TaskStatus); }
+    }
+    
     if (!res.success) {
       toast.error("Không cập nhật được trạng thái task");
       setTasks(previousTasks);
@@ -185,11 +276,14 @@ export function ProjectDetailWorkspace({
   };
 
   const openCreateTask = (columnId = "TODO") => {
-    setTargetColumnId(columnId as TaskStatus);
+    setEditingTaskId(null);
+    setTargetColumnId(columnId as TaskStatus); // we might not need this anymore
+    const isDefaultStatus = ["BACKLOG", "TODO", "IN_PROGRESS", "IN_REVIEW", "DONE", "CANCELLED"].includes(columnId);
     setTaskForm({
       title: "",
       description: "",
-      status: columnId as TaskStatus,
+      status: isDefaultStatus ? (columnId as TaskStatus) : "TODO",
+      taskListId: columnId,
       priority: "MEDIUM",
       startDate: new Date().toISOString().split("T")[0],
       dueDate: "",
@@ -198,136 +292,202 @@ export function ProjectDetailWorkspace({
       tags: "",
       subtasks: [],
       subtaskDraft: "",
+      comments: [],
+      commentDraft: "",
       attachmentNames: [],
     });
     setIsTaskModalOpen(true);
+  };
+
+  const openEditTask = (task: any) => {
+    setEditingTaskId(task.id);
+    setTargetColumnId(task.status as TaskStatus);
+    setTaskForm({
+      title: task.title || "",
+      description: task.description || "",
+      status: task.status as TaskStatus,
+      taskListId: task.taskListId || task.status || "",
+      priority: task.priority || "MEDIUM",
+      startDate: task.startDate ? new Date(task.startDate).toISOString().split("T")[0] || "" : "",
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split("T")[0] || "" : "",
+      assigneeId: task.assigneeId || "",
+      followerIds: task.followerIds || [],
+      tags: task.tags ? task.tags.join(", ") : "",
+      subtasks: task.subtasks || [],
+      subtaskDraft: "",
+      comments: task.comments || [],
+      commentDraft: "",
+      attachmentNames: task.attachments ? task.attachments.map((a: any) => a.name) : [],
+    });
+    setIsTaskModalOpen(true);
+  };
+
+  
+  const handleSendComment = async () => {
+    if (!editingTaskId || !taskForm.commentDraft.trim()) return;
+    let currentGuestName = guestName;
+    
+    if (guestMode && !currentGuestName) {
+      const name = window.prompt("Vui lòng nhập tên của bạn để bình luận:");
+      if (!name || !name.trim()) return;
+      currentGuestName = name.trim();
+      setGuestName(currentGuestName);
+      localStorage.setItem("ongvang_guest_name", currentGuestName);
+    }
+
+    setCommentingTaskId(editingTaskId);
+    let res;
+    if (guestMode && guestShareToken) {
+      res = await publicAddComment(guestShareToken, editingTaskId, currentGuestName, taskForm.commentDraft.trim());
+    } else {
+      res = await addTaskComment(editingTaskId, taskForm.commentDraft.trim());
+    }
+
+    if (res.success && res.comment) {
+      setTaskForm(prev => ({
+        ...prev,
+        commentDraft: "",
+        comments: [res.comment, ...prev.comments]
+      }));
+    } else {
+      toast.error(res.error || "Lỗi khi gửi bình luận");
+    }
+    setCommentingTaskId(null);
   };
 
   const handleCreateTask = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!taskForm.title.trim()) return;
     setIsCreatingTask(true);
-    const res = await createTask({
-      projectId: project.id,
-      title: taskForm.title,
-      description: taskForm.description,
-      status: taskForm.status || targetColumnId,
-      priority: taskForm.priority,
-      startDate: taskForm.startDate ? new Date(taskForm.startDate).toISOString() : undefined,
-      dueDate: taskForm.dueDate ? new Date(taskForm.dueDate).toISOString() : undefined,
-      assigneeId: taskForm.assigneeId,
-      followerIds: taskForm.followerIds,
-      tags: taskForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
-      subtasks: taskForm.subtasks.filter((task) => task.title.trim()).map((task) => ({ title: task.title.trim(), done: task.done })),
-      attachmentNames: taskForm.attachmentNames,
-    });
-    if (res.success && res.task) {
-      toast.success("Đã tạo phân công");
-      setTasks((current) => [...current, res.task as any]);
-      setIsTaskModalOpen(false);
+    
+    if (editingTaskId) {
+      const res = await updateTaskDetails(editingTaskId, project.id, {
+        title: taskForm.title,
+        description: taskForm.description,
+        status: taskForm.status,
+        taskListId: taskForm.taskListId || null,
+        priority: taskForm.priority,
+        startDate: taskForm.startDate ? new Date(taskForm.startDate).toISOString() : undefined,
+        dueDate: taskForm.dueDate ? new Date(taskForm.dueDate).toISOString() : undefined,
+        assigneeId: taskForm.assigneeId,
+        tags: taskForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+        subtasks: taskForm.subtasks.filter((task) => task.title.trim()).map((task) => ({ title: task.title.trim(), done: task.done })),
+      });
+      if (res.success && res.task) {
+        toast.success("Đã cập nhật phân công");
+        setTasks((current) => current.map((t) => t.id === editingTaskId ? res.task as any : t));
+        setIsTaskModalOpen(false);
+      } else {
+        toast.error(res.error || "Không cập nhật được phân công");
+      }
     } else {
-      toast.error(res.error || "Không tạo được phân công");
+      const res = await createTask({
+        projectId: project.id,
+        title: taskForm.title,
+        description: taskForm.description,
+        status: taskForm.status || targetColumnId,
+        taskListId: taskForm.taskListId || null,
+        priority: taskForm.priority,
+        startDate: taskForm.startDate ? new Date(taskForm.startDate).toISOString() : undefined,
+        dueDate: taskForm.dueDate ? new Date(taskForm.dueDate).toISOString() : undefined,
+        assigneeId: taskForm.assigneeId,
+        followerIds: taskForm.followerIds,
+        tags: taskForm.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+        subtasks: taskForm.subtasks.filter((task) => task.title.trim()).map((task) => ({ title: task.title.trim(), done: task.done })),
+        attachmentNames: taskForm.attachmentNames,
+      });
+      if (res.success && res.task) {
+        toast.success("Đã tạo phân công");
+        setTasks((current) => [...current, res.task as any]);
+        setIsTaskModalOpen(false);
+      } else {
+        toast.error(res.error || "Không tạo được phân công");
+      }
     }
     setIsCreatingTask(false);
   };
 
   return (
-    <div className="project-detail-page flex min-h-0 min-w-0 max-w-full flex-1 flex-col gap-6 overflow-x-hidden p-6 max-[760px]:gap-4 max-[760px]:px-7 max-[760px]:py-4">
-      <motion.section
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, ease: "easeOut" }}
-        className="card-base relative max-w-full overflow-hidden"
-      >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-1" style={{ backgroundColor: project.color || "#F59E0B" }} />
-        <div className="pointer-events-none absolute right-0 top-0 h-full w-1/3 bg-[radial-gradient(circle_at_top_right,rgba(245,158,11,0.14),transparent_55%)]" />
-        <div className="relative border-b border-border p-5 max-[760px]:p-4">
-          <div className="flex flex-wrap items-start justify-between gap-4 max-[760px]:grid max-[760px]:grid-cols-1">
-            <div className="flex min-w-0 items-start gap-4 max-[760px]:grid max-[760px]:w-full max-[760px]:grid-cols-[auto_auto_minmax(0,1fr)] max-[760px]:gap-3">
-              <Link href={baseHref} className="mt-1 rounded-lg border border-border bg-white/80 p-2 text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground" aria-label="Quay lại">
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-              <motion.div
-                initial={{ rotate: -8, scale: 0.92 }}
-                animate={{ rotate: 0, scale: 1 }}
-                transition={{ type: "spring", stiffness: 240, damping: 18 }}
-                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-sm"
-                style={{ backgroundColor: project.color || "#F59E0B" }}
-              >
-                {getInitials(project.name)}
-              </motion.div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-2xl font-bold text-foreground max-[760px]:text-xl">{project.name}</h2>
-                  <span className={cn("badge-status", status.cls)}><span className={cn("priority-dot", status.dot)} />{status.label}</span>
-                  <span className={cn("badge-status", priority.cls)}><span className={cn("priority-dot", priority.dot)} />{priority.label}</span>
-                </div>
-                <p className="mt-2 max-w-3xl text-sm text-muted-foreground max-[760px]:break-words">{project.description || "Chưa có mô tả. Thêm brief, phạm vi và mục tiêu ở trang sửa dự án để team nắm nhanh bối cảnh."}</p>
+    <div className={cn("quote-page mx-auto px-6 py-10 animate-in fade-in duration-300 flex flex-col min-h-0 min-w-0 max-w-full flex-1", guestMode ? "max-w-6xl" : "max-w-[1440px]")}>
+      <div className="mb-10 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between shrink-0">
+        <div>
+          {guestMode ? null : (
+            <div className="mb-2"></div>
+          )}
+          <div className="flex flex-wrap items-center gap-3 mt-2">
+            <h1 className="text-[36px] font-medium tracking-tighter text-black leading-none">{project.name}</h1>
+            <span className={cn("px-2 py-1 text-[11px] font-medium rounded-full flex items-center gap-1.5 border border-transparent", status.cls)}><span className={cn("w-1.5 h-1.5 rounded-full", status.dot)} />{status.label}</span>
+            <span className={cn("px-2 py-1 text-[11px] font-medium rounded-full flex items-center gap-1.5 border border-transparent", priority.cls)}><span className={cn("w-1.5 h-1.5 rounded-full", priority.dot)} />{priority.label}</span>
+          </div>
+        </div>
+        
+        {!readOnly ? (
+          <div className="flex items-center gap-3">
+            {guestMode ? null : <Link href={`/workspace/projects/${project.id}/edit`} className="inline-flex items-center gap-2 h-9 px-4 rounded-md border border-[#eaeaea] bg-white text-[13px] font-medium text-black hover:bg-gray-50 transition-colors">
+              <Edit3 className="h-4 w-4" />
+              Sửa dự án
+            </Link>}
+            {guestMode ? null : <button onClick={() => openCreateTask()} className="inline-flex items-center gap-2 h-9 px-4 rounded-md bg-black text-[13px] font-medium text-white hover:bg-gray-800 transition-colors">
+              <Plus className="h-4 w-4" />
+              Phân công
+            </button>}
+            
+            {guestMode ? null : (
+              <div className="relative">
+                <button onClick={() => setMenuOpen(!menuOpen)} className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-[#eaeaea] bg-white text-black hover:bg-gray-50 transition-colors">
+                  <Ellipsis className="h-4 w-4" />
+                </button>
+                {menuOpen && (
+                  <div className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-slate-100 bg-white p-1.5 shadow-[0_4px_24px_rgba(0,0,0,0.06)] z-50">
+                    {!shareToken ? (
+                      <button
+                        onClick={() => { setMenuOpen(false); handleGenerateShareToken(); }}
+                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        <LinkIcon className="h-3.5 w-3.5 text-indigo-500" /> Tạo link chia sẻ
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => { setMenuOpen(false); copyShareLink(); }}
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          <Copy className="h-3.5 w-3.5 text-slate-400" /> Copy link
+                        </button>
+                        <button
+                          onClick={() => { setMenuOpen(false); handleRevokeShareToken(); }}
+                          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] font-medium text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Thu hồi link
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-            {!readOnly ? <div className="flex flex-wrap gap-2">
-              <motion.button whileHover={{ y: -1 }} whileTap={{ scale: 0.98 }} onClick={() => openCreateTask()} className="flex h-9 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm hover:bg-primary/90">
-                <Plus className="h-4 w-4" />
-                Phân công
-              </motion.button>
-              <Link href={`/workspace/projects/${project.id}/edit`} className="flex h-9 items-center gap-2 rounded-lg border border-border bg-white/90 px-4 text-sm font-medium text-foreground shadow-sm hover:bg-muted">
-                <Edit3 className="h-4 w-4" />
-                Sửa dự án
-              </Link>
-            </div> : null}
+            )}
           </div>
-        </div>
+        ) : null}
+      </div>
 
-        <div className="relative grid gap-4 p-5 md:grid-cols-[1fr_280px] max-[760px]:grid-cols-1 max-[760px]:p-4">
-          <div>
-            <div className="mb-2 flex items-center justify-between text-sm">
-              <span className="font-medium text-foreground">Tiến độ tổng</span>
-              <span className="font-bold text-foreground">{progress}%</span>
-            </div>
-            <div className="h-3 overflow-hidden rounded-full bg-muted">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.65, ease: "easeOut" }}
-                className="h-full rounded-full bg-primary"
-              />
-            </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <span className="rounded-full bg-muted px-2.5 py-1">Đang xem: {activeTabLabel}</span>
-              <span className="rounded-full bg-muted px-2.5 py-1">{doneTasks}/{tasks.length} task hoàn tất</span>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-center max-[760px]:grid-cols-2">
-            <MiniMetric label="Tổng task" value={tasks.length} />
-            <MiniMetric label="Còn mở" value={openTasks} />
-            <MiniMetric label="Team" value={project.members?.length || 1} />
-          </div>
-        </div>
-      </motion.section>
-
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.08, duration: 0.28 }}
-        className="flex max-w-full gap-2 overflow-x-auto rounded-2xl border border-border bg-white p-2 shadow-sm"
-      >
+      <div className="flex items-center gap-8 mb-10 overflow-x-auto hide-scrollbar w-full border-b border-[#eaeaea]">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("relative flex h-9 shrink-0 items-center gap-2 rounded-xl px-3 text-sm font-medium whitespace-nowrap transition-colors", isActive ? "text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
-              {isActive ? <motion.span layoutId="project-active-tab" className="absolute inset-0 rounded-xl bg-primary shadow-sm" transition={{ type: "spring", stiffness: 420, damping: 34 }} /> : null}
-              <Icon className="relative h-4 w-4" />
-              <span className="relative">{tab.label}</span>
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={cn("flex items-center gap-2 pb-4 text-[14px] font-medium transition-colors border-b-2 -mb-[2px]", isActive ? "border-black text-black" : "border-transparent text-gray-500 hover:text-black")}>
+              <Icon className="h-4 w-4" strokeWidth={1.5} />
+              <span>{tab.label}</span>
             </button>
           );
         })}
-      </motion.div>
+      </div>
 
       {activeTab === "overview" && (
         <OverviewDashboard
           project={project}
           tasks={tasks}
+          taskLists={taskLists}
           progress={progress}
           doneTasks={doneTasks}
           overdueTasks={overdueTasks}
@@ -341,21 +501,36 @@ export function ProjectDetailWorkspace({
           setMemberToAdd={setMemberToAdd}
           handleAddMember={handleAddMember}
           handleRemoveMember={handleRemoveMember}
+          openCreateTask={openCreateTask}
+          openEditTask={openEditTask}
         />
       )}
 
       {activeTab === "kanban" && (
         <KanbanBoard
           tasks={tasks}
+          taskLists={taskLists}
+          projectId={project.id}
           readOnly={readOnly}
           openCreateTask={openCreateTask}
+          openEditTask={openEditTask}
           handleDragStart={handleDragStart}
           handleDrop={handleDrop}
         />
       )}
 
+      {activeTab === "calendar" && (
+        <ContentOmniView
+          projectId={project.id}
+          contentPlans={project.contentPlans || []}
+          readOnly={readOnly}
+          guestMode={guestMode}
+          guestShareToken={guestShareToken}
+        />
+      )}
+
       {activeTab === "timeline" && (
-        <ProjectGanttView tasks={tasks} />
+        <ProjectGanttView tasks={tasks} openEditTask={openEditTask} />
       )}
 
       {activeTab === "report" && (
@@ -370,198 +545,197 @@ export function ProjectDetailWorkspace({
       )}
 
       {activeTab !== "overview" && activeTab !== "kanban" && activeTab !== "timeline" && activeTab !== "report" ? (
-        <div className="empty-state card-base p-10 text-center flex items-center justify-center flex-col">
-          <Tag className="h-10 w-10 text-muted-foreground mb-4" />
-          <h3 className="font-semibold text-foreground text-lg">Khu vực đang được hoàn thiện</h3>
-          <p className="mt-1 text-sm text-muted-foreground">Tab này đã có chỗ trong UI để mở rộng timeline, file và trao đổi.</p>
+        <div className="empty-state border border-slate-200 bg-slate-50 rounded-xl p-10 text-center flex items-center justify-center flex-col">
+          <Tag className="h-10 w-10 text-slate-400 mb-4" />
+          <h3 className="font-semibold text-slate-900 text-[15px]">Khu vực đang được hoàn thiện</h3>
+          <p className="mt-1 text-sm text-slate-500">Tab này đã có chỗ trong UI để mở rộng timeline, file và trao đổi.</p>
         </div>
       ) : null}
 
       <AnimatePresence>
         {isTaskModalOpen ? (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/45 p-6 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, y: 18, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 18, scale: 0.96 }} transition={{ type: "spring", stiffness: 260, damping: 24 }} className="flex max-h-[88vh] w-full max-w-[min(60vw,920px)] min-w-[min(92vw,680px)] flex-col overflow-hidden rounded-[8px] bg-white shadow-xl max-[760px]:max-w-[calc(100vw-2rem)] max-[760px]:min-w-0">
-              <div className="quote-panel-header sticky top-0 z-10 bg-white px-4 py-3">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-white/80 p-4 sm:p-5 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, y: 18, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 18, scale: 0.96 }} transition={{ type: "spring", stiffness: 260, damping: 24 }} className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl border border-[#eaeaea]">
+              <div className="px-6 py-5 sticky top-0 z-10 bg-white border-b border-[#eaeaea] flex justify-between items-center">
                 <div>
-                  <h2>Thêm phân công</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">Thiết lập người làm, timeline, tag và checklist cho task.</p>
+                  <h2 className="text-[20px] font-medium tracking-tight text-black">{editingTaskId ? "Sửa phân công" : "Thêm phân công"}</h2>
+                  <span className="text-[14px] text-gray-500">{editingTaskId ? "Cập nhật chi tiết phân công." : "Thiết lập người làm, timeline, tag và checklist cho task."}</span>
                 </div>
-                <button onClick={() => setIsTaskModalOpen(false)} className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Đóng">
+                <button type="button" onClick={() => setIsTaskModalOpen(false)} className="rounded-full bg-gray-50 p-2 text-gray-400 hover:bg-gray-100 hover:text-black transition-colors" aria-label="Đóng">
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <form onSubmit={handleCreateTask} className="space-y-4 overflow-y-auto p-4">
-                <Field label="Tiêu đề">
-                  <input required autoFocus value={taskForm.title} onChange={(event) => setTaskForm({ ...taskForm, title: event.target.value })} className="quote-input" />
-                </Field>
-                <Field label="Mô tả">
-                  <textarea value={taskForm.description} onChange={(event) => setTaskForm({ ...taskForm, description: event.target.value })} className="quote-input min-h-[112px] resize-y" />
-                </Field>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field label="Trạng thái">
-                    <select value={taskForm.status} onChange={(event) => setTaskForm({ ...taskForm, status: event.target.value as TaskStatus })} className="quote-input">
-                      <option value="BACKLOG">Chưa bắt đầu</option>
-                      <option value="TODO">Cần làm</option>
-                      <option value="IN_PROGRESS">Đang làm</option>
-                      <option value="IN_REVIEW">Đang duyệt</option>
-                      <option value="DONE">Hoàn thành</option>
-                      <option value="CANCELLED">Đã hủy</option>
-                    </select>
-                  </Field>
-                  <Field label="Mức độ ưu tiên">
-                    <select value={taskForm.priority} onChange={(event) => setTaskForm({ ...taskForm, priority: event.target.value as typeof taskForm.priority })} className="quote-input">
-                      <option value="LOW">Thấp</option>
-                      <option value="MEDIUM">Vừa</option>
-                      <option value="HIGH">Cao</option>
-                      <option value="URGENT">Khẩn</option>
-                    </select>
-                  </Field>
-                  <Field label="Ngày bắt đầu">
-                    <input type="date" value={taskForm.startDate} onChange={(event) => setTaskForm({ ...taskForm, startDate: event.target.value })} className="quote-input" />
-                  </Field>
-                  <Field label="Ngày kết thúc">
-                    <input type="date" value={taskForm.dueDate} onChange={(event) => setTaskForm({ ...taskForm, dueDate: event.target.value })} className="quote-input" />
-                  </Field>
-                  <Field label="Người làm">
-                    <SelectBox ariaLabel="Chọn người làm" value={taskForm.assigneeId} onChange={(assigneeId) => setTaskForm({ ...taskForm, assigneeId })} placeholder="Chưa phân công" options={[{ value: "", label: "Chưa phân công" }, ...(project.members || []).map((member) => ({ value: member.userId, label: member.user?.name || member.user?.email || "Thành viên" }))]} className="w-full" />
-                  </Field>
-                  <Field label="Tag">
-                    <input value={taskForm.tags} onChange={(event) => setTaskForm({ ...taskForm, tags: event.target.value })} placeholder="design, urgent, client" className="quote-input" />
-                  </Field>
-                </div>
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(260px,0.85fr)]">
-                  <div>
-                    <span className="mb-1.5 block text-[14px] font-light text-slate-600">Nhiệm vụ con</span>
-                    <div className="rounded-[8px] border border-slate-200 bg-slate-50/60 p-3">
-                      <div className="flex gap-2">
-                        <input
-                          value={taskForm.subtaskDraft}
-                          onChange={(event) => setTaskForm({ ...taskForm, subtaskDraft: event.target.value })}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault();
-                              const title = taskForm.subtaskDraft.trim();
-                              if (!title) return;
-                              setTaskForm({
-                                ...taskForm,
-                                subtaskDraft: "",
-                                subtasks: [...taskForm.subtasks, { id: crypto.randomUUID(), title, done: false }],
-                              });
-                            }
-                          }}
-                          placeholder="Nhập nhiệm vụ con rồi Enter"
-                          className="quote-input min-w-0 flex-1"
+              
+              <form onSubmit={handleCreateTask} className="flex flex-col overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                  
+                  {/* Basic Info */}
+                  <div className="space-y-5">
+                    <Field label="Tiêu đề">
+                      <input required autoFocus value={taskForm.title} onChange={(event) => setTaskForm({ ...taskForm, title: event.target.value })} className="w-full bg-white border border-[#eaeaea] rounded-md px-3 py-2 text-[14px] text-black outline-none focus:border-black focus:ring-1 focus:ring-black transition-colors" />
+                    </Field>
+                    
+                    <div className="grid gap-4 md:grid-cols-1 mb-8">
+                      <Field label="Mô tả">
+                        <TiptapEditor 
+                          value={taskForm.description} 
+                          onChange={(content) => setTaskForm({ ...taskForm, description: content })}
                         />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const title = taskForm.subtaskDraft.trim();
-                            if (!title) return;
-                            setTaskForm({
-                              ...taskForm,
-                              subtaskDraft: "",
-                              subtasks: [...taskForm.subtasks, { id: crypto.randomUUID(), title, done: false }],
-                            });
-                          }}
-                          className="quote-button quote-button-primary shrink-0"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Thêm
-                        </button>
-                      </div>
-                      <div className="mt-3 space-y-2">
-                        {taskForm.subtasks.length ? taskForm.subtasks.map((subtask) => (
-                          <div key={subtask.id} className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
-                            <button
-                              type="button"
-                              onClick={() => setTaskForm({
-                                ...taskForm,
-                                subtasks: taskForm.subtasks.map((item) => item.id === subtask.id ? { ...item, done: !item.done } : item),
-                              })}
-                              className={cn("flex h-5 w-5 items-center justify-center rounded-full border transition-all", subtask.done ? "border-emerald-500 bg-emerald-500 text-white" : "border-border bg-white text-transparent")}
-                              aria-label="Đánh dấu hoàn thành"
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5" />
-                            </button>
-                            <input
-                              value={subtask.title}
-                              onChange={(event) => setTaskForm({
-                                ...taskForm,
-                                subtasks: taskForm.subtasks.map((item) => item.id === subtask.id ? { ...item, title: event.target.value } : item),
-                              })}
-                              className={cn("min-w-0 flex-1 bg-transparent text-sm outline-none", subtask.done && "text-muted-foreground line-through")}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setTaskForm({ ...taskForm, subtasks: taskForm.subtasks.filter((item) => item.id !== subtask.id) })}
-                              className="rounded-md p-1 text-muted-foreground hover:bg-white hover:text-foreground"
-                              aria-label="Xóa nhiệm vụ con"
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        )) : (
-                          <p className="rounded-lg bg-muted/40 px-3 py-4 text-center text-sm text-muted-foreground">Chưa có nhiệm vụ con</p>
-                        )}
-                      </div>
+                      </Field>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-border bg-white p-3">
-                    <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-                      <Plus className="h-4 w-4 text-primary" />
-                      Người theo dõi
-                    </div>
-                    <div className="grid gap-2">
-                      {project.members?.map((member) => (
-                        <label key={member.userId} className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm hover:bg-muted/60">
+
+                  {/* Configuration */}
+                  <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <Field label="Người làm">
+                      <SelectBox ariaLabel="Chọn người làm" value={taskForm.assigneeId} onChange={(assigneeId) => setTaskForm({ ...taskForm, assigneeId })} placeholder="Chưa phân công" options={[{ value: "", label: "Chưa phân công" }, ...(project.members || []).map((member) => ({ value: member.userId, label: member.user?.name || member.user?.email || "Thành viên" }))]} className="w-full" />
+                    </Field>
+                    <Field label="Trạng thái">
+                      <select value={taskForm.status} onChange={(event) => setTaskForm({ ...taskForm, status: event.target.value as TaskStatus })} className="quote-input text-sm bg-white">
+                        <option value="BACKLOG">Chưa bắt đầu</option>
+                        <option value="TODO">Cần làm</option>
+                        <option value="IN_PROGRESS">Đang làm</option>
+                        <option value="IN_REVIEW">Đang duyệt</option>
+                        <option value="DONE">Hoàn thành</option>
+                        <option value="CANCELLED">Đã hủy</option>
+                      </select>
+                    </Field>
+                    <Field label="Cột Kanban">
+                      <select value={taskForm.taskListId} onChange={(event) => setTaskForm({ ...taskForm, taskListId: event.target.value })} className="quote-input text-sm bg-white">
+                        {taskLists.map(list => (
+                          <option key={list.id} value={list.id}>{list.name}</option>
+                        ))}
+                      </select>
+                    </Field>
+                    <Field label="Ưu tiên">
+                      <select value={taskForm.priority} onChange={(event) => setTaskForm({ ...taskForm, priority: event.target.value as typeof taskForm.priority })} className="quote-input text-sm bg-white">
+                        <option value="LOW">Thấp</option>
+                        <option value="MEDIUM">Vừa</option>
+                        <option value="HIGH">Cao</option>
+                        <option value="URGENT">Khẩn</option>
+                      </select>
+                    </Field>
+                    <Field label="Bắt đầu">
+                      <input type="date" value={taskForm.startDate} onChange={(event) => setTaskForm({ ...taskForm, startDate: event.target.value })} className="quote-input text-sm bg-white" />
+                    </Field>
+                    <Field label="Kết thúc">
+                      <input type="date" value={taskForm.dueDate} onChange={(event) => setTaskForm({ ...taskForm, dueDate: event.target.value })} className="quote-input text-sm bg-white" />
+                    </Field>
+                  </div>
+
+                  {/* Advanced */}
+                  <div className="grid gap-6 md:grid-cols-[1.5fr_1fr]">
+                    {/* Subtasks */}
+                    <div>
+                      <span className="mb-2 block text-[13px] font-medium text-slate-700">Nhiệm vụ con</span>
+                      <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                        <div className="flex gap-2 mb-3">
                           <input
-                            type="checkbox"
-                            checked={taskForm.followerIds.includes(member.userId)}
-                            onChange={(event) => setTaskForm({
-                              ...taskForm,
-                              followerIds: event.target.checked
-                                ? [...taskForm.followerIds, member.userId]
-                                : taskForm.followerIds.filter((id) => id !== member.userId),
-                            })}
-                            className="rounded border-border"
+                            value={taskForm.subtaskDraft}
+                            onChange={(event) => setTaskForm({ ...taskForm, subtaskDraft: event.target.value })}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                const title = taskForm.subtaskDraft.trim();
+                                if (!title) return;
+                                setTaskForm({
+                                  ...taskForm,
+                                  subtaskDraft: "",
+                                  subtasks: [...taskForm.subtasks, { id: crypto.randomUUID(), title, done: false }],
+                                });
+                              }
+                            }}
+                            placeholder="Nhập task con rồi Enter..."
+                            className="quote-input text-sm min-w-0 flex-1"
                           />
-                          <span className="min-w-0 truncate">{member.user?.name || member.user?.email || "Thành viên"}</span>
-                        </label>
-                      ))}
+                        </div>
+                        <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                          {taskForm.subtasks.length ? taskForm.subtasks.map((subtask) => (
+                            <div key={subtask.id} className="flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5 border border-slate-100 group">
+                              <button
+                                type="button"
+                                onClick={() => setTaskForm({
+                                  ...taskForm,
+                                  subtasks: taskForm.subtasks.map((item) => item.id === subtask.id ? { ...item, done: !item.done } : item),
+                                })}
+                                className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-all", subtask.done ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-300 bg-white text-transparent")}
+                              >
+                                <CheckCircle2 className="h-2.5 w-2.5" />
+                              </button>
+                              <input
+                                value={subtask.title}
+                                onChange={(event) => setTaskForm({
+                                  ...taskForm,
+                                  subtasks: taskForm.subtasks.map((item) => item.id === subtask.id ? { ...item, title: event.target.value } : item),
+                                })}
+                                className={cn("min-w-0 flex-1 bg-transparent text-sm outline-none", subtask.done && "text-slate-400 line-through")}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setTaskForm({ ...taskForm, subtasks: taskForm.subtasks.filter((item) => item.id !== subtask.id) })}
+                                className="rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )) : (
+                            <p className="text-center text-[13px] text-slate-400 py-2">Chưa có nhiệm vụ con</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Followers & Upload */}
+                    <div className="space-y-5">
+                      <div>
+                        <span className="mb-2 block text-[13px] font-medium text-slate-700">Người theo dõi</span>
+                        <div className="rounded-xl border border-slate-200 bg-white p-2 shadow-sm max-h-32 overflow-y-auto">
+                          {project.members?.map((member) => (
+                            <label key={member.userId} className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-slate-50 transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={taskForm.followerIds.includes(member.userId)}
+                                onChange={(event) => setTaskForm({
+                                  ...taskForm,
+                                  followerIds: event.target.checked
+                                    ? [...taskForm.followerIds, member.userId]
+                                    : taskForm.followerIds.filter((id) => id !== member.userId),
+                                })}
+                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-600"
+                              />
+                              <span className="min-w-0 truncate text-[13px] text-slate-700">{member.user?.name || member.user?.email || "Thành viên"}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <label className="quote-upload-zone py-3 min-h-[72px]">
+                        <span className="quote-upload-icon mb-1">
+                          <FileUp className="h-4 w-4" />
+                        </span>
+                        <strong className="text-[13px]">Đính kèm tệp</strong>
+                        <input
+                          type="file"
+                          multiple
+                          className="hidden"
+                          onChange={(event) => setTaskForm({
+                            ...taskForm,
+                            attachmentNames: Array.from(event.target.files || []).map((file) => file.name),
+                          })}
+                        />
+                        {taskForm.attachmentNames.length ? <small className="text-[11px]">{taskForm.attachmentNames.length} tệp đã chọn</small> : null}
+                      </label>
                     </div>
                   </div>
+
                 </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <Field label="Upload tệp">
-                    <label className="quote-upload-zone min-h-28">
-                      <span className="quote-upload-icon">
-                        <FileUp className="h-5 w-5" />
-                      </span>
-                      <strong>Chọn tệp để đính kèm</strong>
-                      <small>PDF, DOCX, XLSX, PNG, JPG.</small>
-                      <input
-                        type="file"
-                        multiple
-                        className="hidden"
-                        onChange={(event) => setTaskForm({
-                          ...taskForm,
-                          attachmentNames: Array.from(event.target.files || []).map((file) => file.name),
-                        })}
-                      />
-                      {taskForm.attachmentNames.length ? <small>{taskForm.attachmentNames.length} tệp đã chọn</small> : null}
-                    </label>
-                  </Field>
-                </div>
-                <div className="quote-panel">
-                  <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-                    <Activity className="h-4 w-4 text-primary" />
-                    Log thao tác
-                  </div>
-                  <p className="text-sm text-muted-foreground">Khi lưu, hệ thống sẽ tạo log đầu tiên cho phân công này. Các cập nhật tiếp theo có thể nối vào khu vực trao đổi/log.</p>
-                </div>
-                <div className="flex justify-end gap-2 border-t border-border pt-4">
-                  <button type="button" onClick={() => setIsTaskModalOpen(false)} className="quote-button quote-button-soft">Đóng</button>
-                  <button type="submit" disabled={isCreatingTask} className="quote-button quote-button-primary disabled:opacity-60">{isCreatingTask ? "Đang lưu..." : "Lưu"}</button>
+
+                {/* Footer */}
+                <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-slate-50">
+                  <button type="button" onClick={() => setIsTaskModalOpen(false)} className="quote-action-button quote-action-secondary bg-white">Hủy bỏ</button>
+                  <button type="submit" disabled={isCreatingTask} className="quote-action-button quote-action-primary disabled:opacity-60">
+                    {isCreatingTask ? "Đang lưu..." : (editingTaskId ? "Cập nhật" : "Tạo phân công")}
+                  </button>
                 </div>
               </form>
             </motion.div>

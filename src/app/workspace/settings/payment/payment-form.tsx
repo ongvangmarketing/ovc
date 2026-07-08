@@ -78,7 +78,7 @@ export function PaymentSettingsClient({
       }
 
       const result = await updateSettings({
-        PAYMENT_METHODS: JSON.stringify(paymentMethods),
+        payment_methods: JSON.stringify(paymentMethods),
       });
 
       if (result && result.success) {

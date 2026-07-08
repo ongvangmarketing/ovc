@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
-import { Save, Settings2, Eye, Code, ChevronLeft } from "lucide-react";
+import { Save, Layout, Settings2, Plus, GripVertical, Trash2, Eye, Code, ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 import { revalidatePath } from "next/cache";
 
 export const metadata: Metadata = { title: "Chỉnh sửa Form" };
@@ -46,7 +47,7 @@ export default async function FormBuilderPage({ params }: { params: Promise<{ id
             <ChevronLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="font-bold text-gray-900 text-lg">{form.name}</h1>
+            <h1 className="font-medium text-gray-900 text-[15px]">{form.name}</h1>
             <p className="text-xs text-gray-500">ID: {form.id}</p>
           </div>
         </div>
@@ -60,11 +61,11 @@ export default async function FormBuilderPage({ params }: { params: Promise<{ id
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2">
         {/* Left: Configuration */}
-        <div className="bg-gray-50 border-r border-gray-200 p-6 overflow-y-auto" style={{ height: "calc(100vh - 130px)" }}>
+        <div className="bg-gray-50 border-r border-gray-200 p-4 overflow-y-auto" style={{ height: "calc(100vh - 130px)" }}>
           <form action={updateForm} className="space-y-6 max-w-lg mx-auto">
             
-            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-4">
-              <h3 className="font-semibold text-gray-900 flex items-center gap-2"><Settings2 className="w-4 h-4"/> Thông tin chung</h3>
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-4">
+              <h3 className="font-medium text-gray-900 flex items-center gap-2"><Settings2 className="w-4 h-4"/> Thông tin chung</h3>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tên quản lý nội bộ</label>
                 <input type="text" name="name" defaultValue={form.name} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
@@ -74,13 +75,12 @@ export default async function FormBuilderPage({ params }: { params: Promise<{ id
                 <input type="text" name="title" defaultValue={form.title || ""} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả ngắn</label>
-                <textarea name="description" defaultValue={form.description || ""} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
+                <TiptapEditor name="description" defaultValue={form.description || ""} />
               </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm space-y-4">
-              <h3 className="font-semibold text-gray-900 flex items-center gap-2"><Eye className="w-4 h-4"/> Giao diện & Hiển thị</h3>
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-4">
+              <h3 className="font-medium text-gray-900 flex items-center gap-2"><Eye className="w-4 h-4"/> Giao diện & Hiển thị</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Màu chủ đạo</label>
@@ -92,8 +92,7 @@ export default async function FormBuilderPage({ params }: { params: Promise<{ id
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Thông báo khi thành công</label>
-                <textarea name="successMessage" defaultValue={form.successMessage || "Đã gửi thành công!"} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm" />
+                <TiptapEditor name="successMessage" defaultValue={form.successMessage || "Đã gửi thành công!"} />
               </div>
             </div>
 
@@ -114,11 +113,11 @@ export default async function FormBuilderPage({ params }: { params: Promise<{ id
         </div>
 
         {/* Right: Live Preview */}
-        <div className="bg-gray-200 p-6 flex items-center justify-center" style={{ height: "calc(100vh - 130px)" }}>
+        <div className="bg-gray-200 p-4 flex items-center justify-center" style={{ height: "calc(100vh - 130px)" }}>
           <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden">
              <div className="h-2 w-full" style={{ backgroundColor: form.themeColor || "#4f46e5" }}></div>
              <div className="p-8">
-               <h2 className="text-2xl font-bold text-gray-900 mb-2">{form.title}</h2>
+               <h2 className="text-[15px] font-medium text-gray-900 mb-2">{form.title}</h2>
                {form.description && <p className="text-gray-500 text-sm mb-6">{form.description}</p>}
                
                <div className="space-y-4">

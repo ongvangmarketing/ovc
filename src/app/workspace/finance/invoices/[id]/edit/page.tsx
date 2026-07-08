@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getSettings } from "@/app/actions/settings";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { notFound } from "next/navigation";
 import { InvoiceFormClient } from "@/modules/finance/components/invoice-form-client";
@@ -20,5 +21,7 @@ export default async function EditInvoicePage({ params }: { params: Promise<{ id
 
   if (!invoice) return notFound();
 
-  return <InvoiceFormClient mode="edit" initialData={JSON.parse(JSON.stringify(invoice))} />;
+  const settings = await getSettings();
+  const paymentMethodsJson = (settings as any).payment_methods || null;
+  return <InvoiceFormClient mode="edit" initialData={JSON.parse(JSON.stringify(invoice))}  dynamicPaymentChannels={paymentMethodsJson} />;
 }

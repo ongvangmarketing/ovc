@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils/cn";
 import type { TaskLite } from "../project-detail.types";
 
-export function ProjectGanttView({ tasks }: { tasks: TaskLite[] }) {
+export function ProjectGanttView({ tasks, openEditTask }: { tasks: TaskLite[], openEditTask?: (task: TaskLite) => void }) {
   const now = new Date();
   const startDate = new Date(now.getFullYear(), now.getMonth(), 1); 
   const daysInView = 60; 
@@ -49,7 +49,7 @@ export function ProjectGanttView({ tasks }: { tasks: TaskLite[] }) {
           
           return (
             <div key={task.id} className="flex border-b border-slate-100 hover:bg-slate-50 transition-colors group">
-              <div className="w-64 shrink-0 border-r border-slate-200 p-3 flex flex-col justify-center bg-white group-hover:bg-slate-50 z-10 sticky left-0">
+              <div onClick={() => openEditTask && openEditTask(task)} className="w-64 shrink-0 border-r border-slate-200 p-3 flex flex-col justify-center bg-white group-hover:bg-slate-50 z-10 sticky left-0 cursor-pointer hover:text-indigo-600 transition-colors">
                 <span className="text-sm font-medium text-slate-900 truncate">{task.title}</span>
               </div>
               <div className="flex-1 relative min-h-[50px] overflow-hidden flex">
@@ -59,6 +59,7 @@ export function ProjectGanttView({ tasks }: { tasks: TaskLite[] }) {
                 
                 {startIndex >= 0 && startIndex < daysInView && (
                   <div 
+                    onClick={() => openEditTask && openEditTask(task)}
                     className="absolute top-1/2 -translate-y-1/2 h-6 rounded-md shadow-sm border border-black/5 flex items-center px-2 cursor-pointer hover:opacity-90 transition-opacity overflow-hidden"
                     style={{ 
                       left: `${startIndex * 40}px`, 

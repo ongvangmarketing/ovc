@@ -110,7 +110,7 @@ export function CertificatesWorkspace({ initialCerts }: { initialCerts: Training
       <header className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight flex items-center gap-2">
+            <h1 className="text-[15px] font-medium text-slate-900 tracking-tight flex items-center gap-2">
               Quản lý chứng chỉ
             </h1>
           </div>
@@ -132,7 +132,7 @@ export function CertificatesWorkspace({ initialCerts }: { initialCerts: Training
       </header>
 
       {/* Main Workspace */}
-      <div className="flex flex-1 overflow-hidden p-6">
+      <div className="flex flex-1 overflow-hidden p-4">
         <div className="flex-1 flex flex-col min-w-0 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           
           {/* Toolbar */}
@@ -207,7 +207,7 @@ export function CertificatesWorkspace({ initialCerts }: { initialCerts: Training
                         <div className="text-xs text-slate-500">{row.className}</div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={cn("px-2.5 py-1 text-xs font-semibold rounded-full border", statusConfig[row.status as any as CertStatus].tone)}>
+                        <span className={cn("px-2.5 py-1 text-xs font-medium rounded-full border", statusConfig[row.status as any as CertStatus].tone)}>
                           {statusConfig[row.status as any as CertStatus].label}
                         </span>
                       </td>
@@ -249,20 +249,20 @@ export function CertificatesWorkspace({ initialCerts }: { initialCerts: Training
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="w-96 bg-white rounded-2xl border border-slate-200 ml-6 flex flex-col z-20 shadow-sm overflow-hidden shrink-0"
             >
-              <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="font-semibold text-lg text-slate-900">Hồ sơ chứng chỉ</h2>
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+                <h2 className="font-medium text-[15px] text-slate-900">Hồ sơ chứng chỉ</h2>
                 <button onClick={() => setSelectedId(null)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              <div className="p-4 overflow-y-auto flex-1 space-y-6">
                 
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900">{selectedCert.student}</h3>
+                    <h3 className="text-[15px] font-medium text-slate-900">{selectedCert.student}</h3>
                     <p className="text-sm text-slate-500 mt-1">{selectedCert.email}</p>
                   </div>
-                  <span className={cn("px-2.5 py-1 text-xs font-semibold rounded-full border", statusConfig[selectedCert.status as any as CertStatus].tone)}>
+                  <span className={cn("px-2.5 py-1 text-xs font-medium rounded-full border", statusConfig[selectedCert.status as any as CertStatus].tone)}>
                     {statusConfig[selectedCert.status as any as CertStatus].label}
                   </span>
                 </div>
@@ -270,14 +270,14 @@ export function CertificatesWorkspace({ initialCerts }: { initialCerts: Training
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-4">
                   <div>
                     <div className="text-xs font-medium text-slate-500 mb-1">Khóa học</div>
-                    <div className="font-semibold text-slate-900">{selectedCert.course}</div>
+                    <div className="font-medium text-slate-900">{selectedCert.course}</div>
                     <div className="text-sm text-slate-600">{selectedCert.className}</div>
                   </div>
                   
                   <div className="pt-3 border-t border-slate-200">
                     <div className="flex justify-between items-end mb-2">
                       <div className="text-xs font-medium text-slate-500">Tiến độ hoàn thành</div>
-                      <div className="text-sm font-bold text-slate-900">{selectedCert.progress}%</div>
+                      <div className="text-sm font-medium text-slate-900">{selectedCert.progress}%</div>
                     </div>
                     <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                       <div className={cn("h-full rounded-full", getProgressTone(selectedCert.progress))} style={{ width: `${selectedCert.progress}%` }} />
@@ -289,7 +289,7 @@ export function CertificatesWorkspace({ initialCerts }: { initialCerts: Training
                   {selectedCert.issuedAt ? (
                     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex flex-col items-center text-center">
                       <Award className="w-10 h-10 text-emerald-500 mb-2" />
-                      <div className="font-semibold text-emerald-700">Chứng chỉ đã được cấp</div>
+                      <div className="font-medium text-emerald-700">Chứng chỉ đã được cấp</div>
                       <div className="text-sm text-emerald-600 mt-1">Ngày cấp: {new Date(selectedCert.issuedAt).toLocaleDateString("vi-VN")}</div>
                       
                       <button className="mt-4 w-full py-2 bg-white text-emerald-700 border border-emerald-200 rounded-lg font-medium hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2">
@@ -327,14 +327,14 @@ export function CertificatesWorkspace({ initialCerts }: { initialCerts: Training
 
 function StatCard({ label, value, icon }: { label: string; value: number | string; icon: React.ReactNode }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+    <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
       <div className="flex justify-between items-start mb-2">
         <div className="text-sm font-medium text-slate-500">{label}</div>
         <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
           {icon}
         </div>
       </div>
-      <div className="text-3xl font-bold text-slate-900">{value}</div>
+      <div className="text-3xl font-medium text-slate-900">{value}</div>
     </div>
   );
 }

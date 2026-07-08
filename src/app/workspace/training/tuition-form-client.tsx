@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Enrollment } from "@prisma/client";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 
 import type { TrainingFormOptions } from "@/lib/training";
 
 type Action = (formData: FormData) => Promise<void>;
 
 const inputClass = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-800 outline-none transition focus:border-orange-300 focus:ring-4 focus:ring-orange-50";
-const labelClass = "space-y-1.5 text-sm font-semibold text-slate-600";
+const labelClass = "space-y-1.5 text-[14px] font-light text-slate-600";
 
 function dateInput(value?: Date | string | null) {
   if (!value) return "";
@@ -60,7 +61,7 @@ export function TuitionFormClient({
     <form action={action} className="quote-panel space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-950">{enrollment ? "Chỉnh sửa gán lớp & học phí" : "Gán lớp & học phí"}</h2>
+          <h2 className="text-[15px] font-medium text-slate-950">{enrollment ? "Chỉnh sửa gán lớp & học phí" : "Gán lớp & học phí"}</h2>
           <p className="mt-1 text-sm text-slate-500">Chọn học viên, gán vào lớp đang/sắp khai giảng, hệ thống tự lấy học phí và sinh hóa đơn HP bên Tài chính.</p>
         </div>
         <div className="flex gap-2">
@@ -115,7 +116,10 @@ export function TuitionFormClient({
         <label className={labelClass}>Ngày bắt đầu<input name="startedAt" type="date" defaultValue={dateInput(enrollment?.startedAt)} className={inputClass} /></label>
         <label className={labelClass}>Ngày hoàn thành<input name="completedAt" type="date" defaultValue={dateInput(enrollment?.completedAt)} className={inputClass} /></label>
         <label className={labelClass}>Ngày cấp chứng chỉ<input name="certificateAt" type="date" defaultValue={dateInput(enrollment?.certificateAt)} className={inputClass} /></label>
-        <label className={`${labelClass} md:col-span-2`}>Ghi chú thanh toán<textarea name="paymentNote" defaultValue={enrollment?.paymentNote || ""} rows={4} className={inputClass} /></label>
+        <div className="md:col-span-2">
+          <label className="block text-[13px] font-medium text-slate-700 mb-1">Ghi chú thanh toán</label>
+          <TiptapEditor name="paymentNote" defaultValue={enrollment?.paymentNote || ""} />
+        </div>
       </div>
     </form>
   );

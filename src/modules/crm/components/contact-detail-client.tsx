@@ -339,11 +339,11 @@ function FinanceTable({
 
 function FinanceTitleCell({ href, title, sub }: { href?: string; title: string; sub?: string }) {
   const titleNode = href ? (
-    <Link href={href} className="text-sm font-semibold text-blue-600 hover:underline">
+    <Link href={href} className="text-sm font-medium text-blue-600 hover:underline">
       {title}
     </Link>
   ) : (
-    <strong className="text-sm font-semibold text-slate-900">{title}</strong>
+    <strong className="text-sm font-medium text-slate-900">{title}</strong>
   );
 
   return (
@@ -745,7 +745,7 @@ export function ContactDetailClient({ contact, hasProjectsModule = true }: { con
                   <tr key={item.id} className="border-b border-border last:border-0 table-row-hover">
                     <td className="px-4 py-3"><FinanceTitleCell title={item.title} /></td>
                     <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(item.createdAt)}</td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums">{formatCurrency(asNumber(item.value))}</td>
+                    <td className="px-4 py-3 text-right text-sm font-medium tabular-nums">{formatCurrency(asNumber(item.value))}</td>
                   </tr>
                 ))}
               </FinanceTable>
@@ -759,7 +759,7 @@ export function ContactDetailClient({ contact, hasProjectsModule = true }: { con
                     </td>
                     <td className="px-4 py-3"><StatusBadge kind="quotation" status={item.status} /></td>
                     <td className="px-4 py-3 text-right text-xs text-muted-foreground">{formatDate(item.createdAt)}</td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums">{formatCurrency(asNumber(item.total))}</td>
+                    <td className="px-4 py-3 text-right text-sm font-medium tabular-nums">{formatCurrency(asNumber(item.total))}</td>
                   </tr>
                 ))}
               </FinanceTable>
@@ -773,7 +773,7 @@ export function ContactDetailClient({ contact, hasProjectsModule = true }: { con
                     </td>
                     <td className="px-4 py-3"><StatusBadge kind="contract" status={item.status} /></td>
                     <td className="px-4 py-3 text-right text-xs text-muted-foreground">{formatDate(item.createdAt)}</td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums">{formatCurrency(asNumber(item.total))}</td>
+                    <td className="px-4 py-3 text-right text-sm font-medium tabular-nums">{formatCurrency(asNumber(item.total))}</td>
                   </tr>
                 ))}
               </FinanceTable>
@@ -786,8 +786,8 @@ export function ContactDetailClient({ contact, hasProjectsModule = true }: { con
                       <FinanceTitleCell href={`/workspace/finance/invoices/${item.id}`} title={item.number} sub={item.title || formatDate(item.createdAt)} />
                     </td>
                     <td className="px-4 py-3"><StatusBadge kind="invoice" status={item.status} /></td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums">{formatCurrency(asNumber(item.total))}</td>
-                    <td className={cn("px-4 py-3 text-right text-sm tabular-nums", asNumber(item.amountDue) > 0 ? "text-slate-900" : "font-semibold text-emerald-600")}>
+                    <td className="px-4 py-3 text-right text-sm font-medium tabular-nums">{formatCurrency(asNumber(item.total))}</td>
+                    <td className={cn("px-4 py-3 text-right text-sm tabular-nums", asNumber(item.amountDue) > 0 ? "text-slate-900" : "font-medium text-emerald-600")}>
                       {asNumber(item.amountDue) > 0 ? formatCurrency(asNumber(item.amountDue)) : "Đã TT"}
                     </td>
                   </tr>
@@ -811,7 +811,7 @@ export function ContactDetailClient({ contact, hasProjectsModule = true }: { con
                       </Link>
                     </td>
                     <td className="px-4 py-3"><StatusBadge kind="payment" status={item.status} /></td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold tabular-nums">{formatCurrency(asNumber(item.amount))}</td>
+                    <td className="px-4 py-3 text-right text-sm font-medium tabular-nums">{formatCurrency(asNumber(item.amount))}</td>
                   </tr>
                 ))}
               </FinanceTable>

@@ -51,17 +51,17 @@ const itemVariants = {
 
 export function OverviewQuickActions() {
   return (
-    <article className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
+    <article className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-bold text-slate-950">Trung tâm vận hành đào tạo</h2>
+          <h2 className="text-base font-medium text-slate-950">Trung tâm vận hành đào tạo</h2>
           <p className="mt-0.5 text-sm text-slate-500">
             Thao tác trực tiếp với dữ liệu khóa học, lớp, lịch, học viên và học phí.
           </p>
         </div>
         <Link
           href="/workspace/training/calendar"
-          className="shrink-0 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
+          className="shrink-0 rounded-xl border border-slate-200 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-orange-600"
         >
           Lịch học
         </Link>
@@ -86,7 +86,7 @@ export function OverviewQuickActions() {
                   <Icon className="h-5 w-5" />
                 </span>
                 <span>
-                  <strong className="block text-sm font-bold text-slate-950 transition group-hover:text-orange-700">
+                  <strong className="block text-sm font-medium text-slate-950 transition group-hover:text-orange-700">
                     {action.label}
                   </strong>
                   <small className="mt-0.5 block text-xs text-slate-500">{action.note}</small>

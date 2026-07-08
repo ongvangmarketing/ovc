@@ -15,30 +15,36 @@ export default async function CustomerTasksPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1440px] px-6 py-8 animate-in fade-in duration-500 min-h-full">
-      <header className="mb-8 flex flex-col justify-between gap-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:flex-row lg:items-center">
-        <div className="flex items-center gap-6">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-50 text-orange-600 ring-1 ring-orange-100 shadow-sm shrink-0">
-            <ClipboardList className="h-8 w-8" />
+    <div className="bg-white min-h-screen text-black selection:bg-black selection:text-white pb-24 font-sans">
+      {/* Vercel Header Section */}
+      <div className="pt-16 pb-12 px-6 md:px-12 max-w-[1440px] mx-auto border-b border-[#eaeaea]">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-10">
+          <div className="max-w-3xl">
+            <h1 className="text-[40px] md:text-[56px] font-medium tracking-tighter leading-[1.05] text-black">
+              Bảng Nhiệm Vụ
+            </h1>
+            <p className="text-[18px] text-gray-500 max-w-2xl mt-4 tracking-tight leading-snug">
+              Theo dõi tiến độ chi tiết từng hạng mục công việc của {data.customerName}
+            </p>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Bảng Nhiệm Vụ</h1>
-            <p className="mt-1 text-sm text-slate-500">Theo dõi tiến độ chi tiết từng hạng mục công việc của {data.customerName}</p>
+          
+          <div className="flex gap-8 min-w-max">
+            <div>
+              <p className="text-[12px] font-medium text-gray-400 uppercase tracking-widest mb-2">Tổng Task</p>
+              <p className="text-[28px] font-medium tracking-tighter text-black leading-none">{data.tasks.length}</p>
+            </div>
+            <div className="w-[1px] bg-[#eaeaea]"></div>
+            <div>
+              <p className="text-[12px] font-medium text-gray-400 uppercase tracking-widest mb-2">Đang chờ</p>
+              <p className="text-[28px] font-medium tracking-tighter text-orange-500 leading-none">{data.totals.openTasks}</p>
+            </div>
           </div>
         </div>
-        <div className="flex gap-4">
-          <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5">
-            <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Tổng Task</div>
-            <div className="text-lg font-bold text-slate-900">{data.tasks.length}</div>
-          </div>
-          <div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5">
-            <div className="text-xs font-medium text-slate-500 uppercase tracking-wider">Đang chờ</div>
-            <div className="text-lg font-bold text-orange-600">{data.totals.openTasks}</div>
-          </div>
-        </div>
-      </header>
+      </div>
 
-      <TasksList tasks={data.tasks} currentUser={data.session.user} />
+      <div className="px-6 md:px-12 max-w-[1440px] mx-auto pt-10">
+        <TasksList tasks={data.tasks} currentUser={data.session.user} />
+      </div>
     </div>
   );
 }

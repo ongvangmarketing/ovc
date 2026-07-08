@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { getSettings } from "@/app/actions/settings";
 import { notFound } from "next/navigation";
 import { requireAuth } from "@/lib/auth/require-auth";
 import { ContractFormClient } from "@/modules/finance/components/contract-form-client";
@@ -22,5 +23,7 @@ export default async function EditContractPage({ params }: { params: Promise<{ i
 
   if (!contract) return notFound();
 
-  return <ContractFormClient mode="edit" initialData={JSON.parse(JSON.stringify(contract))} />;
+  const settings = await getSettings();
+  const paymentMethodsJson = (settings as any).payment_methods || null;
+  return <ContractFormClient mode="edit" initialData={JSON.parse(JSON.stringify(contract))}  dynamicPaymentChannels={paymentMethodsJson} />;
 }

@@ -67,6 +67,11 @@ function itemUnitData(unit?: unknown) {
 async function handleTargetData(data: any, organizationId: string) {
   let contactId = data.contactId || undefined;
   let companyId = data.companyId || undefined;
+  const companyDirectFields = {
+    ...(data.companyTaxCode !== undefined ? { taxCode: data.companyTaxCode || null } : {}),
+    ...(data.companyRepresentative !== undefined ? { representativeName: data.companyRepresentative || null } : {}),
+    ...(data.companyRepresentativeTitle !== undefined ? { representativeTitle: data.companyRepresentativeTitle || null } : {}),
+  };
 
   // Handle Company
   if (data.targetType === "company" || data.companyName) {
@@ -78,6 +83,7 @@ async function handleTargetData(data: any, organizationId: string) {
           phone: data.contactPhone || undefined,
           email: data.contactEmail || undefined,
           address: data.contactAddress || undefined,
+          ...companyDirectFields,
         }
       });
     } else if (data.companyName) {
@@ -88,6 +94,7 @@ async function handleTargetData(data: any, organizationId: string) {
           phone: data.contactPhone || null,
           email: data.contactEmail || null,
           address: data.contactAddress || null,
+          ...companyDirectFields,
         }
       });
       companyId = newCompany.id;
@@ -106,6 +113,7 @@ async function handleTargetData(data: any, organizationId: string) {
           email: data.contactEmail || undefined,
           address: data.contactAddress || undefined,
           companyId: companyId || undefined,
+          ...(data.contactIdentityNumber !== undefined ? { identityNumber: data.contactIdentityNumber || null } : {}),
         }
       });
     } else if (data.contactName) {
@@ -118,6 +126,7 @@ async function handleTargetData(data: any, organizationId: string) {
           email: data.contactEmail || null,
           address: data.contactAddress || null,
           companyId: companyId || undefined,
+          ...(data.contactIdentityNumber ? { identityNumber: data.contactIdentityNumber } : {}),
         }
       });
       contactId = newContact.id;

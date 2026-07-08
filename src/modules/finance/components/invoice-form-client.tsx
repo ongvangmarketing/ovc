@@ -1,16 +1,18 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarDays, FileText, FileUp, Plus, Search, Trash2, X } from "lucide-react";
+import { FileText, FileUp, Loader2, Plus, Search, Trash2, X } from "lucide-react";
 
 import { createInvoice, recordPayment, updateInvoice } from "@/app/actions/finance-crud";
-import { getContacts, getCompanies, getContactAssignees, getDeals } from "@/app/actions/crm";
-import { normalizePaymentChannelKeys, paymentChannelOptions, type PaymentChannelKey } from "@/lib/finance/payment-channels";
+import { getContacts, getCompanies, getContactAssignees, getDeals, lookupCompanyByTaxCode } from "@/app/actions/crm";
+import { normalizePaymentChannelKeys, getDynamicPaymentChannels, type PaymentChannelKey } from "@/lib/finance/payment-channels";
+import { TiptapEditor } from "@/components/ui/tiptap-editor";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 import { InvoicePaymentModal } from "./invoice-payment-modal";
+import { CustomerFormSection } from "./customer-form-section";
 
 type PaymentPayload = {
   amount: number;
@@ -30,7 +32,11 @@ type ContactOption = {
   name?: string;
   email?: string | null;
   phone?: string | null;
-  company?: { name?: string | null } | null;
+  company?: {
+    name?: string | null;
+    taxCode?: string | null;
+    customFields?: Record<string, unknown> | null;
+  } | null;
   address?: string | null;
 };
 
@@ -59,6 +65,11 @@ type InitialInvoice = {
   targetType?: string | null;
   projectId?: string | null;
   contractId?: string | null;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
+  contactAddress?: string | null;
+  companyName?: string | null;
+  companyTaxCode?: string | null;
   currency?: string;
   paymentChannels?: unknown;
   customerSignatureRequired?: boolean;
@@ -97,6 +108,13 @@ function nextWeekInputValue() {
   date.setDate(date.getDate() + 7);
   return date.toISOString().slice(0, 10);
 }
+function formatFileSize(bytes: number) {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+}
 
 function toInputDate(value?: string | Date | null) {
   if (!value) return "";
@@ -108,6 +126,10 @@ function toInputDate(value?: string | Date | null) {
 function numberValue(value: unknown) {
   const parsed = Number(value ?? 0);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizedLookup(value?: string | null) {
+  return String(value || "").trim().replace(/\s+/g, "");
 }
 
 function normalizeLegacyText(value?: string | null) {
@@ -153,133 +175,21 @@ function SignatureToggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="quote-signature-toggle sm:col-span-2" aria-label="Ký số">
-      <input
-        type="checkbox"
-        className="sr-only"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-      />
-      <span className={cn("quote-switch", checked && "quote-switch-on")}>
-        <span>Ký số</span>
-      </span>
+    <label className="flex h-[46px] mt-[30px] cursor-pointer items-center justify-between rounded-lg border-transparent bg-gray-50/50 px-4 hover:bg-gray-100 transition-colors" aria-label="Ký số">
+      <span className="text-[13px] font-medium text-black">{checked ? "Bật ký số" : "Tắt ký số"}</span>
+      <div className={cn("relative h-5 w-9 rounded-full transition-colors", checked ? "bg-black" : "bg-gray-200")}>
+        <div className={cn("absolute top-[2px] left-[2px] h-4 w-4 rounded-full bg-white transition-transform", checked && "translate-x-4")} />
+      </div>
+      <input type="checkbox" className="sr-only" checked={checked} onChange={(event) => onChange(event.target.checked)} />
     </label>
   );
 }
 
-function ComboSelect({
-  label,
-  value,
-  search,
-  selectedTitle,
-  onSearchChange,
-  placeholder,
-  options,
-  getTitle,
-  getSubtitle,
-  onSelect,
-  allowEmpty,
-}: {
-  label: string;
-  value: string;
-  search: string;
-  selectedTitle?: string;
-  onSearchChange: (value: string) => void;
-  placeholder: string;
-  options: Array<{ id: string }>;
-  getTitle: (option: any) => string;
-  getSubtitle?: (option: any) => string;
-  onSelect: (id: string) => void;
-  allowEmpty?: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const comboRef = useRef<HTMLDivElement>(null);
+import { ComboSelectModal as ComboSelect } from "@/components/ui/combo-select-modal";
 
-  useEffect(() => {
-    if (!open) return;
-    const closeOnOutsideClick = (event: MouseEvent) => {
-      if (!comboRef.current?.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", closeOnOutsideClick);
-    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
-  }, [open]);
-
-  return (
-    <Field label={label}>
-      <div ref={comboRef} className="quote-combo">
-        <Search className="quote-input-icon quote-input-icon-left top-[21px]" />
-        <input
-          value={search || selectedTitle || ""}
-          onChange={(event) => {
-            onSearchChange(event.target.value);
-            setOpen(true);
-          }}
-          onFocus={() => setOpen(true)}
-          className="quote-input quote-input-with-left-icon"
-          placeholder={placeholder}
-          type="search"
-        />
-        {(value || search || selectedTitle) ? (
-          <button
-            type="button"
-            onPointerDown={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              onSelect("");
-              onSearchChange("");
-              setOpen(false);
-            }}
-            onClick={(event) => event.preventDefault()}
-            className="absolute right-2 top-[21px] -translate-y-1/2 rounded-md px-1.5 text-xs font-semibold text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-            aria-label="Xóa lựa chọn"
-          >
-            x
-          </button>
-        ) : null}
-        {open ? (
-          <div className="quote-combo-menu">
-            {allowEmpty && value ? (
-              <button
-                type="button"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  onSelect("");
-                  onSearchChange("");
-                  setOpen(false);
-                }}
-                className="quote-combo-option"
-              >
-                <span>Không chọn</span>
-              </button>
-            ) : null}
-            {options.slice(0, 9).map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  onSelect(option.id);
-                  onSearchChange(getTitle(option));
-                  setOpen(false);
-                }}
-                className={cn("quote-combo-option", option.id === value && "quote-combo-option-active")}
-              >
-                <span>{getTitle(option)}</span>
-                {getSubtitle ? <small>{getSubtitle(option)}</small> : null}
-              </button>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    </Field>
-  );
-}
-
-export function InvoiceFormClient({ mode, initialData, initialNumber = "" }: { mode: InvoiceMode; initialData?: InitialInvoice; initialNumber?: string }) {
-  const router = useRouter();
+export function InvoiceFormClient({ mode, initialData, initialNumber = "", dynamicPaymentChannels }: { mode: InvoiceMode; initialData?: InitialInvoice; initialNumber?: string; dynamicPaymentChannels?: string | null; }) {
+    const paymentChannelOptions = useMemo(() => getDynamicPaymentChannels(dynamicPaymentChannels), [dynamicPaymentChannels]);
+const router = useRouter();
   const queryClient = useQueryClient();
   const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
 
@@ -291,14 +201,14 @@ export function InvoiceFormClient({ mode, initialData, initialNumber = "" }: { m
   const [contactEmail, setContactEmail] = useState("");
   const [contactAddress, setContactAddress] = useState("");
   const [companyName, setCompanyName] = useState("");
-  const [targetType, setTargetType] = useState(initialData?.targetType || "contact");
+  const [targetType, setTargetType] = useState<"company" | "contact" | "lead">(initialData?.targetType as any || "company");
   const [companyId, setCompanyId] = useState("");
   const [dealId, setDealId] = useState("");
   const [dealSearch, setDealSearch] = useState("");
   const [assigneeId, setAssigneeId] = useState(initialData?.assigneeId || "");
   const [status, setStatus] = useState(initialData?.status || "DRAFT");
   const [currency, setCurrency] = useState(initialData?.currency || "VND");
-  const [paymentChannels, setPaymentChannels] = useState<PaymentChannelKey[]>(normalizePaymentChannelKeys(initialData?.paymentChannels));
+  const [paymentChannels, setPaymentChannels] = useState<PaymentChannelKey[]>(normalizePaymentChannelKeys(initialData?.paymentChannels, paymentChannelOptions));
   const [customerSignatureRequired, setCustomerSignatureRequired] = useState(initialData?.customerSignatureRequired !== false);
   const [issuedAt, setIssuedAt] = useState(toInputDate(initialData?.issuedAt) || todayInputValue());
   const [dueDate, setDueDate] = useState(toInputDate(initialData?.dueDate) || nextWeekInputValue());
@@ -376,27 +286,93 @@ export function InvoiceFormClient({ mode, initialData, initialNumber = "" }: { m
   const amountPaid = numberValue(initialData?.amountPaid) || (initialData?.payments || []).reduce((sum, item) => sum + numberValue(item.amount), 0);
   const amountDue = Math.max(0, totalAmount - amountPaid);
 
-  
+  const [companyTaxCode, setCompanyTaxCode] = useState(initialData?.companyTaxCode || "");
+  const [representativeName, setRepresentativeName] = useState((initialData as any)?.representativeName || "");
+  const [representativeTitle, setRepresentativeTitle] = useState((initialData as any)?.representativeTitle || "");
+  const [contactIdCard, setContactIdCard] = useState((initialData as any)?.contactIdCard || "");
+
+  const hasLoadedCompanyRef = useRef(false);
+  const hasLoadedContactRef = useRef(false);
+
   useEffect(() => {
-    if (selectedContact) {
+    if (selectedContact && !hasLoadedContactRef.current) {
       setContactName(contactLabel(selectedContact));
       setContactPhone(selectedContact.phone || "");
       setContactEmail(selectedContact.email || "");
       setContactAddress(selectedContact.address || "");
       setCompanyName(selectedContact.company?.name || "");
+      const customFields: any = selectedContact.company?.customFields || {};
+      setCompanyTaxCode(selectedContact.company?.taxCode || customFields.taxCode || "");
+      const contactCustomFields: any = selectedContact.customFields || {};
+      setContactIdCard(contactCustomFields.idCard || "");
+      hasLoadedContactRef.current = true;
     }
   }, [selectedContact]);
+
+  useEffect(() => {
+    if (selectedCompany && !hasLoadedCompanyRef.current) {
+      setCompanyName(selectedCompany.name || "");
+      setContactPhone(selectedCompany.phone || "");
+      setContactEmail(selectedCompany.email || "");
+      setContactAddress(selectedCompany.address || "");
+      const customFields: any = selectedCompany.customFields || {};
+      setCompanyTaxCode(selectedCompany.taxCode || customFields.taxCode || "");
+      setRepresentativeName(customFields.representativeName || "");
+      setRepresentativeTitle(customFields.representativeTitle || "");
+      hasLoadedCompanyRef.current = true;
+    }
+  }, [selectedCompany]);
+
+  const handleContactChange = (id: string) => {
+    setContactId(id);
+    hasLoadedContactRef.current = false;
+  };
+
+  const handleCompanyChange = (id: string) => {
+    setCompanyId(id);
+    hasLoadedCompanyRef.current = false;
+  };
+
+  const taxLookupMutation = useMutation({
+    mutationFn: lookupCompanyByTaxCode,
+    onSuccess: (result, taxCode) => {
+      if (!result.success) return;
+
+      setCompanyTaxCode(result.data.taxCode || taxCode);
+      setCompanyName(result.data.name || companyName);
+      setContactAddress(result.data.address || contactAddress);
+    },
+  });
+
+  const runTaxLookup = (taxCode: string) => {
+    const normalizedTaxCode = taxCode.trim().replace(/\s+/g, "");
+    if (normalizedTaxCode.length < 10) return;
+    
+    const existing = companies?.find((c: any) => normalizedLookup(c.taxCode) === normalizedTaxCode);
+    if (!existing) {
+      taxLookupMutation.mutate(normalizedTaxCode);
+    }
+  };
+
+  useEffect(() => {
+    const normalizedTaxCode = (companyTaxCode || "").trim().replace(/\s+/g, "");
+    if (normalizedTaxCode.length < 10) return;
+
+    const timer = window.setTimeout(() => runTaxLookup(normalizedTaxCode), 800);
+    return () => window.clearTimeout(timer);
+  }, [companyTaxCode]);
 
   const saveMutation = useMutation({
     mutationFn: (statusOverride?: string) => {
       const payload = {
         number: number.trim() || undefined,
-        title,
+        title: title.trim() || `Hóa đơn ${number || ''}`,
         contactId: contactId || undefined,
         targetType,
         assigneeId: assigneeId || undefined,
         contactName: targetType !== 'company' ? (customerSearch || contactName) : undefined,
         companyName: targetType === 'company' ? (companySearch || companyName) : companyName,
+        companyTaxCode,
         contactPhone,
         contactEmail,
         contactAddress,
@@ -452,10 +428,6 @@ export function InvoiceFormClient({ mode, initialData, initialNumber = "" }: { m
 
   const handleSave = async (statusOverride?: string) => {
     setSaveError("");
-    if (!title.trim()) {
-      alert("Vui lòng nhập tiêu đề hóa đơn.");
-      return;
-    }
     const hasContactCustomer = targetType !== "company" && (contactId || customerSearch.trim() || contactName.trim());
     const hasCompanyCustomer = targetType === "company" && (companyId || companySearch.trim() || companyName.trim());
     if (!hasContactCustomer && !hasCompanyCustomer) {
@@ -489,6 +461,17 @@ export function InvoiceFormClient({ mode, initialData, initialNumber = "" }: { m
       })
     );
   };
+
+  const customerDisplayName = targetType === "company"
+    ? (selectedCompany?.name || companyName || companySearch || "Chọn công ty")
+    : (selectedContact ? contactLabel(selectedContact) : contactName || customerSearch || "Chọn khách hàng");
+  const customerInitial = customerDisplayName.trim().charAt(0).toUpperCase() || "K";
+  const customerMeta = [
+    targetType === "company" && companyTaxCode ? `MST ${companyTaxCode}` : "",
+    contactPhone,
+    contactEmail,
+  ].filter(Boolean);
+
   const togglePaymentChannel = (key: PaymentChannelKey) => {
     setPaymentChannels((current) => {
       const next = current.includes(key) ? current.filter((item) => item !== key) : [...current, key];
@@ -497,20 +480,20 @@ export function InvoiceFormClient({ mode, initialData, initialNumber = "" }: { m
   };
 
   return (
-    <div className="quote-page mx-auto max-w-[1440px] px-3 py-4 sm:px-6 sm:py-6">
-      <div className="mb-5 flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="mx-auto max-w-6xl px-4 py-8 md:py-12">
+      <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-[14px] font-light text-slate-500">
-            <FileText className="h-4 w-4 text-orange-500" />Tài chính / Hóa đơn
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-gray-400">
+            Tài chính / Hóa đơn
           </div>
-          <h1 className="text-[14px] font-light text-slate-950">{mode === "create" ? "Tạo hóa đơn" : `Hóa đơn ${initialData?.number || ""}`}</h1>
+          <h1 className="text-[48px] md:text-[56px] font-medium tracking-tighter text-black leading-none">{mode === "create" ? "Tạo hóa đơn" : `Hóa đơn ${initialData?.number || ""}`}</h1>
         </div>
-        <div className="quote-form-actions w-full lg:w-auto">
-          <button type="button" onClick={() => router.back()} className="quote-action-button quote-action-secondary">Quay lại</button>
-          <button type="button" onClick={() => handleSave("DRAFT")} disabled={saveMutation.isPending} className="quote-action-button quote-action-secondary">
+        <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto">
+          <button type="button" onClick={() => router.back()} className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-gray-50">Quay lại</button>
+          <button type="button" onClick={() => handleSave("DRAFT")} disabled={saveMutation.isPending} className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-gray-50">
             {saveMutation.isPending ? "Đang lưu..." : "Lưu nháp"}
           </button>
-          <button type="button" onClick={() => handleSave()} disabled={saveMutation.isPending} className="quote-action-button quote-action-primary">
+          <button type="button" onClick={() => handleSave()} disabled={saveMutation.isPending} className="rounded-full bg-black px-6 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-gray-800">
             {saveMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
         </div>
@@ -518,16 +501,20 @@ export function InvoiceFormClient({ mode, initialData, initialNumber = "" }: { m
 
       {saveError ? <div className="mb-4 rounded-[8px] border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-light text-red-700">Lưu hóa đơn thất bại: {saveError}</div> : null}
 
-      <form className="quote-form-grid" onSubmit={(event) => event.preventDefault()}>
-        <section className="quote-panel quote-payment-sidebar">
-          <div className="quote-panel-header"><h2>Thông tin chung</h2></div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Số hóa đơn"><input value={number} onChange={(event) => setNumber(event.target.value)} className="quote-input" placeholder="Tự sinh nếu bỏ trống" /></Field>
-            <Field label="Trạng thái"><select value={status} onChange={(event) => setStatus(event.target.value)} className="quote-input">{statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Field>
-            <Field label="Ngày lập"><div className="relative"><CalendarDays className="quote-input-icon quote-input-icon-left" /><input type="date" value={issuedAt} onChange={(event) => setIssuedAt(event.target.value)} className="quote-input quote-input-with-left-icon" /></div></Field>
-            <Field label="Hạn thanh toán"><input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className="quote-input" /></Field>
-            <Field label="Tiêu đề hóa đơn" className="sm:col-span-2"><input value={title} onChange={(event) => setTitle(event.target.value)} className="quote-input" placeholder="VD: Hóa đơn thanh toán đợt 1" required /></Field>
-            <Field label="Loại tiền" className="sm:col-span-2"><select value={currency} onChange={(event) => setCurrency(event.target.value)} className="quote-input"><option value="VND">VND</option><option value="USD">USD</option></select></Field>
+      <form className="flex flex-col gap-8 lg:grid lg:grid-cols-12 lg:items-start lg:gap-10" onSubmit={(event) => event.preventDefault()}>
+        <section className="rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:sticky lg:top-8 lg:col-span-4 lg:col-start-9 lg:row-span-12 lg:row-start-1">
+          <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
+            <h2 className="text-[24px] font-medium tracking-tight text-black">Thông tin chung</h2></div>
+          <div className="flex flex-col gap-6">
+            <Field label="Số hóa đơn"><input value={number} onChange={(event) => setNumber(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" placeholder="Tự sinh nếu bỏ trống" /></Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Ngày lập"><input type="date" value={issuedAt} onChange={(event) => setIssuedAt(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+              <Field label="Hạn thanh toán"><input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Trạng thái"><select value={status} onChange={(event) => setStatus(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">{statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></Field>
+              <Field label="Loại tiền"><select value={currency} onChange={(event) => setCurrency(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"><option value="VND">VND</option><option value="USD">USD</option></select></Field>
+            </div>
             <SignatureToggle
               checked={customerSignatureRequired}
               onChange={setCustomerSignatureRequired}
@@ -535,210 +522,186 @@ export function InvoiceFormClient({ mode, initialData, initialNumber = "" }: { m
           </div>
         </section>
 
-        
-        <section className="quote-panel">
-          <div className="quote-panel-header"><h2>Khách hàng và dự án</h2></div>
-          <div className="space-y-4">
-            {/* Row 1 */}
-            <div className="grid gap-4 lg:grid-cols-3 items-start">
-              <Field label="Đối tượng báo giá">
-                <select className="quote-input" value={targetType} onChange={(e) => setTargetType(e.target.value as any)}>
-                  <option value="company">Công ty</option>
-                  <option value="contact">Liên hệ</option>
-                  <option value="lead">Lead</option>
-                </select>
-              </Field>
-              {typeof assignees !== 'undefined' && (
-                <ComboSelect
-                  label="Người phụ trách"
-                  value={assigneeId}
-                  search=""
-                  selectedTitle={assignees.find((a: any) => a.id === assigneeId)?.name}
-                  onSearchChange={() => {}}
-                  placeholder="Gõ tên người phụ trách..."
-                  options={assignees}
-                  getTitle={(a: any) => a.name}
-                  onSelect={setAssigneeId}
-                  allowEmpty
-                />
-              )}
-              {typeof deals !== 'undefined' && (
-                <ComboSelect
-                  label="Deal / Cơ hội"
-                  value={dealId}
-                  search={dealSearch}
-                  selectedTitle={selectedDeal ? dealLabel(selectedDeal) : undefined}
-                  onSearchChange={setDealSearch}
-                  placeholder="Gõ tên deal..."
-                  options={filteredDeals}
-                  getTitle={dealLabel}
-                  getSubtitle={(deal: any) => (deal.value ? formatCurrency(numberValue(deal.value)) : "")}
-                  onSelect={setDealId}
-                  allowEmpty
-                />
-              )}
-            </div>
+        <CustomerFormSection
+          customerInitial={customerInitial}
+          customerDisplayName={customerDisplayName}
+          customerMeta={customerMeta}
+          targetType={targetType}
+          setTargetType={setTargetType}
+          assignees={assignees}
+          assigneeId={assigneeId}
+          setAssigneeId={setAssigneeId}
+          companyId={companyId}
+          companySearch={companySearch}
+          selectedCompany={selectedCompany}
+          companyName={companyName}
+          setCompanySearch={setCompanySearch}
+          handleCompanyChange={handleCompanyChange}
+          setCompanyName={setCompanyName}
+          filteredCompanies={filteredCompanies}
+          representativeName={representativeName}
+          setRepresentativeName={setRepresentativeName}
+          representativeTitle={representativeTitle}
+          setRepresentativeTitle={setRepresentativeTitle}
+          companyTaxCode={companyTaxCode}
+          setCompanyTaxCode={setCompanyTaxCode}
+          contactId={contactId}
+          customerSearch={customerSearch}
+          selectedContact={selectedContact}
+          contactName={contactName}
+          setCustomerSearch={setCustomerSearch}
+          handleContactChange={handleContactChange}
+          setContactName={setContactName}
+          filteredContacts={filteredContacts}
+          contactPhone={contactPhone}
+          setContactPhone={setContactPhone}
+          contactEmail={contactEmail}
+          setContactEmail={setContactEmail}
+          contactAddress={contactAddress}
+          setContactAddress={setContactAddress}
+          contactIdentityNumber={contactIdCard}
+          setContactIdentityNumber={setContactIdCard}
+        />
 
-            {/* Row 2 */}
-            <div className="grid gap-4 lg:grid-cols-3 items-start">
-              {targetType === "company" && typeof filteredCompanies !== 'undefined' ? (
-                <ComboSelect
-                  label="Công ty"
-                  value={companyId}
-                  search={companySearch}
-                  selectedTitle={selectedCompany?.name || companyName}
-                  onSearchChange={setCompanySearch}
-                  placeholder="Gõ tên công ty..."
-                  options={filteredCompanies}
-                  getTitle={(c: any) => c.name}
-                  getSubtitle={(c: any) => c.taxCode || ""}
-                  onSelect={setCompanyId}
-                  allowEmpty
-                />
-              ) : (
-                <ComboSelect
-                  label="Tên khách hàng"
-                  value={contactId}
-                  search={customerSearch}
-                  selectedTitle={selectedContact ? contactLabel(selectedContact) : contactName}
-                  onSearchChange={setCustomerSearch}
-                  placeholder="Gõ tên, email hoặc mã..."
-                  options={filteredContacts}
-                  getTitle={contactLabel}
-                  getSubtitle={(contact: any) => [contact.company?.name, contact.email, contact.phone].filter(Boolean).join(" · ")}
-                  onSelect={setContactId}
-                  allowEmpty
-                />
-              )}
-              <Field label="Số điện thoại">
-                <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} className="quote-input" placeholder="09xxxx..." />
-              </Field>
-              <Field label="Email">
-                <input type="email" value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} className="quote-input" placeholder="email@..." />
-              </Field>
-            </div>
-
-            {/* Row 3 */}
-            <div className="grid gap-4 lg:grid-cols-2 items-start">
-              <Field label="Địa chỉ">
-                <input value={contactAddress} onChange={(e) => setContactAddress(e.target.value)} className="quote-input" placeholder="Số nhà, đường..." />
-              </Field>
-              {targetType !== "company" && (
-                <Field label="Công ty">
-                  <input value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="quote-input" placeholder="Tên công ty (nếu có)" />
-                </Field>
-              )}
-            </div>
-          </div>
-        </section>
-
-
-        <section className="quote-panel">
-          <div className="quote-panel-header"><h2>Kênh thanh toán</h2></div>
-          <div className="grid gap-3 lg:grid-cols-2">
+        <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+          <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
+            <h2 className="text-[24px] font-medium tracking-tight text-black">Kênh thanh toán</h2></div>
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
             {paymentChannelOptions.map((channel) => (
-              <label key={channel.key} className={cn("quote-payment-channel", paymentChannels.includes(channel.key) && "quote-payment-channel-active")}>
-                <input type="checkbox" checked={paymentChannels.includes(channel.key)} onChange={() => togglePaymentChannel(channel.key)} />
-                <span><strong>{channel.optionLabel}</strong><small>{channel.accountName} · {channel.bankName}</small></span>
+              <label key={channel.key} className={cn("flex w-[320px] shrink-0 cursor-pointer items-start gap-4 rounded-xl border p-5 transition-colors", paymentChannels.includes(channel.key) ? "border-black bg-gray-50/50" : "border-[#eaeaea] bg-white hover:border-gray-300")}>
+                <input type="checkbox" checked={paymentChannels.includes(channel.key)} onChange={() => togglePaymentChannel(channel.key)} className="mt-0.5 flex-shrink-0" />
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[14px] font-semibold leading-snug text-black">{channel.optionLabel}</span>
+                  <span className="text-[12px] leading-relaxed text-gray-500 uppercase tracking-wide">{channel.accountName} · {channel.bankName}</span>
+                </div>
               </label>
             ))}
           </div>
         </section>
 
-        <section className="quote-panel">
-          <div className="quote-panel-header">
-            <h2 className="quote-work-heading">Nội dung công việc</h2>
-            <button type="button" onClick={addItem} className="quote-button quote-button-soft"><Plus className="h-4 w-4" />Thêm dòng</button>
+        <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+          <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
+            <h2 className="text-[24px] font-medium tracking-tight text-black">Nội dung công việc</h2>
+            <button type="button" onClick={addItem} className="inline-flex items-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[14px] font-medium text-black transition-colors hover:bg-gray-50"><Plus className="h-4 w-4" />Thêm dòng</button>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-0">
             {items.map((item, index) => (
-              <div key={index} className="quote-item-grid contract-item-grid">
+              <div key={index} className="flex flex-col gap-4 border-b border-[#eaeaea] py-5 last:border-0">
                 <Field label="Mô tả sản phẩm / dịch vụ">
-                  <textarea
-                    rows={3}
+                  <TiptapEditor
                     value={item.name}
-                    onChange={(event) => updateItem(index, "name", event.target.value)}
-                    className="quote-input min-h-[92px] resize-y"
+                    onChange={(content) => updateItem(index, "name", content)}
                     placeholder="Nhập mô tả chi tiết, phạm vi công việc, ghi chú riêng cho hạng mục..."
                   />
                 </Field>
-                <Field label="Đơn vị"><input value={item.unit || ""} onChange={(event) => updateItem(index, "unit", event.target.value)} className="quote-input" placeholder="" /></Field>
-                <Field label="Số lượng"><input type="number" value={item.quantity} min={0} onChange={(event) => updateItem(index, "quantity", event.target.value)} className="quote-input" /></Field>
-                <Field label="Đơn giá"><input type="number" value={item.unitPrice} min={0} onChange={(event) => updateItem(index, "unitPrice", event.target.value)} className="quote-input" /></Field>
-                <Field label="Thuế %"><input type="number" value={item.tax} min={0} onChange={(event) => updateItem(index, "tax", event.target.value)} className="quote-input" /></Field>
-
-                <Field label="Thành tiền"><input value={formatCurrency(item.total)} readOnly className="quote-input bg-slate-50 text-slate-500" /></Field>
-                <button type="button" onClick={() => removeItem(index)} className="quote-icon-button" title="Xóa dòng"><Trash2 className="h-4 w-4" /></button>
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-[1fr_1fr_1fr_1fr_1.5fr_auto] md:items-end">
+                  <Field label="Đơn vị"><input value={item.unit || ""} onChange={(event) => updateItem(index, "unit", event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" placeholder="" /></Field>
+                  <Field label="Số lượng"><input type="number" value={item.quantity} min={0} onChange={(event) => updateItem(index, "quantity", event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                  <Field label="Đơn giá"><input type="number" value={item.unitPrice} min={0} onChange={(event) => updateItem(index, "unitPrice", event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                  <Field label="Thuế %"><input type="number" value={item.tax} min={0} onChange={(event) => updateItem(index, "tax", event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                  <Field label="Thành tiền"><input value={formatCurrency(item.total)} readOnly className="w-full rounded-lg border-transparent bg-gray-100/50 px-4 py-3 text-[14px] font-medium text-gray-500 transition-colors placeholder:text-gray-300 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                  <button type="button" onClick={() => removeItem(index)} className="inline-flex h-[46px] w-[46px] items-center justify-center rounded-lg border-transparent bg-gray-50/50 text-gray-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Xóa dòng"><Trash2 className="h-4 w-4" /></button>
+                </div>
               </div>
             ))}
           </div>
-          <div className="quote-inline-total contract-inline-total">
-            <div className="quote-inline-total-columns">
-              <div className="quote-inline-total-group">
-                <Field label="Loại chiết khấu"><select value={discountType} onChange={(event) => setDiscountType(event.target.value)} className="quote-input"><option value="fixed">VND</option><option value="percent">%</option></select></Field>
-                <Field label="Chiết khấu"><input type="number" min={0} value={discount} onChange={(event) => setDiscount(numberValue(event.target.value))} className="quote-input" /></Field>
-                <div className="quote-total-row"><span>Tổng chiết khấu</span><strong>-{formatCurrency(totalDiscount)}</strong></div>
+          <div className="mt-4 pt-8 border-t border-[#eaeaea]">
+            <div className="grid gap-8 md:grid-cols-2">
+              <div className="flex flex-col gap-4">
+                <Field label="Loại chiết khấu"><select value={discountType} onChange={(event) => setDiscountType(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"><option value="fixed">VND</option><option value="percent">%</option></select></Field>
+                <Field label="Chiết khấu"><input type="number" min={0} value={discount} onChange={(event) => setDiscount(numberValue(event.target.value))} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                <div className="flex items-center justify-between border-t border-[#eaeaea] pt-4 text-sm text-gray-500"><span>Tổng chiết khấu</span><strong>-{formatCurrency(totalDiscount)}</strong></div>
               </div>
-              <div className="quote-inline-total-group">
-                <Field label="Tạm tính"><input type="number" min={0} value={subtotal} onChange={(event) => setSubtotalOverride(numberValue(event.target.value))} className="quote-input" /></Field>
-                <Field label="Tổng thuế"><input type="number" min={0} value={totalTax} onChange={(event) => setTotalTaxOverride(numberValue(event.target.value))} className="quote-input" /></Field>
-                <div className="quote-total-row"><span>Đã thanh toán</span><strong>{formatCurrency(amountPaid)}</strong></div>
-                <div className="quote-grand-total"><span>Tổng hóa đơn</span><strong>{formatCurrency(totalAmount)}</strong></div>
+              <div className="flex flex-col gap-4">
+                <Field label="Tạm tính"><input type="number" min={0} value={subtotal} onChange={(event) => setSubtotalOverride(numberValue(event.target.value))} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                <Field label="Tổng thuế"><input type="number" min={0} value={totalTax} onChange={(event) => setTotalTaxOverride(numberValue(event.target.value))} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                <div className="flex items-center justify-between border-t border-[#eaeaea] pt-4 text-sm text-gray-500"><span>Đã thanh toán</span><strong>{formatCurrency(amountPaid)}</strong></div>
+                <div className="flex items-center justify-between border-t border-[#eaeaea] pt-4 text-[20px] font-medium tracking-tight text-black"><span>Tổng hóa đơn</span><strong>{formatCurrency(totalAmount)}</strong></div>
               </div>
             </div>
           </div>
         </section>
 
         {mode === "edit" ? (
-          <section className="quote-panel">
-            <div className="quote-panel-header">
-              <h2>Thanh toán</h2>
-              {amountDue > 0 ? <button type="button" onClick={() => setShowPaymentModal(true)} className="quote-button quote-button-soft"><Plus className="h-4 w-4" />Ghi nhận thanh toán</button> : null}
+          <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+            <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
+            <h2 className="text-[24px] font-medium tracking-tight text-black">Thanh toán</h2>
+              {amountDue > 0 ? <button type="button" onClick={() => setShowPaymentModal(true)} className="inline-flex items-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[14px] font-medium text-black transition-colors hover:bg-gray-50"><Plus className="h-4 w-4" />Ghi nhận thanh toán</button> : null}
             </div>
-            <div className="quote-side-list">
-              <div><span>Đã thanh toán</span><strong>{formatCurrency(amountPaid)}</strong></div>
-              <div><span>Còn lại</span><strong className="text-red-500">{formatCurrency(amountDue)}</strong></div>
+            <div className="mt-6 flex flex-col gap-4">
+              <div className="flex items-center justify-between border-b border-[#eaeaea] pb-4 text-sm"><span className="text-gray-500">Đã thanh toán</span><strong className="font-medium text-black">{formatCurrency(amountPaid)}</strong></div>
+              <div className="flex items-center justify-between border-b border-[#eaeaea] pb-4 text-sm"><span className="text-gray-500">Còn lại</span><strong className="font-medium text-red-600">{formatCurrency(amountDue)}</strong></div>
               {(initialData?.payments || []).map((payment) => (
-                <div key={payment.id}><span>{payment.method} · {formatDate(payment.paidAt || payment.createdAt)}</span><strong>{formatCurrency(numberValue(payment.amount))}</strong></div>
+                <div key={payment.id} className="flex items-center justify-between pt-2 text-sm"><span className="text-gray-500">{payment.method} · {formatDate(payment.paidAt || payment.createdAt)}</span><strong className="font-medium text-black">{formatCurrency(numberValue(payment.amount))}</strong></div>
               ))}
             </div>
           </section>
         ) : null}
 
-        <section className="quote-panel quote-compact-upload-panel">
-          <div className="quote-panel-header"><h2>Tệp đính kèm</h2></div>
-          <div className="quote-upload-grid">
-            <label className="quote-upload-zone">
+        <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+          <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
+            <h2 className="text-[24px] font-medium tracking-tight text-black">Tệp đính kèm</h2></div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50/50 p-8 text-center transition-colors hover:bg-gray-100">
               <input type="file" multiple className="sr-only" onChange={(event) => { addAttachments(event.target.files); event.currentTarget.value = ""; }} />
-              <span className="quote-upload-icon"><FileUp className="h-5 w-5" /></span>
-              <strong>Chọn file hoặc kéo thả vào đây</strong>
-              <small>PDF, DOCX, XLSX, PNG, JPG. Dữ liệu upload sẽ nối backend file ở bước tiếp theo.</small>
+              <span className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm border border-[#eaeaea]">
+                <FileUp className="h-5 w-5" />
+              </span>
+              <strong className="text-[14px] font-medium text-black">Chọn file hoặc kéo thả vào đây</strong>
+              <small className="mt-1 text-[12px] text-gray-500">PDF, DOCX, XLSX, PNG, JPG. Dữ liệu upload sẽ nối backend file ở bước tiếp theo.</small>
             </label>
-            <div className="quote-upload-list">
-              {attachments.length ? attachments.map((file, index) => (
-                <div key={`${file.name}-${file.size}-${file.lastModified}`} className="quote-upload-file">
-                  <FileText className="h-4 w-4 text-orange-500" />
-                  <div><strong>{file.name}</strong><span>{Math.round(file.size / 1024)} KB</span></div>
-                  <button type="button" onClick={() => removeAttachment(index)} title="Gỡ file"><X className="h-4 w-4" /></button>
+
+            <div className="flex flex-col gap-3">
+              {attachments.length ? (
+                attachments.map((file, index) => (
+                  <div key={`${file.name}-${file.size}-${file.lastModified}`} className="flex items-center gap-3 rounded-lg border border-[#eaeaea] bg-white p-3 shadow-sm">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-orange-50 text-orange-500">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <strong className="truncate text-[13px] font-medium text-black">{file.name}</strong>
+                      <span className="text-[11px] text-gray-500">{formatFileSize(file.size)}</span>
+                    </div>
+                    <button type="button" onClick={() => removeAttachment(index)} title="Gỡ file" className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="flex h-full min-h-[120px] items-center justify-center rounded-xl border border-dashed border-gray-200 text-[13px] text-gray-400">
+                  Chưa có tệp nào được chọn.
                 </div>
-              )) : <div className="quote-upload-empty">Chưa có tệp nào được chọn.</div>}
+              )}
             </div>
           </div>
         </section>
 
-        <section className="quote-panel">
-          <div className="quote-panel-header"><h2>Ghi chú</h2></div>
+        <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+          <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
+            <h2 className="text-[24px] font-medium tracking-tight text-black">Ghi chú</h2></div>
           <div className="grid gap-4">
-            <Field label="Ghi chú nội bộ / gửi khách"><textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="quote-input min-h-32" placeholder="Ghi chú hóa đơn..." /></Field>
+            <Field label="Ghi chú nội bộ / gửi khách">
+              <TiptapEditor 
+                value={notes} 
+                onChange={(content) => setNotes(content)} 
+                placeholder="Ghi chú hóa đơn..." 
+              />
+            </Field>
           </div>
         </section>
 
-        <section className="quote-panel">
-          <div className="quote-panel-header">
-            <h2>Điều khoản hóa đơn</h2>
+        <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+          <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
+            <h2 className="text-[24px] font-medium tracking-tight text-black">Điều khoản hóa đơn</h2>
           </div>
           <div className="contract-terms-editor">
-            <Field label="Điều khoản / Nội dung thêm"><textarea value={terms} onChange={(event) => setTerms(event.target.value)} className="quote-input min-h-[360px] leading-7" placeholder="Điều khoản thanh toán, hóa đơn VAT..." /></Field>
+            <Field label="Điều khoản / Nội dung thêm">
+              <TiptapEditor 
+                value={terms} 
+                onChange={(content) => setTerms(content)} 
+                placeholder="Điều khoản thanh toán, hóa đơn VAT..." 
+              />
+            </Field>
           </div>
         </section>
       

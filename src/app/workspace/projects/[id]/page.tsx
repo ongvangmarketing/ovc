@@ -16,5 +16,5 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     notFound();
   }
 
-  return <ProjectDetailWorkspace key={project.id} project={project as any} />;
+  return <ProjectDetailWorkspace key={project.id} project={JSON.parse(JSON.stringify(project)) as any} />;
 }

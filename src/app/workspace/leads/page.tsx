@@ -67,7 +67,7 @@ export default async function LeadCenterPage({
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-gray-950 flex items-center gap-2">
+        <h1 className="text-[15px] font-medium text-gray-950 flex items-center gap-2">
           <div className="h-10 w-10 bg-indigo-100 rounded-xl flex items-center justify-center border border-indigo-200">
             <Inbox className="h-5 w-5 text-indigo-700" />
           </div>
@@ -142,17 +142,17 @@ export default async function LeadCenterPage({
                   return (
                   <tr key={lead.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-center h-8 w-8 rounded-full bg-orange-100 text-orange-700 font-bold text-xs ring-1 ring-orange-200">
+                      <div className="flex items-center justify-center h-8 w-8 rounded-full bg-orange-100 text-orange-700 font-medium text-xs ring-1 ring-orange-200">
                         {lead.score}
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold border border-slate-200">
+                        <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-medium border border-slate-200">
                           {lead.fullName.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <Link href={`/workspace/leads/${lead.id}`} className="font-semibold text-gray-950 hover:text-indigo-600 block">
+                          <Link href={`/workspace/leads/${lead.id}`} className="font-medium text-gray-950 hover:text-indigo-600 block">
                             {lead.fullName}
                           </Link>
                           {lead.companyName && <span className="text-xs text-gray-500 block">{lead.companyName}</span>}
@@ -195,13 +195,13 @@ export default async function LeadCenterPage({
                       {lead.status !== 'CONVERTED' ? (
                         <form action={convertLeadToCustomer}>
                           <input type="hidden" name="leadId" value={lead.id} />
-                          <button type="submit" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-indigo-50 px-3 text-xs font-semibold text-indigo-700 transition hover:bg-indigo-100" title="Tạo khách hàng CRM">
+                          <button type="submit" className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-indigo-50 px-3 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100" title="Tạo khách hàng CRM">
                             <ArrowRightLeft className="h-3.5 w-3.5" />
                             Tạo khách hàng
                           </button>
                         </form>
                       ) : null}
-                      <Link href={createStudentHref} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100" title="Tạo học viên">
+                      <Link href={createStudentHref} className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 text-xs font-medium text-emerald-700 transition hover:bg-emerald-100" title="Tạo học viên">
                         <GraduationCap className="h-4 w-4" />
                         Tạo học viên
                       </Link>

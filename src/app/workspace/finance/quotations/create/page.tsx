@@ -1,3 +1,4 @@
+import { getSettings } from "@/app/actions/settings";
 import { getNextQuotationNumber } from "@/app/actions/finance-crud";
 import { QuotationFormClient } from "@/modules/finance/components/quotation-form-client";
 
@@ -6,5 +7,7 @@ export const revalidate = 0;
 
 export default async function CreateQuotationPage() {
   const nextNumber = await getNextQuotationNumber();
-  return <QuotationFormClient mode="create" initialNumber={nextNumber} />;
+  const settings = await getSettings();
+  const paymentMethodsJson = (settings as any).payment_methods || null;
+  return <QuotationFormClient mode="create" initialNumber={nextNumber}  dynamicPaymentChannels={paymentMethodsJson} />;
 }

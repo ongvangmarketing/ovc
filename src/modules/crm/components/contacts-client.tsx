@@ -78,7 +78,7 @@ export function ContactsClient() {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Liên hệ</h2>
+          <h2 className="text-[15px] font-medium text-foreground">Liên hệ</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             {isLoading ? "Đang tải..." : `${filtered.length} liên hệ trong hệ thống`}
           </p>
@@ -198,7 +198,7 @@ export function ContactsClient() {
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           <div
-                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold flex-shrink-0"
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
                             style={{ backgroundColor: color }}
                           >
                             {getInitials(fullName)}
@@ -286,7 +286,7 @@ export function ContactsClient() {
               <div key={contact.id} className="card-base p-4 hover:shadow-md transition-all duration-200 cursor-pointer group">
                 <div className="flex items-start justify-between mb-3">
                   <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-semibold"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-medium"
                     style={{ backgroundColor: color }}
                   >
                     {getInitials(fullName)}
@@ -294,7 +294,7 @@ export function ContactsClient() {
                   <span className={cn("badge-status text-xs", type.cls)}>{type.label}</span>
                 </div>
                 <Link href={`/workspace/crm/contacts/${contact.id}`} className="block">
-                  <h3 className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">
+                  <h3 className="font-medium text-foreground text-sm group-hover:text-primary transition-colors">
                     {fullName}
                   </h3>
                 </Link>
@@ -319,7 +319,7 @@ export function ContactsClient() {
                     </span>
                   ))}
                 </div>
-                <Link href={createStudentHref} className="mt-3 inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
+                <Link href={createStudentHref} className="mt-3 inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-emerald-50 px-3 text-xs font-medium text-emerald-700 hover:bg-emerald-100">
                   <GraduationCap className="h-3.5 w-3.5" />
                   Tạo học viên
                 </Link>

@@ -75,9 +75,9 @@ function FormatBuilder({
   return (
     <div className="flex flex-col gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-colors">
       <div className="flex justify-between items-center mb-1">
-        <label className="text-[13px] font-semibold text-slate-800 uppercase tracking-wide">{label}</label>
+        <label className="text-[13px] font-medium text-slate-800 uppercase tracking-wide">{label}</label>
         <div className="text-[11px] font-mono bg-slate-100 text-slate-600 px-2 py-1 rounded">
-          Mẫu: <span className="font-bold text-slate-800">{previewCode(value)}</span>
+          Mẫu: <span className="font-medium text-slate-800">{previewCode(value)}</span>
         </div>
       </div>
 
@@ -214,7 +214,7 @@ export function FinanceSettingsClient({ initialSettings }: { initialSettings: an
                   <div 
                     key={template.id}
                     onClick={() => setSettings({ ...settings, FINANCE_DOCUMENT_TEMPLATE: template.id })}
-                    className={`relative cursor-pointer rounded-2xl border p-5 transition-all duration-200 ${
+                    className={`relative cursor-pointer rounded-2xl border p-4 transition-all duration-200 ${
                       isSelected 
                         ? "border-orange-500 bg-orange-50/50 shadow-md ring-1 ring-orange-500" 
                         : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-sm"

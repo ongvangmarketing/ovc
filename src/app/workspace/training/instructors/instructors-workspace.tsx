@@ -68,7 +68,7 @@ export function InstructorsWorkspace({ initialInstructors }: { initialInstructor
               <UserCheck className="h-4 w-4 text-orange-500" />
               Đào tạo / Giảng viên
             </div>
-            <h1 className="text-2xl font-semibold text-slate-950">Danh sách giáo viên</h1>
+            <h1 className="text-[15px] font-medium text-slate-950">Danh sách giáo viên</h1>
             <p className="mt-1 text-[14px] font-light text-slate-500">Quản lý hồ sơ giảng viên, lớp phụ trách và khóa đang dạy.</p>
           </div>
           <Link
@@ -131,7 +131,7 @@ export function InstructorsWorkspace({ initialInstructors }: { initialInstructor
                       <td className="px-6 py-4 font-medium text-slate-900">{idx + 1}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-medium text-xs shrink-0">
                             {instructor.name ? instructor.name.split(" ").slice(-1)[0]?.charAt(0) ?? "?" : "?"}
                           </div>
                           <span className="font-medium text-indigo-600">{instructor.name}</span>
@@ -154,8 +154,8 @@ export function InstructorsWorkspace({ initialInstructors }: { initialInstructor
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="quote-panel p-5">
-      <div className="text-3xl font-bold text-slate-900 mb-1">{value}</div>
+    <div className="quote-panel p-4">
+      <div className="text-3xl font-medium text-slate-900 mb-1">{value}</div>
       <div className="text-sm font-medium text-slate-500">{label}</div>
     </div>
   );

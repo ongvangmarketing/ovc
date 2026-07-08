@@ -7,7 +7,7 @@
 
 .document-a4-wrapper {
   margin: 0;
-  font-family: "Inter", "DejaVu Sans", Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "DejaVu Sans", Arial, sans-serif;
   font-size: 10.5px;
   line-height: 1.3;
   color: #111827;
@@ -59,7 +59,7 @@
 
 .document-a4-wrapper .company-name  {
   font-size: 12.5px;
-  font-weight: 900;
+  font-weight: 600; letter-spacing: -0.02em;
   color: #1f2937;
   text-transform: uppercase;
   line-height: 1.2;
@@ -67,7 +67,7 @@
 
 .document-a4-wrapper .muted  {
   color: #92400e;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .document-a4-wrapper .company-line  {
@@ -82,13 +82,13 @@
 
 .document-a4-wrapper .national-title  {
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 600; letter-spacing: -0.02em;
   text-transform: uppercase;
 }
 
 .document-a4-wrapper .national-subtitle  {
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600; letter-spacing: -0.015em;
   margin-top: 2px;
 }
 
@@ -114,7 +114,7 @@
   margin: 0;
   font-size: 22px;
   line-height: 1.1;
-  font-weight: 900;
+  font-weight: 600; letter-spacing: -0.02em;
   color: #1f2937;
   text-transform: uppercase;
 }
@@ -150,7 +150,7 @@
   background: #f59e0b;
   color: #ffffff;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 600; letter-spacing: -0.02em;
   text-transform: uppercase;
   padding: 4px 9px;
   border-radius: 5px 5px 0 0;
@@ -185,7 +185,7 @@
   border-bottom: 1px solid #fde0b2;
   color: #92400e;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600; letter-spacing: -0.02em;
   text-transform: uppercase;
 }
 
@@ -198,7 +198,7 @@
 .document-a4-wrapper .info-row span  {
   display: inline-block;
   width: 112px;
-  font-weight: 800;
+  font-weight: 600; letter-spacing: -0.015em;
 }
 
 .document-a4-wrapper .info-row b  {
@@ -230,7 +230,7 @@
   background: #d97706;
   color: #ffffff;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 600; letter-spacing: -0.02em;
   text-align: center;
   padding: 4px 4px;
   border: 1px solid #f3c17d;
@@ -255,7 +255,7 @@
 .document-a4-wrapper .price-table td:nth-child(5),
 .document-a4-wrapper .price-table td:nth-child(6)  {
   text-align: right;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -292,7 +292,7 @@
 .document-a4-wrapper .box-title  {
   color: #92400e;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600; letter-spacing: -0.02em;
   text-transform: uppercase;
   margin-bottom: 5px;
 }
@@ -342,7 +342,7 @@
 .document-a4-wrapper .payment-row-title {
   color: #92400e;
   font-size: 9px;
-  font-weight: 800;
+  font-weight: 600; letter-spacing: -0.015em;
   text-transform: uppercase;
   margin-bottom: 2px;
 }
@@ -355,7 +355,7 @@
 
 .document-a4-wrapper .payment-info span {
   color: #64748b;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .document-a4-wrapper .total-table  {
@@ -370,13 +370,13 @@
 
 .document-a4-wrapper .total-table td:last-child  {
   text-align: right;
-  font-weight: 800;
+  font-weight: 600; letter-spacing: -0.015em;
 }
 
 .document-a4-wrapper .total-table .grand td  {
   color: #ea580c;
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600; letter-spacing: -0.02em;
 }
 
 .document-a4-wrapper .words  {
@@ -428,7 +428,7 @@
 }
 
 .document-a4-wrapper .sign-party  {
-  font-weight: 900;
+  font-weight: 600; letter-spacing: -0.02em;
   text-transform: uppercase;
   color: #1f2937;
   text-align: center;
@@ -446,7 +446,7 @@
   display: inline-block;
   padding: 3px 8px;
   border-radius: 99px;
-  font-weight: 900;
+  font-weight: 600; letter-spacing: -0.02em;
   margin: 2px 0 6px;
   font-size: 9px;
   text-align: center;
@@ -488,7 +488,7 @@
 
 .document-a4-wrapper .signer  {
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 600; letter-spacing: -0.02em;
   text-align: center;
 }
 
@@ -620,7 +620,7 @@
   border-radius: 6px;
   padding: 10px 12px;
   margin-bottom: 12px;
-  font-weight: 800;
+  font-weight: 600; letter-spacing: -0.015em;
 }
 
 .document-a4-wrapper .signature-form  {
@@ -651,7 +651,7 @@
   border-radius: 4px;
   padding: 4px 8px;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600; letter-spacing: -0.015em;
   cursor: pointer;
 }
 
@@ -661,7 +661,7 @@
   color: #ffffff;
   border-radius: 6px;
   padding: 8px 12px;
-  font-weight: 900;
+  font-weight: 600; letter-spacing: -0.02em;
   cursor: pointer;
   width: 100%;
 }

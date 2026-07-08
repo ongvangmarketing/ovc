@@ -1,5 +1,7 @@
 "use client";
 
+import { cn } from "@/lib/utils/cn";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -72,7 +74,7 @@ type ContractDetailData = {
     name?: string;
     email?: string | null;
     phone?: string | null;
-    company?: { name?: string | null } | null;
+    company?: { id?: string; name?: string | null; taxCode?: string | null; address?: string | null; phone?: string | null; email?: string | null; } | null;
   } | null;
   deal?: { title?: string | null; name?: string | null; project?: { name?: string | null } | null } | null;
   creator?: { name?: string | null; email?: string | null } | null;
@@ -216,6 +218,13 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
   const publicUrl = data.token ? `/document/${data.token}` : "";
   const fullPublicUrl = data.token && typeof window !== "undefined" ? `${window.location.origin}${publicUrl}` : "";
   const customerName = data.contact?.company?.name || contactName(data.contact);
+  const isCompanyCustomer = !!data.contact?.company;
+  const customerCompany = data.contact?.company?.name || '';
+  const customerTaxCode = data.contact?.company?.taxCode || data.contact?.taxCode || '';
+  const customerAddress = data.contact?.company?.address || data.contact?.address || '';
+  const customerPhone = data.contact?.company?.phone || data.contact?.phone || '';
+  const customerEmail = data.contact?.company?.email || data.contact?.email || '';
+  const customerPerson = data.contact ? `${data.contact.firstName || ''} ${data.contact.lastName || ''}`.trim() || data.contact.name : '';
   const supplierName = data.organization?.name || "Ong Vàng Workspace";
   const paidAmount = useMemo(
     () =>
@@ -408,44 +417,41 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
   ];
 
   return (
-    <div className="quote-detail-page">
-      <header className="quote-detail-hero">
-        <div className="quote-detail-title">
-          <div className="quote-detail-icon">
+    <div className="mx-auto w-full max-w-[1440px] px-6 py-10 lg:px-12 bg-white min-h-[calc(100vh-64px)] animate-in fade-in duration-300">
+      <header className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#eaeaea] pb-6">
+        <div className="flex items-center gap-4">
+          <div className="hidden">
             <FileCheck2 className="h-7 w-7" />
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <h1>{data.number}</h1>
-              <span className={`quote-status quote-status-${data.status.toLowerCase()}`}>{statusLabel[data.status] || data.status}</span>
+              <h1 className="text-[36px] font-medium tracking-tighter text-black leading-none">{data.number}</h1>
+              <span className={cn("px-2.5 py-1 rounded-full text-[13px] font-medium border", data.status === "DRAFT" ? "bg-gray-50 border-gray-200 text-gray-700" : data.status === "SENT" ? "bg-blue-50 border-blue-200 text-blue-700" : data.status === "ACCEPTED" ? "bg-green-50 border-green-200 text-green-700" : data.status === "REJECTED" ? "bg-red-50 border-red-200 text-red-700" : "bg-purple-50 border-purple-200 text-purple-700")}>{statusLabel[data.status] || data.status}</span>
             </div>
-            <p>
-              {data.title} · Hiệu lực: {formatDate(data.validFrom)} - {formatDate(data.validUntil)}
-            </p>
           </div>
         </div>
 
-        <div className="quote-detail-top-actions">
+        <div className="flex flex-wrap items-center gap-2">
           {publicUrl ? (
-            <a href={publicUrl} target="_blank" className="quote-detail-top-button">
+            <a href={publicUrl} target="_blank" className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors">
               <Eye className="h-4 w-4" />
               Xem
             </a>
           ) : null}
-          <Link href={`/workspace/finance/contracts/${data.id}/edit`} className="quote-detail-top-button">
+          <Link href={`/workspace/finance/contracts/${data.id}/edit`} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors">
             <Edit3 className="h-4 w-4" />
             Chỉnh sửa
           </Link>
-          <button type="button" onClick={() => setIsDeleteModalOpen(true)} className="quote-detail-top-button quote-detail-delete">
+          <button type="button" onClick={() => setIsDeleteModalOpen(true)} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-red-600 rounded-lg hover:bg-red-50 hover:border-red-200 transition-colors">
             <Trash2 className="h-4 w-4" />
             Xóa
           </button>
           <div className="relative">
-            <button type="button" onClick={() => setMenuOpen((current) => !current)} className="quote-detail-more">
+            <button type="button" onClick={() => setMenuOpen((current) => !current)} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors">
               <Ellipsis className="h-4 w-4" />
             </button>
             {menuOpen ? (
-              <div className="quote-detail-menu">
+              <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-[#eaeaea] rounded-lg shadow-sm overflow-hidden z-10 flex flex-col py-1">
                 {actionItems.map((item) => (
                   <button
                     key={item.label}
@@ -456,10 +462,10 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
                       setMenuOpen(false);
                       item.onClick();
                     }}
-                    className={item.disabled ? "opacity-50 cursor-not-allowed" : undefined}
+                    className={`flex items-center gap-3 px-4 py-2.5 text-[14px] font-medium text-gray-700 hover:bg-gray-50 hover:text-black transition-colors text-left w-full ${item.disabled ? "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-gray-700" : ""}`}
                   >
                     {item.icon}
-                    {item.label}
+                    <span>{item.label}</span>
                   </button>
                 ))}
               </div>
@@ -468,39 +474,63 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
         </div>
       </header>
 
-      <section className="quote-detail-summary">
-        <div>
-          <span>Bên A khách hàng</span>
-          <strong>{customerName}</strong>
-          <p>{data.contact?.phone || "Chưa có số điện thoại"}</p>
-          <p>{data.contact?.email || "Chưa có email"}</p>
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4 mb-10">
+        <div className="lg:col-span-2">
+          <span className="text-[11px] text-gray-400 font-medium uppercase tracking-widest block mb-4">Khách hàng</span>
+          <strong className="text-[20px] font-medium text-black block leading-tight mb-1">
+            {isCompanyCustomer ? customerCompany : (customerPerson || customerEmail || "Chưa có thông tin")}
+          </strong>
+          {isCompanyCustomer && (
+            <p className="text-[15px] text-gray-500 mb-6">
+              Mã số thuế: {customerTaxCode || "Chưa cập nhật"}
+            </p>
+          )}
+          {!isCompanyCustomer && <div className="mb-6" />}
+
+          <div className="grid gap-3 max-w-xl">
+            {isCompanyCustomer && customerPerson && (
+              <div className="flex text-[14px]">
+                <span className="text-gray-500 w-32 shrink-0 font-light">Đại diện:</span>
+                <span className="text-gray-900">{customerPerson}</span>
+              </div>
+            )}
+            {customerAddress && (
+              <div className="flex text-[14px]">
+                <span className="text-gray-500 w-32 shrink-0 font-light">Địa chỉ:</span>
+                <span className="text-gray-900">{customerAddress}</span>
+              </div>
+            )}
+            <div className="flex flex-col gap-4 text-sm mt-4">
+              <div>
+                <div className="text-slate-500 font-light mb-1">Dự án</div>
+                <div className="text-slate-800">{data.project?.name || data.deal?.title || data.deal?.name || "Không gắn dự án"}</div>
+              </div>
+              <div className="pt-3 border-t border-slate-100">
+                <div className="text-slate-500 font-light mb-1">Người tạo</div>
+                <div className="text-slate-800">{data.creator?.name || "Administrator"}</div>
+              </div>
+            </div>
+            <div className="flex text-[14px]">
+              <span className="text-gray-500 w-32 shrink-0 font-light">Điện thoại:</span>
+              <span className="text-gray-900">{customerPhone || "—"}</span>
+            </div>
+            <div className="flex text-[14px]">
+              <span className="text-gray-500 w-32 shrink-0 font-light">Email:</span>
+              <span className="text-gray-900">{customerEmail || "—"}</span>
+            </div>
+          </div>
         </div>
-        <div>
-          <span>Bên B nhà cung cấp</span>
-          <strong>{supplierName}</strong>
-          <p>{data.organization?.phone || "Chưa có số điện thoại"}</p>
-          <p>{data.organization?.email || "Chưa có email"}</p>
-        </div>
-        <div>
-          <span>Giá trị hợp đồng</span>
-          <strong className="text-emerald-600">{formatMoney(data.total, data.currency)}</strong>
-          <p>Đã thanh toán: {formatMoney(paidAmount, data.currency)}</p>
-          <p>Còn lại: {formatMoney(remainingAmount, data.currency)}</p>
-        </div>
-        <div>
-          <DocumentNavigator
-            basePath="/workspace/finance/contracts"
-            currentNumber={data.number}
-            previous={data.previousDocument}
-            next={data.nextDocument}
-          />
+        <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-[#eaeaea] pt-6 lg:pt-0 lg:pl-8">
+          <span className="text-[13px] text-gray-500 font-medium uppercase tracking-widest block mb-2">Chứng từ</span>
+          <strong className="text-[20px] font-medium text-black block mb-1">{data.number}</strong>
+          <p className="text-[14px] text-gray-600 mb-1">{data.title}</p>
+          <p className="text-[14px] text-gray-600">Hiệu lực: {formatDate(data.validFrom)} - {formatDate(data.validUntil)}</p>
         </div>
       </section>
 
-      <div className="quote-detail-layout">
-        <main className="space-y-5">
-          <section className="quote-detail-card">
-            <h2>Quy trình hợp đồng</h2>
+      <div className="flex flex-col lg:flex-row gap-8">
+        <main className="flex-1 space-y-5">
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
             <div className="quote-progress quote-progress-six">
               {steps.map((step) => (
                 <div key={step.label} className={step.done ? "done" : ""}>
@@ -511,42 +541,42 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
             </div>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Sản phẩm & dịch vụ</h2>
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
+            <h2 className="text-[16px] font-medium text-black mb-1">Sản phẩm & dịch vụ</h2>
             <div className="quotation-items-list mt-2">
               {data.items?.length ? (
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mt-4">
                   <div className="overflow-x-auto w-full">
                     <table className="w-full text-sm text-left border-collapse">
-                      <thead className="bg-[#ee8f15] text-white">
+                      <thead className="bg-gray-50/50 text-gray-500 border-b border-[#eaeaea]">
                         <tr>
-                          <th className="px-4 py-3 font-medium border-r border-[#fa9f2a] min-w-[280px]">Nội dung dịch vụ</th>
-                          <th className="px-4 py-3 font-medium text-center w-24 border-r border-[#fa9f2a]">Đơn vị</th>
-                          <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#fa9f2a]">SL</th>
-                          <th className="px-4 py-3 font-medium text-right w-36 border-r border-[#fa9f2a]">Đơn giá (VND)</th>
-                          <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#fa9f2a]">Thuế</th>
+                          <th className="px-4 py-3 font-medium border-r border-[#eaeaea] min-w-[280px]">Nội dung dịch vụ</th>
+                          <th className="px-4 py-3 font-medium text-center w-24 border-r border-[#eaeaea]">Đơn vị</th>
+                          <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#eaeaea]">SL</th>
+                          <th className="px-4 py-3 font-medium text-right w-36 border-r border-[#eaeaea]">Đơn giá (VND)</th>
+                          <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#eaeaea]">Thuế</th>
                           <th className="px-4 py-3 font-medium text-right w-40">Thành tiền (VND)</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[#eaeaea]">
                         {data.items.map((item, index) => (
                           <tr key={item.id} className="bg-white text-slate-700 transition-colors hover:bg-slate-50 group">
-                            <td className="px-4 py-5 align-top border-r border-slate-100">
+                            <td className="px-4 py-5 align-top border-r border-[#eaeaea]">
                               <div className="font-medium uppercase text-slate-800 mb-2">
                                 {String(index + 1).padStart(2, '0')} {item.name}
                               </div>
                               {item.description && <div className="text-slate-500 mt-1 whitespace-pre-wrap text-[14px]" dangerouslySetInnerHTML={{ __html: item.description }} />}
                             </td>
-                            <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                            <td className="px-4 py-5 text-center align-top border-r border-[#eaeaea]">
                               Lần
                             </td>
-                            <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                            <td className="px-4 py-5 text-center align-top border-r border-[#eaeaea]">
                               {asNumber(item.quantity)}
                             </td>
-                            <td className="px-4 py-5 text-right align-top border-r border-slate-100">
+                            <td className="px-4 py-5 text-right align-top border-r border-[#eaeaea]">
                               {formatMoney(item.unitPrice, data.currency)}
                             </td>
-                            <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                            <td className="px-4 py-5 text-center align-top border-r border-[#eaeaea]">
                               {asNumber(item.tax)}%
                             </td>
                             <td className="px-4 py-5 text-right align-top font-medium">
@@ -564,22 +594,27 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
             </div>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Điều khoản</h2>
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
+            <h2 className="text-[16px] font-medium text-black mb-1">Điều khoản</h2>
             <div className="contract-terms">{plainDescription(data.terms) || "Chưa có điều khoản."}</div>
           </section>
 
-          <nav className="quote-detail-tabs">
+          <nav className="quote-detail-tabs mb-8">
             {detailTabs.map((tab) => (
-              <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={activeTab === tab.id ? "active" : ""}>
+              <button 
+                key={tab.id} 
+                type="button" 
+                onClick={() => setActiveTab(tab.id)} 
+                className={activeTab === tab.id ? "active" : ""}
+              >
                 {tab.label}
               </button>
             ))}
           </nav>
 
           {activeTab === "payments" ? (
-            <section className="quote-detail-card">
-              <h2>Thanh toán</h2>
+            <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
+              <h2 className="text-[16px] font-medium text-black mb-1">Thanh toán</h2>
               <div className="contract-installments">
                 {data.paymentInstallments?.length ? (
                   data.paymentInstallments.map((item, index) => (
@@ -593,12 +628,12 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
                         <p>{item.status}</p>
                       </div>
                       {item.invoiceId ? (
-                        <Link href={`/workspace/finance/invoices/${item.invoiceId}`} className="quote-detail-action">
+                        <Link href={`/workspace/finance/invoices/${item.invoiceId}`} className="flex items-center justify-center gap-2 px-4 h-9 bg-black text-white text-[14px] font-medium rounded-lg hover:bg-gray-800 transition-colors w-full">
                           <FileText className="h-4 w-4" />
                           {item.invoice?.number || "Xem hóa đơn"}
                         </Link>
                       ) : (
-                        <button type="button" onClick={() => createInvoiceMutation.mutate(item.id)} className="quote-detail-action">
+                        <button type="button" onClick={() => createInvoiceMutation.mutate(item.id)} className="flex items-center justify-center gap-2 px-4 h-9 bg-black text-white text-[14px] font-medium rounded-lg hover:bg-gray-800 transition-colors w-full">
                           <FilePlus2 className="h-4 w-4" />
                           Tạo hóa đơn
                         </button>
@@ -613,8 +648,8 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
           ) : null}
 
           {activeTab === "channels" ? (
-            <section className="quote-detail-card">
-              <h2>Kênh thanh toán</h2>
+            <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
+              <h2 className="text-[16px] font-medium text-black mb-1">Kênh thanh toán</h2>
               <div className="invoice-channel-grid">
                 {channelKeys.map((key) => {
                   const channel = getPaymentChannel(key);
@@ -637,8 +672,10 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
           ) : null}
 
           {["activity", "files"].includes(activeTab) ? (
-            <section className="quote-detail-card">
-              <h2>{activeTab === "activity" ? "Lịch sử hoạt động" : "Tệp đính kèm"}</h2>
+            <section className="bg-white rounded-xl border border-[#eaeaea] p-6">
+              <div className="mb-4">
+                <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">{activeTab === "activity" ? "Lịch sử hoạt động" : "Tệp đính kèm"}</h2>
+              </div>
               {activeTab === "activity" ? (
                 <ActivityTimeline logs={data.activityLogs} fallback={fallbackActivities} />
               ) : (
@@ -648,48 +685,58 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
           ) : null}
         </main>
 
-        <aside className="space-y-5">
-          <section className="quote-detail-card">
-            <h2>Thông tin hợp đồng</h2>
-            <div className="quote-side-list">
-              <div><span>Mã hợp đồng</span><strong>{data.number}</strong></div>
-              <div><span>Loại hợp đồng</span><strong>{data.title || "Dịch vụ"}</strong></div>
-              <div><span>Ngày tạo</span><strong>{formatDateTime(data.createdAt)}</strong></div>
-              <div><span>Ngày ký</span><strong>{formatDate(data.signedAt || data.adminSignedAt)}</strong></div>
-              <div><span>Admin ký</span><strong>{formatDateTime(data.adminSignedAt)}</strong></div>
-              <div><span>Khách ký</span><strong>{customerSignatureRequired ? formatDateTime(data.signedAt) : "Không cần ký"}</strong></div>
-              <div><span>Hiệu lực</span><strong>{formatDate(data.validFrom)} - {formatDate(data.validUntil)}</strong></div>
-              <div><span>Tình trạng</span><strong>{statusLabel[data.status] || data.status}</strong></div>
+        <aside className="w-full lg:w-[340px] shrink-0 space-y-5">
+          <DocumentNavigator
+            basePath="/workspace/finance/contracts"
+            currentNumber={data.number}
+            previous={data.previousDocument}
+            next={data.nextDocument}
+          />
+
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6">
+            <div className="mb-4">
+              <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Thông tin hợp đồng</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-[13px] mt-4">
+              <div className="text-slate-500 font-light">Số hợp đồng</div><div className="font-medium text-right text-black">{data.number}</div>
+              <div className="text-slate-500 font-light">Trạng thái</div><div className="font-medium text-right text-black">{statusLabel[data.status] || data.status}</div>
+              <div className="text-slate-500 font-light">Ngày tạo</div><div className="font-medium text-right text-black">{formatDateTime(data.createdAt)}</div>
+              <div className="text-slate-500 font-light">Hiệu lực từ</div><div className="font-medium text-right text-black">{formatDate(data.validFrom)}</div>
+              <div className="text-slate-500 font-light">Hiệu lực đến</div><div className="font-medium text-right text-black">{formatDate(data.validUntil)}</div>
+              <div className="text-slate-500 font-light">Admin ký</div><div className="font-medium text-right text-black">{formatDateTime(data.adminSignedAt)}</div>
+              <div className="text-slate-500 font-light">Khách ký</div><div className="font-medium text-right text-black">{customerSignatureRequired ? formatDateTime(data.signedAt) : "Không cần ký"}</div>
             </div>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Giá trị & thanh toán</h2>
-            <div className="quote-side-list">
-              <div><span>Tổng giá trị</span><strong>{formatMoney(data.total, data.currency)}</strong></div>
-              <div><span>Đã thanh toán</span><strong>{formatMoney(paidAmount, data.currency)}</strong></div>
-              <div><span>Còn lại</span><strong>{formatMoney(remainingAmount, data.currency)}</strong></div>
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
+            <div className="mb-4">
+              <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Giá trị & thanh toán</h2>
             </div>
-            <div className="contract-payment-bar"><span style={{ width: `${paidPercent}%` }} /></div>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-[13px] mt-4">
+              <div className="text-slate-500 font-light">Tổng giá trị</div><div className="font-medium text-orange-600 text-[14px] text-right">{formatMoney(data.total, data.currency)}</div>
+              <div className="text-slate-500 font-light mt-2">Đã thanh toán</div><div className="font-medium text-right text-black mt-2">{formatMoney(paidAmount, data.currency)}</div>
+              <div className="text-slate-500 font-light mt-2">Còn lại</div><div className="font-medium text-right text-black mt-2">{formatMoney(remainingAmount, data.currency)}</div>
+            </div>
+            <div className="contract-payment-bar mt-6"><span style={{ width: `${paidPercent}%` }} /></div>
             <p className="mt-4 text-[14px] font-light text-slate-500">{paidPercent}% đã thanh toán</p>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Tài liệu hợp đồng</h2>
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
+            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Tài liệu hợp đồng</h2>
             <div className="contract-document-box">
               <FileCheck2 className="h-10 w-10 text-emerald-600" />
               <strong>{data.number}</strong>
               <span>{formatMoney(data.total, data.currency)}</span>
             </div>
-            <button type="button" onClick={() => data.token && window.open(`/document/${data.token}/pdf`, "_blank")} className="quote-detail-action w-full mt-3">
+            <button type="button" onClick={() => data.token && window.open(`/document/${data.token}/pdf`, "_blank")} className="w-full flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors mt-3">
               <Download className="h-4 w-4" />
               Tải xuống
             </button>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Thao tác</h2>
-            <div className="quote-side-actions">
+          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
+            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Thao tác</h2>
+            <div className="grid gap-3">
               {actionItems.map((item) => (
                 <ActionButton
                   key={item.label}
