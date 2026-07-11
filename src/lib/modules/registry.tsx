@@ -141,12 +141,7 @@ export const moduleDefinitions: PlatformModuleDefinition[] = [
     dependencies: [],
     sortOrder: 11,
     lifecycle: "DEVELOPMENT",
-    features: [
-      "Nhắn tin nhóm & cá nhân",
-      "Live chat website",
-      "Tích hợp Omni-channel (Zalo, Messenger)",
-      "Chatbot & AI trả lời tự động",
-    ],
+
     nav: {
       code: "BUSINESS_CHAT",
       label: "Chat",
