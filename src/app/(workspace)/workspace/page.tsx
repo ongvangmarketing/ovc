@@ -18,6 +18,10 @@ export default async function WorkspaceIndex() {
       <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:44px_44px] md:bg-[size:64px_64px]">
       </div>
       
+      {/* White radial overlay to fade out grid in the center */}
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_center,white_20%,transparent_70%)] pointer-events-none">
+      </div>
+      
       <div className="relative z-10 h-full w-full">
         <AppLauncherClient
           activeModules={withDevelopmentModulesForRole(entitlements.enabledModules, authData.user.role)}
