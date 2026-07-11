@@ -45,18 +45,18 @@ export function RegisterForm() {
         OVC Workspace
       </div>
 
-      <h1 className="text-3xl md:text-[40px] font-normal tracking-tight mb-4">
-        <span className="text-black font-medium">Bắt đầu ngay,</span> <span className="text-slate-400">gia nhập cùng đội ngũ.</span>
+      <h1 className="text-[48px] md:text-[60px] tracking-tighter leading-[1.05] font-medium text-black mb-4">
+        Bắt đầu ngay.
       </h1>
 
-      <p className="text-slate-500 text-[15px] max-w-2xl mb-12">
+      <p className="text-[16px] text-gray-500 leading-relaxed max-w-2xl mb-12">
         Đăng ký tài khoản để truy cập vào hệ thống quản trị trung tâm, nơi kết nối mọi hoạt động và dữ liệu của bạn trên nền tảng OVC.
       </p>
 
-      <div className="rounded-[24px] border border-slate-200 bg-white p-8 md:p-10 shadow-sm max-w-[480px]">
+      <div className="rounded-2xl border border-[#eaeaea] bg-white p-8 md:p-10 max-w-[480px]">
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-black">Tạo tài khoản mới</h2>
-          <p className="mt-1 text-sm text-slate-500">Điền đầy đủ thông tin bên dưới để bắt đầu.</p>
+          <h2 className="text-[24px] font-medium tracking-tight text-black">Tạo tài khoản mới</h2>
+          <p className="mt-1 text-[16px] text-gray-500">Điền đầy đủ thông tin bên dưới để bắt đầu.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -67,7 +67,7 @@ export function RegisterForm() {
           )}
 
           <div className="space-y-2">
-            <label htmlFor="name" className="text-[11px] font-medium uppercase tracking-widest text-slate-500">
+            <label htmlFor="name" className="text-[11px] lg:text-[12px] font-medium uppercase tracking-widest text-gray-400">
               Họ và tên
             </label>
             <input
@@ -78,12 +78,12 @@ export function RegisterForm() {
               placeholder="Nguyễn Văn A"
               required
               autoComplete="name"
-              className="h-12 w-full rounded-xl border border-[#eaeaea] bg-transparent px-4 text-[14px] text-black outline-none transition-colors placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black"
+              className="h-10 w-full rounded-md border border-[#eaeaea] bg-white px-3 text-[14px] text-black outline-none transition-colors placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black"
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="email" className="text-[11px] font-medium uppercase tracking-widest text-slate-500">
+            <label htmlFor="email" className="text-[11px] lg:text-[12px] font-medium uppercase tracking-widest text-gray-400">
               Email
             </label>
             <input
@@ -94,12 +94,12 @@ export function RegisterForm() {
               placeholder="ban@congty.vn"
               required
               autoComplete="email"
-              className="h-12 w-full rounded-xl border border-[#eaeaea] bg-transparent px-4 text-[14px] text-black outline-none transition-colors placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black"
+              className="h-10 w-full rounded-md border border-[#eaeaea] bg-white px-3 text-[14px] text-black outline-none transition-colors placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black"
             />
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="text-[11px] font-medium uppercase tracking-widest text-slate-500">
+            <label htmlFor="password" className="text-[11px] lg:text-[12px] font-medium uppercase tracking-widest text-gray-400">
               Mật khẩu
             </label>
             <div className="relative">
@@ -111,7 +111,7 @@ export function RegisterForm() {
                 placeholder="••••••••"
                 required
                 autoComplete="new-password"
-                className="h-12 w-full rounded-xl border border-[#eaeaea] bg-transparent px-4 pr-10 text-[14px] text-black outline-none transition-colors placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black"
+                className="h-10 w-full rounded-md border border-[#eaeaea] bg-white px-3 pr-10 text-[14px] text-black outline-none transition-colors placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black"
               />
               <button
                 type="button"
@@ -120,9 +120,9 @@ export function RegisterForm() {
                 tabIndex={-1}
               >
                 {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
+                  <EyeOff className="h-4 w-4" />
                 ) : (
-                  <Eye className="h-5 w-5" />
+                  <Eye className="h-4 w-4" />
                 )}
               </button>
             </div>
@@ -132,13 +132,13 @@ export function RegisterForm() {
             type="submit"
             disabled={loading}
             className={cn(
-              "mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-black text-[14px] font-medium text-white transition-colors",
-              loading ? "cursor-not-allowed opacity-70" : "hover:bg-gray-900"
+              "mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-black px-6 py-2.5 text-[14px] font-medium text-white transition-colors",
+              loading ? "cursor-not-allowed opacity-70" : "hover:bg-gray-800"
             )}
           >
             {loading ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               </>
             ) : (
               "Đăng ký ngay"

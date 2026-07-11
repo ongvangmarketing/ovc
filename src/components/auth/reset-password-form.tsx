@@ -65,98 +65,105 @@ export function ResetPasswordForm() {
   };
 
   return (
-    <div className="w-full">
-      <div className="mb-10 text-center">
-        <h1 className="text-[28px] font-medium tracking-tight text-black">Đặt lại mật khẩu</h1>
-        <p className="mt-3 text-[14px] text-gray-500">
-          Vui lòng nhập mật khẩu mới
-        </p>
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="mb-6 inline-flex items-center rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white">
+        OVC Workspace
       </div>
 
-      {success ? (
-        <div className="space-y-6">
-          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3.5 text-[14px] font-medium text-emerald-800">
-            Mật khẩu của bạn đã được cập nhật thành công! Đang chuyển hướng về trang đăng nhập...
-          </div>
-          <Link
-            href="/login"
-            className="flex h-12 w-full items-center justify-center rounded-xl bg-black text-[14px] font-medium text-white transition-colors hover:bg-gray-900"
-          >
-            Đăng nhập ngay
-          </Link>
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="rounded-xl border border-red-100 bg-red-50 p-3.5 text-[14px] font-medium text-red-800">
-              {error}
-            </div>
-          )}
+      <h1 className="text-[48px] md:text-[60px] tracking-tighter leading-[1.05] font-medium text-black mb-4">
+        Đặt lại mật khẩu.
+      </h1>
 
-          <div className="space-y-2">
-            <label htmlFor="password" className="text-[11px] font-medium uppercase tracking-widest text-gray-500">
-              Mật khẩu mới
-            </label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Nhập mật khẩu mới"
-                required
-                disabled={!token}
-                className="h-12 w-full rounded-xl border border-[#eaeaea] bg-transparent px-4 pr-10 text-[14px] text-black outline-none transition-colors placeholder:text-gray-400 focus:border-black disabled:bg-gray-50 disabled:text-gray-400"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
-                tabIndex={-1}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
-              </button>
-            </div>
-          </div>
+      <p className="text-[16px] text-gray-500 leading-relaxed max-w-2xl mb-12">
+        Vui lòng nhập mật khẩu mới.
+      </p>
 
-          <div className="space-y-2">
-            <label htmlFor="confirmPassword" className="text-[11px] font-medium uppercase tracking-widest text-gray-500">
-              Xác nhận mật khẩu
-            </label>
-            <div className="relative">
-              <input
-                id="confirmPassword"
-                type={showPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Nhập lại mật khẩu mới"
-                required
-                disabled={!token}
-                className="h-12 w-full rounded-xl border border-[#eaeaea] bg-transparent px-4 pr-10 text-[14px] text-black outline-none transition-colors placeholder:text-gray-400 focus:border-black disabled:bg-gray-50 disabled:text-gray-400"
-              />
+      <div className="rounded-2xl border border-[#eaeaea] bg-white p-8 md:p-10 max-w-[480px]">
+        {success ? (
+          <div className="space-y-6">
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3.5 text-[14px] font-medium text-emerald-800">
+              Mật khẩu của bạn đã được cập nhật thành công! Đang chuyển hướng về trang đăng nhập...
             </div>
+            <Link
+              href="/login"
+              className="flex w-full items-center justify-center rounded-full bg-black px-6 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-gray-800"
+            >
+              Đăng nhập ngay
+            </Link>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading || !token || !password || !confirmPassword}
-            className={cn(
-              "mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-black text-[14px] font-medium text-white transition-colors",
-              (loading || !token || !password || !confirmPassword) ? "cursor-not-allowed opacity-70" : "hover:bg-gray-900"
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="rounded-xl border border-red-100 bg-red-50 p-3.5 text-[14px] font-medium text-red-800">
+                {error}
+              </div>
             )}
-          >
-            {loading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <span>Cập nhật mật khẩu</span>
-            )}
-          </button>
-        </form>
-      )}
+
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-[11px] lg:text-[12px] font-medium uppercase tracking-widest text-gray-400">
+                Mật khẩu mới
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Nhập mật khẩu mới"
+                  required
+                  disabled={!token}
+                  className="h-10 w-full rounded-md border border-[#eaeaea] bg-white px-3 pr-10 text-[14px] text-black outline-none transition-colors placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black disabled:bg-gray-50 disabled:text-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="confirmPassword" className="text-[11px] lg:text-[12px] font-medium uppercase tracking-widest text-gray-400">
+                Xác nhận mật khẩu
+              </label>
+              <div className="relative">
+                <input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Nhập lại mật khẩu mới"
+                  required
+                  disabled={!token}
+                  className="h-10 w-full rounded-md border border-[#eaeaea] bg-white px-3 pr-10 text-[14px] text-black outline-none transition-colors placeholder:text-gray-400 focus:border-black focus:ring-1 focus:ring-black disabled:bg-gray-50 disabled:text-gray-400"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || !token || !password || !confirmPassword}
+              className={cn(
+                "mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-black px-6 py-2.5 text-[14px] font-medium text-white transition-colors",
+                (loading || !token || !password || !confirmPassword) ? "cursor-not-allowed opacity-70" : "hover:bg-gray-800"
+              )}
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <span>Cập nhật mật khẩu</span>
+              )}
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
