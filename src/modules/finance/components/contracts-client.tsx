@@ -7,6 +7,7 @@ import { Search, Plus, Download, Eye, Edit, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import { formatDate, formatCurrency } from "@/lib/utils/format";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { CompactPagination } from "@/components/ui/compact-pagination";
 const CONTRACT_STATUS_LABELS: Record<string, string> = {
   DRAFT: "Bản nháp",
   SENT: "Đã gửi",
@@ -25,8 +26,8 @@ const CONTRACT_STATUS_COLORS: Record<string, string> = {
 };
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getContracts } from "@/app/actions/finance";
-import { deleteContract } from "@/app/actions/finance-crud";
+import {  getContracts  } from "@/modules/finance/actions/finance.actions";
+import {  deleteContract  } from "@/modules/finance/actions/finance.actions";
 
 type FinanceContact = {
   firstName?: string | null;
@@ -53,18 +54,22 @@ function getCustomerName(contact?: FinanceContact | null) {
   return contact.company?.name || fullName || contact.email || contact.phone || "Không gắn khách hàng";
 }
 
+const PAGE_SIZE = 20;
+
 export function ContractsClient() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [view, setView] = useState("table");
+  const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: contracts = [] } = useQuery({
+  const { data: contracts = [], isFetching } = useQuery({
     queryKey: ["contracts"],
     queryFn: () => getContracts(),
   });
+  
+  const isInitialFetching = isFetching && contracts.length === 0;
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteContract(id),
@@ -79,97 +84,115 @@ export function ContractsClient() {
   const filtered = contractRows.filter((inv) => {
     const customer = getCustomerName(inv.contact);
     const matchSearch = `${inv.number} ${inv.title} ${customer}`.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = selectedStatus === "all" || inv.status === selectedStatus;
+    const matchStatus = selectedStatus === "ALL" || inv.status === selectedStatus;
     return matchSearch && matchStatus;
   });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedContracts = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const summaryStats = [
-    { label: "Tổng hợp đồng", value: contractRows.reduce((s, i) => s + Number(i.total), 0) },
-    { label: "Đã gửi", value: contractRows.filter((i) => i.status === "SENT").reduce((s, i) => s + Number(i.total), 0) },
-    { label: "Đã ký", value: contractRows.filter((i) => i.status === "SIGNED").reduce((s, i) => s + Number(i.total), 0) },
-    { label: "Đã chuyển đổi", value: contractRows.filter((i) => i.status === "CONVERTED").reduce((s, i) => s + Number(i.total), 0) },
+    { label: "Tổng hợp đồng", value: contractRows.length, isCurrency: false },
+    { label: "Tổng giá trị", value: contractRows.reduce((s, i) => s + Number(i.total), 0), isCurrency: true },
+    { label: "Đã ký", value: contractRows.filter((i) => i.status === "SIGNED").length, isCurrency: false },
+    { label: "Đã chuyển đổi", value: contractRows.filter((i) => i.status === "CONVERTED").length, isCurrency: false },
   ];
 
-
+  const todayDate = new Intl.DateTimeFormat('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-6 py-10 lg:px-12 bg-white min-h-[calc(100vh-64px)]">
-      {/* Header */}
-      <div className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[36px] font-medium tracking-tighter text-black leading-none mb-3">Hợp đồng</h1>
-          <p className="text-[14px] text-gray-500">{filtered.length} hợp đồng</p>
+    <div className="flex flex-col min-h-screen bg-white">
+      <div className="mx-auto w-full max-w-[1200px] px-4 py-8 sm:px-8 sm:py-12">
+        {/* Header */}
+        <div className="mb-10 flex flex-col md:flex-row md:items-start justify-between gap-6 border-b border-[#eaeaea] pb-8">
+          <div>
+            <div className="mb-6 flex items-center gap-3">
+              <span className="w-fit rounded-full bg-black px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white">
+                Hợp đồng
+              </span>
+              <span className="text-[13px] font-medium text-gray-500">{todayDate}</span>
+            </div>
+            <h1 className="mb-3 text-[32px] font-medium leading-[1.15] tracking-tight text-black md:text-[40px]">
+              Quản lý <span className="text-gray-400">hợp đồng.</span>
+            </h1>
+            <p className="max-w-xl text-[15px] text-gray-500 mt-4">
+              {isInitialFetching ? "Đang tải dữ liệu..." : `Hiện có ${contracts.length} hợp đồng trên hệ thống.`}
+            </p>
+          </div>
+          <div className="mt-4 flex items-center gap-3 md:mt-0">
+            <button className="inline-flex h-10 items-center justify-center rounded-full border border-[#eaeaea] bg-white px-5 text-[13px] font-medium text-black transition-colors hover:bg-gray-50">
+              <Download className="w-4 h-4 mr-2" /> Xuất
+            </button>
+            <Link href="/workspace/finance/contracts/create" className="inline-flex h-10 items-center justify-center rounded-full bg-black px-5 text-[13px] font-medium text-white transition-colors hover:bg-gray-800">
+              <Plus className="w-4 h-4 mr-2" /> Tạo mới
+            </Link>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="h-9 px-4 rounded-lg border border-[#eaeaea] text-[14px] font-medium text-black hover:bg-gray-50 transition-colors inline-flex items-center gap-2">
-            <Download className="w-4 h-4" /> Xuất
-          </button>
-          <Link href="/workspace/finance/contracts/create" className="h-9 px-4 rounded-lg bg-black text-white text-[14px] font-medium hover:bg-gray-800 transition-colors inline-flex items-center gap-2 shadow-none">
-            <Plus className="w-4 h-4" /> Tạo Hợp đồng
-          </Link>
-        </div>
-      </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+      <div className="mb-12 grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
         {summaryStats.map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-[#eaeaea] bg-white p-6 hover:border-black transition-colors duration-200">
-            <p className="text-[12px] font-medium text-gray-400 uppercase tracking-widest mb-4">{stat.label}</p>
-            <p className="text-[24px] font-medium tracking-tight text-black">
-              {formatCurrency(stat.value)}
+          <div key={stat.label} className="min-w-0 rounded-xl border border-[#eaeaea] bg-white p-4 shadow-sm transition-colors duration-200 hover:border-black sm:p-6">
+            <p className="mb-4 text-[13px] font-medium leading-snug text-gray-500 sm:text-[11px] sm:font-semibold sm:uppercase sm:tracking-widest">{stat.label}</p>
+            <p className="truncate text-[22px] font-medium tracking-tight text-black sm:text-[28px]">
+              {stat.isCurrency ? formatCurrency(stat.value) : stat.value}
             </p>
           </div>
         ))}
       </div>
 
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+      <div className="mb-8 flex flex-col justify-between rounded-2xl border border-[#eaeaea] bg-white px-2 py-1.5 shadow-sm md:flex-row md:items-center">
+        <div className="relative flex-1 min-w-[300px]">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
-            type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm hợp đồng..."
-            className="w-full h-10 pl-10 pr-3 rounded-lg border border-[#eaeaea] bg-white text-[14px] text-black focus:outline-none focus:border-black transition-colors"
+            onChange={(event) => {
+              setSearch(event.target.value);
+              setCurrentPage(1);
+            }}
+            placeholder="Tìm số hợp đồng, tiêu đề, khách hàng..."
+            className="w-full bg-transparent pl-11 pr-4 py-2 text-[14px] text-black outline-none placeholder:text-gray-400"
           />
         </div>
-
-        {/* Status Filter */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {["all", "DRAFT", "SENT", "SIGNED", "CONVERTED", "CANCELLED"].map((s) => (
+        <div className="flex flex-nowrap items-center gap-1.5 overflow-x-auto border-t border-[#eaeaea] px-3 py-1.5 md:flex-wrap md:overflow-visible md:border-l md:border-t-0">
+          <span className="text-[13px] text-gray-500 font-medium mr-2">Trạng thái:</span>
+          {["ALL", "DRAFT", "SIGNED", "SENT", "CONVERTED"].map((status) => (
             <button
-              key={s}
-              onClick={() => setSelectedStatus(s)}
+              key={status}
+              onClick={() => {
+                setSelectedStatus(status);
+                setCurrentPage(1);
+              }}
               className={cn(
-                "px-3 py-1.5 rounded-full text-[12px] font-medium transition-colors border",
-                selectedStatus === s
-                  ? "bg-black text-white border-black"
-                  : "bg-white text-gray-500 border-[#eaeaea] hover:border-gray-400"
+                "shrink-0 rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors sm:px-4",
+                selectedStatus === status 
+                  ? "bg-black text-white border-black" 
+                  : "bg-white text-gray-600 border-[#eaeaea] hover:bg-gray-50"
               )}
             >
-              {s === "all" ? "Tất cả" : (CONTRACT_STATUS_LABELS[s] || s)}
+              {status === "ALL" ? "Tất cả" : CONTRACT_STATUS_LABELS[status] || status}
             </button>
           ))}
         </div>
       </div>
 
       {/* Table */}
-      <div className="rounded-xl border border-[#eaeaea] bg-white overflow-hidden">
+      <div className="rounded-[24px] border border-[#eaeaea] bg-white shadow-sm overflow-hidden mb-8">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-[14px] [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
-            <thead className="bg-gray-50/50 border-b border-[#eaeaea]">
+          <table className="w-full min-w-[900px] text-left text-[14px] [&_td]:whitespace-nowrap [&_th]:whitespace-nowrap">
+            <thead className="bg-[#fafafa] border-b border-[#eaeaea]">
               <tr>
-                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[180px]">Số Hợp đồng</th>
-                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[330px]">Khách hàng</th>
-                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[160px]">Trạng thái</th>
-                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[160px] text-right">Tổng tiền</th>
-                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-[160px]">Ngày tạo</th>
-                <th className="px-6 py-4 font-medium text-gray-500 uppercase tracking-widest text-[11px] w-24"></th>
+                <th className="px-6 py-5 font-semibold text-gray-500 uppercase tracking-widest text-[11px] w-[180px]">Số Hợp đồng</th>
+                <th className="px-6 py-5 font-semibold text-gray-500 uppercase tracking-widest text-[11px] w-[330px]">Khách hàng</th>
+                <th className="px-6 py-5 font-semibold text-gray-500 uppercase tracking-widest text-[11px] w-[160px]">Trạng thái</th>
+                <th className="px-6 py-5 font-semibold text-gray-500 uppercase tracking-widest text-[11px] w-[160px] text-right">Tổng tiền</th>
+                <th className="px-6 py-5 font-semibold text-gray-500 uppercase tracking-widest text-[11px] w-[160px]">Ngày tạo</th>
+                <th className="px-6 py-5 font-semibold text-gray-500 uppercase tracking-widest text-[11px] w-24"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#eaeaea]">
-              {filtered.map((inv) => {
+              {paginatedContracts.map((inv) => {
                 const statusColor = CONTRACT_STATUS_COLORS[inv.status] || CONTRACT_STATUS_COLORS["DRAFT"];
                 const statusLabel = CONTRACT_STATUS_LABELS[inv.status] || inv.status;
 
@@ -185,13 +208,13 @@ export function ContractsClient() {
                       <span className="block truncate font-medium text-black">{getCustomerName(inv.contact)}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={cn("inline-flex items-center px-2 py-1 rounded-[6px] font-medium text-[11px] uppercase tracking-wide", statusColor)}>{statusLabel}</span>
+                      <span className={cn("inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-medium uppercase tracking-widest", statusColor)}>{statusLabel}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="font-medium text-black">{formatCurrency(Number(inv.total))}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-gray-500 text-[14px]">{inv.createdAt ? formatDate(new Date(inv.createdAt)) : "N/A"}</span>
+                      <span className="text-gray-500 text-[15px]">{inv.createdAt ? formatDate(new Date(inv.createdAt)) : "N/A"}</span>
                     </td>
                     <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center gap-2 justify-end">
@@ -216,6 +239,13 @@ export function ContractsClient() {
             </tbody>
           </table>
         </div>
+        <CompactPagination
+          currentPage={safePage}
+          totalItems={filtered.length}
+          pageSize={PAGE_SIZE}
+          itemLabel="hợp đồng"
+          onPageChange={setCurrentPage}
+        />
       </div>
       <ConfirmModal
         isOpen={!!deletingId}
@@ -226,6 +256,7 @@ export function ContractsClient() {
         confirmText="Xóa Hợp đồng"
         isDestructive={true}
       />
+      </div>
     </div>
   );
 }

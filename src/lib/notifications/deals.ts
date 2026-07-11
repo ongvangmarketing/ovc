@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import { formatVnd, renderEmailTemplate, sendEmail } from "@/lib/email/service";
 import { getOrganizationPublicBaseUrl } from "@/lib/workspace-domain";
 
@@ -15,7 +15,7 @@ function customerNameFromDeal(deal: any, fallback?: string | null) {
 }
 
 async function dealRecipients(organizationId: string, assigneeId?: string | null) {
-  const members = await db.organizationMember.findMany({
+  const members = await getTenantDb().organizationMember.findMany({
     where: {
       organizationId,
       OR: [
@@ -54,7 +54,7 @@ export async function notifyDealCustomerEvent(input: {
   sendEmail?: boolean;
 }) {
   const dedupeSince = new Date(Date.now() - (input.dedupeMinutes ?? 15) * 60 * 1000);
-  const existing = await db.activityLog.findFirst({
+  const existing = await getTenantDb().activityLog.findFirst({
     where: {
       organizationId: input.organizationId,
       entity: "Deal",
@@ -73,7 +73,7 @@ export async function notifyDealCustomerEvent(input: {
       ? `${input.customerName || "Khách hàng"} đã mở trang đề xuất cho ${input.title}.`
       : `${input.customerName || "Khách hàng"} đã xác nhận lựa chọn cho ${input.title}.`;
 
-  await db.activityLog.create({
+  await getTenantDb().activityLog.create({
     data: {
       organizationId: input.organizationId,
       entity: "Deal",
@@ -91,7 +91,7 @@ export async function notifyDealCustomerEvent(input: {
 
   const recipients = await dealRecipients(input.organizationId, input.assigneeId);
   if (recipients.length) {
-    await db.notification.createMany({
+    await getTenantDb().notification.createMany({
       data: recipients.map((recipient) => ({
         userId: recipient.userId,
         type: "MESSAGE",

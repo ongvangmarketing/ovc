@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const courses = await db.course.findMany({
+    const courses = await getTenantDb().course.findMany({
       where: {
         organizationId: orgId,
         status: "PUBLISHED",

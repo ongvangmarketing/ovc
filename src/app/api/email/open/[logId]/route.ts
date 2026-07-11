@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import { notifyFinanceDocumentEvent } from "@/lib/notifications/finance";
 
 const PIXEL = Buffer.from(
@@ -21,7 +21,7 @@ function financeType(value?: string | null) {
 export async function GET(_request: Request, { params }: { params: Promise<{ logId: string }> }) {
   const { logId } = await params;
   const id = cleanLogId(logId);
-  const log = await db.emailLog.findUnique({
+  const log = await getTenantDb().emailLog.findUnique({
     where: { id },
     select: {
       id: true,
@@ -38,7 +38,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ log
     const openCount = Number(metadata.openCount || 0) + 1;
     const firstOpen = metadata.openedAt || new Date().toISOString();
 
-    await db.emailLog.update({
+    await getTenantDb().emailLog.update({
       where: { id: log.id },
       data: {
         metadata: {
@@ -54,10 +54,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ log
     if (type && log.relatedId) {
       const doc =
         type === "quotation"
-          ? await db.quotation.findFirst({ where: { id: log.relatedId, organizationId: log.organizationId }, include: { contact: { include: { company: true } } } })
+          ? await getTenantDb().quotation.findFirst({ where: { id: log.relatedId, organizationId: log.organizationId }, include: { contact: { include: { company: true } } } })
           : type === "contract"
-            ? await db.contract.findFirst({ where: { id: log.relatedId, organizationId: log.organizationId }, include: { contact: { include: { company: true } } } })
-            : await db.invoice.findFirst({ where: { id: log.relatedId, organizationId: log.organizationId }, include: { contact: { include: { company: true } } } });
+            ? await getTenantDb().contract.findFirst({ where: { id: log.relatedId, organizationId: log.organizationId }, include: { contact: { include: { company: true } } } })
+            : await getTenantDb().invoice.findFirst({ where: { id: log.relatedId, organizationId: log.organizationId }, include: { contact: { include: { company: true } } } });
 
       if (doc) {
         const customerName = doc.contact?.company?.name || [doc.contact?.firstName, doc.contact?.lastName].filter(Boolean).join(" ").trim() || doc.contact?.email || "Khách hàng";

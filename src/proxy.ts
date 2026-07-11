@@ -62,9 +62,44 @@ function mapPublicModulePath(target: PublicDomainTarget, pathname: string) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const hostname = request.headers.get("host") || "localhost:3000";
+  const normalizedHostname = hostname.split(":")[0] ?? hostname;
+  const appDomains = new Set(["app.ovc.vn", "app.ongvang.com", "app.ongvang.com.vn"]);
+  const workspaceAppPaths = [
+    "/dashboard",
+    "/myworks",
+    "/tasks",
+    "/calendar",
+    "/timeline",
+    "/leads",
+    "/crm",
+    "/projects",
+    "/finance",
+    "/training",
+    "/courses",
+    "/marketing",
+    "/social-marketing",
+    "/website",
+    "/settings",
+    "/services",
+  ];
+  const appOnlyPaths = ["/admin", "/super-admin", "/workspace", "/customer", "/instructor", "/student", ...workspaceAppPaths];
+
+  if (
+    !appDomains.has(normalizedHostname) &&
+    normalizedHostname !== "localhost" &&
+    normalizedHostname !== "127.0.0.1" &&
+    appOnlyPaths.some((path) => pathname.startsWith(path))
+  ) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.protocol = "https:";
+    redirectUrl.hostname = process.env.NEXT_PUBLIC_APP_HOST || "app.ongvang.com.vn";
+    redirectUrl.port = "";
+    return NextResponse.redirect(redirectUrl, 308);
+  }
   
   // Protect specific routes
-  const protectedPaths = ["/admin", "/super-admin", "/workspace", "/customer", "/instructor", "/student"];
+  const protectedPaths = appOnlyPaths;
   const isProtected = protectedPaths.some((path) => pathname.startsWith(path));
 
   if (isProtected) {
@@ -126,7 +161,7 @@ export async function proxy(request: NextRequest) {
       return response;
     }
 
-    if (pathname.startsWith("/workspace")) {
+    if (pathname.startsWith("/workspace") || workspaceAppPaths.some((path) => pathname.startsWith(path))) {
       const workspaceRoles = ["SUPER_ADMIN", "ADMIN", "MANAGER", "STAFF"];
       if (!workspaceRoles.includes(role)) {
         const response = NextResponse.redirect(new URL(role === "CUSTOMER" ? "/customer" : "/login", request.url));
@@ -154,9 +189,6 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  const hostname = request.headers.get("host") || "localhost:3000";
-  const normalizedHostname = hostname.split(":")[0] ?? hostname;
-  const appDomains = new Set(["app.ovc.vn", "app.ongvang.com.vn"]);
   const isAppDomain = hostname.includes("localhost") || appDomains.has(normalizedHostname);
   const domainTargets = parseDomainTargets();
   const publicTarget = domainTargets[normalizedHostname];

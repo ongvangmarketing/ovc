@@ -1,7 +1,7 @@
 import { Prisma, ProjectActivityType, ProjectDatabaseActorType, ProjectDatabaseChangeAction, ProjectSharePermission, ProjectViewType } from "@prisma/client";
 import { randomBytes } from "crypto";
 
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import { createProjectActivity } from "@/modules/projects/services/project-activity.service";
 import type {
   projectDatabaseCreateSchema,
@@ -9,8 +9,10 @@ import type {
   projectDatabaseRecordCreateSchema,
   projectDatabaseShareCreateSchema,
   projectDatabaseViewCreateSchema,
-} from "@/modules/projects/schemas/project-database.schema";
+} from "@/modules/projects/types/project-database.schema";
 import type { z } from "zod";
+import { ProjectRepository } from "@/modules/projects/repositories/project.repository";
+import { ProjectDatabaseRepository } from "@/modules/projects/repositories/project-database.repository";
 
 type DatabaseInput = z.infer<typeof projectDatabaseCreateSchema>;
 type FieldInput = z.infer<typeof projectDatabaseFieldCreateSchema>;
@@ -27,23 +29,20 @@ function jsonInput(value: unknown) {
 }
 
 async function assertProject(organizationId: string, projectId: string) {
-  const project = await db.project.findFirst({ where: { id: projectId, organizationId }, select: { id: true, name: true } });
+  const project = await ProjectRepository.findProjectByIdAndOrg(projectId, organizationId);
   if (!project) throw new Error("Không tìm thấy dự án");
   return project;
 }
 
 async function assertDatabase(organizationId: string, databaseId: string) {
-  const database = await db.projectDatabase.findFirst({
-    where: { id: databaseId, organizationId, deletedAt: null },
-    include: { project: { select: { id: true, name: true } } },
-  });
+  const database = await ProjectDatabaseRepository.findDatabaseByIdAndOrg(databaseId, organizationId);
   if (!database) throw new Error("Không tìm thấy database dự án");
   return database;
 }
 
 export async function getProjectDatabasesService(organizationId: string, projectId: string) {
   await assertProject(organizationId, projectId);
-  return db.projectDatabase.findMany({
+  return getTenantDb().projectDatabase.findMany({
     where: { organizationId, projectId, deletedAt: null },
     include: { _count: { select: { fields: true, views: true, records: true, shareLinks: true } } },
     orderBy: { updatedAt: "desc" },
@@ -51,7 +50,7 @@ export async function getProjectDatabasesService(organizationId: string, project
 }
 
 export async function getProjectDatabaseByIdService(organizationId: string, databaseId: string) {
-  return db.projectDatabase.findFirst({
+  return getTenantDb().projectDatabase.findFirst({
     where: { id: databaseId, organizationId, deletedAt: null },
     include: {
       fields: { orderBy: { order: "asc" } },
@@ -64,7 +63,7 @@ export async function getProjectDatabaseByIdService(organizationId: string, data
 
 export async function createProjectDatabaseService(organizationId: string, userId: string, projectId: string, input: DatabaseInput) {
   await assertProject(organizationId, projectId);
-  const database = await db.projectDatabase.create({
+  const database = await getTenantDb().projectDatabase.create({
     data: {
       organizationId,
       projectId,
@@ -92,7 +91,7 @@ export async function createProjectDatabaseService(organizationId: string, userI
 
 export async function createDatabaseFieldService(organizationId: string, userId: string, databaseId: string, input: FieldInput) {
   const database = await assertDatabase(organizationId, databaseId);
-  const field = await db.projectDatabaseField.create({
+  const field = await getTenantDb().projectDatabaseField.create({
     data: {
       organizationId,
       databaseId,
@@ -125,7 +124,7 @@ export async function createDatabaseFieldService(organizationId: string, userId:
 
 export async function createDatabaseViewService(organizationId: string, databaseId: string, input: ViewInput) {
   await assertDatabase(organizationId, databaseId);
-  return db.projectDatabaseView.create({
+  return getTenantDb().projectDatabaseView.create({
     data: {
       organizationId,
       databaseId,
@@ -145,11 +144,11 @@ export async function createDatabaseViewService(organizationId: string, database
 
 export async function createDatabaseRecordService(organizationId: string, userId: string, databaseId: string, input: RecordInput) {
   const database = await assertDatabase(organizationId, databaseId);
-  const record = await db.projectDatabaseRecord.create({
+  const record = await getTenantDb().projectDatabaseRecord.create({
     data: { organizationId, databaseId, values: jsonInput(input.values) || {}, order: input.order, createdById: userId, updatedById: userId },
   });
 
-  await db.projectDatabaseChangeLog.create({
+  await getTenantDb().projectDatabaseChangeLog.create({
     data: {
       organizationId,
       databaseId,
@@ -175,19 +174,19 @@ export async function createDatabaseRecordService(organizationId: string, userId
 }
 
 export async function updateDatabaseRecordService(organizationId: string, userId: string, recordId: string, values: Record<string, unknown>) {
-  const existing = await db.projectDatabaseRecord.findFirst({
+  const existing = await getTenantDb().projectDatabaseRecord.findFirst({
     where: { id: recordId, organizationId, deletedAt: null },
     include: { database: true },
   });
   if (!existing) throw new Error("Không tìm thấy record");
 
   const nextValues = { ...(existing.values as Record<string, unknown>), ...values };
-  const record = await db.projectDatabaseRecord.update({
+  const record = await getTenantDb().projectDatabaseRecord.update({
     where: { id: existing.id },
     data: { values: jsonInput(nextValues) || {}, updatedById: userId },
   });
 
-  await db.projectDatabaseChangeLog.create({
+  await getTenantDb().projectDatabaseChangeLog.create({
     data: {
       organizationId,
       databaseId: existing.databaseId,
@@ -215,7 +214,7 @@ export async function updateDatabaseRecordService(organizationId: string, userId
 
 export async function createProjectDatabaseShareLinkService(organizationId: string, userId: string, databaseId: string, input: ShareInput) {
   const database = await assertDatabase(organizationId, databaseId);
-  const share = await db.projectDatabaseShareLink.create({
+  const share = await getTenantDb().projectDatabaseShareLink.create({
     data: {
       organizationId,
       databaseId,
@@ -249,7 +248,7 @@ export async function createProjectDatabaseShareLinkService(organizationId: stri
 }
 
 export async function getPublicDatabaseByTokenService(token: string) {
-  const share = await db.projectDatabaseShareLink.findUnique({
+  const share = await getTenantDb().projectDatabaseShareLink.findUnique({
     where: { token },
     include: {
       database: {
@@ -298,15 +297,15 @@ export async function updatePublicRecordByTokenService(token: string, recordId: 
   }
 
   const databaseId = publicData.database.id;
-  const existing = await db.projectDatabaseRecord.findFirst({ where: { id: recordId, databaseId, deletedAt: null } });
+  const existing = await getTenantDb().projectDatabaseRecord.findFirst({ where: { id: recordId, databaseId, deletedAt: null } });
   if (!existing) throw new Error("Không tìm thấy record");
 
   const allowedKeys = new Set(publicData.database.fields.map((field) => field.key));
   const sanitized = Object.fromEntries(Object.entries(values).filter(([key]) => allowedKeys.has(key)));
   const nextValues = { ...(existing.values as Record<string, unknown>), ...sanitized };
-  const record = await db.projectDatabaseRecord.update({ where: { id: existing.id }, data: { values: jsonInput(nextValues) || {} } });
+  const record = await getTenantDb().projectDatabaseRecord.update({ where: { id: existing.id }, data: { values: jsonInput(nextValues) || {} } });
 
-  await db.projectDatabaseChangeLog.create({
+  await getTenantDb().projectDatabaseChangeLog.create({
     data: {
       organizationId: existing.organizationId,
       databaseId,

@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import {
   formatMailDate,
   formatVnd,
@@ -26,7 +26,7 @@ function contactName(contact: ContactLike) {
 
 async function documentLink(organizationId: string, token?: string | null, publicBaseUrl?: string) {
   const baseUrl = publicBaseUrl || await getOrganizationPublicBaseUrl(organizationId, "portal");
-  return token ? `${baseUrl}/document/${token}` : `${baseUrl}/workspace/dashboard`;
+  return token ? `${baseUrl}/document/${token}` : `${baseUrl}/workspace`;
 }
 
 async function documentPdfAttachment(organizationId: string, token?: string | null, filename = "tai-lieu-da-ky.pdf") {
@@ -77,7 +77,7 @@ async function paymentReceiptPdfAttachment(input: {
 }) {
   const baseUrl = await getOrganizationPublicBaseUrl(input.organizationId, "app");
   try {
-    const response = await fetch(`${baseUrl}/workspace/finance/payments/${encodeURIComponent(input.paymentId)}/receipt/pdf`, {
+    const response = await fetch(`${baseUrl}/finance/payments/${encodeURIComponent(input.paymentId)}/receipt/pdf`, {
       cache: "no-store",
       headers: input.cookieHeader ? { cookie: input.cookieHeader } : undefined,
     });
@@ -99,7 +99,7 @@ async function paymentReceiptPdfAttachment(input: {
 
 async function receiptLink(organizationId: string, paymentId?: string) {
   const baseUrl = await getOrganizationPublicBaseUrl(organizationId, "portal");
-  return paymentId ? `${baseUrl}/document/payment/${paymentId}` : `${baseUrl}/workspace/finance/payments`;
+  return paymentId ? `${baseUrl}/document/payment/${paymentId}` : `${baseUrl}/finance/payments`;
 }
 
 function documentTitle(doc: { number: string; title?: string | null }) {
@@ -122,7 +122,7 @@ export async function canRecipientReceiveEmail(input: {
   email: string;
   key: "account" | "quotation" | "contract" | "invoice" | "payment" | "marketing";
 }) {
-  const contact = await db.contact.findFirst({
+  const contact = await getTenantDb().contact.findFirst({
     where: { organizationId: input.organizationId, email: input.email },
     select: { customFields: true, firstName: true, lastName: true, email: true },
   });
@@ -131,7 +131,7 @@ export async function canRecipientReceiveEmail(input: {
 }
 
 async function internalRecipients(organizationId: string, preferred?: Array<string | null | undefined>) {
-  const members = await db.organizationMember.findMany({
+  const members = await getTenantDb().organizationMember.findMany({
     where: { organizationId, role: { in: ["OWNER", "ADMIN"] } },
     include: { user: true },
     take: 10,
@@ -190,7 +190,7 @@ export async function sendPortalAccountEmail(input: {
       variables,
       fallbackSubject: "Tài khoản đăng nhập của Quý khách",
       fallbackBody:
-        "Xin chào <strong>{{customer_name}}</strong>,<br><br>Tài khoản đăng nhập đã được tạo.<br>Email đăng nhập: <strong>{{login_email}}</strong><br>Mật khẩu: <strong>{{login_password}}</strong><br><br><a href=\"{{login_link}}\">Đăng nhập</a><br>Sau khi đăng nhập, hệ thống sẽ chuyển đến khu vực phù hợp với tài khoản của bạn.",
+        "Xin chào <strong>{{customer_name}}</strong>,<br><br>Tài khoản truy cập không gian khách hàng của bạn đã được tạo thành công.<br><br>Email đăng nhập: <strong>{{login_email}}</strong><br>Mật khẩu: <strong>{{login_password}}</strong><br><br><div style=\"text-align: center; margin: 32px 0;\"><a href=\"{{login_link}}\" style=\"display: inline-block; padding: 12px 24px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;\">Đăng nhập ngay</a></div><br>Sau khi đăng nhập, hệ thống sẽ tự động chuyển hướng bạn đến khu vực làm việc phù hợp.",
     });
 
     await sendMailOnce(
@@ -272,7 +272,7 @@ export async function sendPortalPasswordChangedEmail(input: {
     },
     fallbackSubject: "Mật khẩu đăng nhập của Quý khách đã được thay đổi",
     fallbackBody:
-      "Xin chào <strong>{{customer_name}}</strong>,<br><br>Mật khẩu đăng nhập của Quý khách vừa được thay đổi thành công vào {{changed_at}}.<br>Nếu đây không phải thao tác của Quý khách, vui lòng liên hệ Ong Vàng ngay.<br><br><a href=\"{{portal_link}}\">Đăng nhập</a>",
+      "Xin chào <strong>{{customer_name}}</strong>,<br><br>Mật khẩu đăng nhập của Quý khách vừa được thay đổi thành công vào {{changed_at}}.<br>Nếu đây không phải thao tác của Quý khách, vui lòng liên hệ Ong Vàng ngay.<br><br><div style=\"text-align: center; margin: 32px 0;\"><a href=\"{{portal_link}}\" style=\"display: inline-block; padding: 12px 24px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;\">Đăng nhập</a></div>",
   });
 
   await sendEmail({
@@ -302,10 +302,10 @@ export async function sendFinanceDocumentEmail(input: {
   const include = { contact: { include: { company: true } } };
   const doc =
     input.type === "quotation"
-      ? await db.quotation.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include })
+      ? await getTenantDb().quotation.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include })
       : input.type === "contract"
-        ? await db.contract.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include })
-        : await db.invoice.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include });
+        ? await getTenantDb().contract.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include })
+        : await getTenantDb().invoice.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include });
 
   if (!doc) throw new Error("Document not found");
   if (!doc.token) throw new Error("Token không tồn tại, vui lòng tạo token public trước khi gửi");
@@ -347,6 +347,13 @@ export async function sendFinanceDocumentEmail(input: {
     return { sent: false, skipped: "customer_email_preference" };
   }
 
+  const metaBoxItems = [
+    { label: "Khách hàng", value: name },
+    { label: "Loại tài liệu", value: documentLabel },
+    { label: "Số chứng từ", value: doc.number },
+    { label: "Tổng tiền", value: formatVnd(total) },
+  ];
+
   const rendered = input.subject || input.html ? {
     code: "CUSTOM",
     subject: input.subject || `Vui lòng xác nhận ${documentLabel} ${doc.number}`,
@@ -355,9 +362,10 @@ export async function sendFinanceDocumentEmail(input: {
     organizationId: input.organizationId,
     code: templateCode,
     variables,
+    metaBoxItems,
     fallbackSubject: `Vui lòng xác nhận ${documentLabel} ${doc.number}`,
     fallbackBody:
-      "Xin chào <strong>{{customer_name}}</strong>,<br><br>Vui lòng xem và xác nhận tài liệu tại liên kết sau:<br><a href=\"{{action_url}}\">{{action_url}}</a>",
+      "Xin chào <strong>{{customer_name}}</strong>,<br><br>Tài liệu <strong>{{document_label}}</strong> của bạn đã sẵn sàng. Vui lòng kiểm tra thông tin chi tiết và xác nhận tại liên kết dưới đây.<br><br><div style=\"text-align: center; margin: 32px 0;\"><a href=\"{{action_url}}\" style=\"display: inline-block; padding: 12px 24px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;\">{{action_label}}</a></div>",
   });
   const to = input.to || doc.contact?.email;
   if (!to || (Array.isArray(to) && !to.length)) throw new Error("Tài liệu chưa có email người nhận");
@@ -389,10 +397,10 @@ export async function renderFinanceDocumentEmailDraft(input: {
   const include = { contact: { include: { company: true } } };
   const doc =
     input.type === "quotation"
-      ? await db.quotation.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include })
+      ? await getTenantDb().quotation.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include })
       : input.type === "contract"
-        ? await db.contract.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include })
-        : await db.invoice.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include });
+        ? await getTenantDb().contract.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include })
+        : await getTenantDb().invoice.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include });
 
   if (!doc) throw new Error("Document not found");
   if (!doc.token) throw new Error("Token không tồn tại, vui lòng tạo token public trước khi gửi");
@@ -429,13 +437,21 @@ export async function renderFinanceDocumentEmailDraft(input: {
     action_url: link,
     action_label: `Xem và ký ${documentLabel.toLowerCase()}`,
   };
+  const metaBoxItems = [
+    { label: "Khách hàng", value: name },
+    { label: "Loại tài liệu", value: documentLabel },
+    { label: "Số chứng từ", value: doc.number },
+    { label: "Tổng tiền", value: formatVnd(total) },
+  ];
+
   const rendered = await renderEmailTemplate({
     organizationId: input.organizationId,
     code: templateCode,
     variables,
+    metaBoxItems,
     fallbackSubject: `Vui lòng xác nhận ${documentLabel} ${doc.number}`,
     fallbackBody:
-      "Xin chào <strong>{{customer_name}}</strong>,<br><br>Vui lòng xem và xác nhận tài liệu tại liên kết sau:<br><a href=\"{{action_url}}\">{{action_url}}</a>",
+      "Xin chào <strong>{{customer_name}}</strong>,<br><br>Tài liệu <strong>{{document_label}}</strong> của bạn đã sẵn sàng. Vui lòng kiểm tra thông tin chi tiết và xác nhận tại liên kết dưới đây.<br><br><div style=\"text-align: center; margin: 32px 0;\"><a href=\"{{action_url}}\" style=\"display: inline-block; padding: 12px 24px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;\">{{action_label}}</a></div>",
   });
 
   return {
@@ -455,10 +471,10 @@ export async function sendSignedDocumentEmails(input: {
   const include = { contact: { include: { company: true } } };
   const doc =
     input.type === "quotation"
-      ? await db.quotation.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include })
+      ? await getTenantDb().quotation.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include })
       : input.type === "contract"
-        ? await db.contract.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include })
-        : await db.invoice.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include });
+        ? await getTenantDb().contract.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include })
+        : await getTenantDb().invoice.findFirst({ where: { id: input.id, organizationId: input.organizationId }, include });
 
   if (!doc) return;
   const link = await documentLink(input.organizationId, doc.token);
@@ -542,7 +558,7 @@ export async function sendSignedDocumentEmails(input: {
 }
 
 export async function renderPaymentEmailDraft(input: { organizationId: string; paymentId: string }) {
-  const payment = await db.payment.findFirst({
+  const payment = await getTenantDb().payment.findFirst({
     where: { id: input.paymentId, organizationId: input.organizationId },
     include: { invoice: { include: { contact: { include: { company: true } } } } },
   });
@@ -563,12 +579,21 @@ export async function renderPaymentEmailDraft(input: { organizationId: string; p
     action_url: await receiptLink(input.organizationId, payment.id),
     action_label: "Xem phiếu thu",
   };
+  const metaBoxItems = [
+    { label: "Khách hàng", value: name },
+    { label: "Mã giao dịch", value: payment.number || payment.reference || `PT-${payment.id.slice(-8).toUpperCase()}` },
+    { label: "Số tiền thanh toán", value: formatVnd(payment.amount) },
+    { label: "Thanh toán cho", value: `Hóa đơn ${payment.invoice.number}` },
+    { label: "Thời gian", value: formatMailDate(payment.paidAt || payment.createdAt) },
+  ];
+
   const renderedCustomer = await renderEmailTemplate({
     organizationId: input.organizationId,
     code: "INVOICE_PAID_CUSTOMER",
     variables,
+    metaBoxItems,
     fallbackSubject: "Xác nhận Thanh toán Hóa đơn {{invoice_number}}",
-    fallbackBody: "Cảm ơn Quý khách đã thanh toán <strong>{{payment_amount}}</strong> cho hóa đơn {{invoice_number}}.",
+    fallbackBody: "Xin chào <strong>{{customer_name}}</strong>,<br><br>Cảm ơn Quý khách đã thanh toán thành công <strong>{{payment_amount}}</strong> cho hóa đơn <strong>{{invoice_number}}</strong>. Số dư của Quý khách đã được cập nhật hệ thống.<br><br>QUAN TRỌNG: Quý khách không cần thực hiện thêm bất kỳ hành động nào.<br><br><div style=\"text-align: center; margin: 32px 0;\"><a href=\"{{receipt_link}}\" style=\"display: inline-block; padding: 12px 24px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 500;\">{{action_label}}</a></div>",
   });
 
   return {
@@ -582,7 +607,7 @@ export async function renderPaymentEmailDraft(input: { organizationId: string; p
 }
 
 export async function sendPaymentEmails(input: { organizationId: string; paymentId: string; to?: string | string[]; subject?: string; html?: string; attachPdf?: boolean; cookieHeader?: string }) {
-  const payment = await db.payment.findFirst({
+  const payment = await getTenantDb().payment.findFirst({
     where: { id: input.paymentId, organizationId: input.organizationId },
     include: { invoice: { include: { contact: { include: { company: true } } } } },
   });

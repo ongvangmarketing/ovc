@@ -65,10 +65,10 @@ export function MultiImageUpload({ name, defaultValue = [], label, helperText }:
   };
 
   return (
-    <div className="space-y-3 border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+    <div className="space-y-4 rounded-xl p-0 bg-transparent">
       <div className="flex flex-col gap-1">
-        <label className="text-sm font-semibold text-gray-800">{label}</label>
-        {helperText && <p className="text-xs text-gray-500">{helperText}</p>}
+        <label className="text-[14px] font-semibold text-gray-900">{label}</label>
+        {helperText && <p className="text-[13px] text-gray-500">{helperText}</p>}
       </div>
       
       {/* Hidden input to submit JSON array */}
@@ -76,12 +76,12 @@ export function MultiImageUpload({ name, defaultValue = [], label, helperText }:
       
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {images.map((img, idx) => (
-          <div key={idx} className="relative aspect-video border border-gray-200 rounded-lg overflow-hidden group bg-white shadow-sm">
+          <div key={idx} className="relative aspect-video border border-[#eaeaea] rounded-xl overflow-hidden group bg-white shadow-sm">
             <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
             <button
               type="button"
               onClick={() => removeImage(idx)}
-              className="absolute top-2 right-2 bg-red-500/90 text-white p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-sm"
+              className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm border border-[#eaeaea] text-gray-600 p-1.5 rounded-full hover:bg-white hover:text-red-600 hover:border-red-200 shadow-sm transition-all opacity-0 group-hover:opacity-100"
             >
               <X className="w-4 h-4" />
             </button>
@@ -90,10 +90,12 @@ export function MultiImageUpload({ name, defaultValue = [], label, helperText }:
         
         <div 
           onClick={() => fileInputRef.current?.click()}
-          className="aspect-video border-2 border-dashed border-blue-300 bg-blue-50/50 hover:bg-blue-50 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-colors text-blue-600"
+          className="aspect-video border border-dashed border-[#eaeaea] bg-white hover:bg-gray-50 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-colors group"
         >
-          <Upload className="w-6 h-6 mb-2 opacity-70" />
-          <span className="text-sm font-medium">Tải ảnh lên</span>
+          <div className="w-8 h-8 bg-white border border-[#eaeaea] rounded-full shadow-sm flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+            <Upload className="w-4 h-4 text-gray-600" />
+          </div>
+          <span className="text-[13px] font-medium text-gray-900">Tải ảnh lên</span>
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -105,7 +107,7 @@ export function MultiImageUpload({ name, defaultValue = [], label, helperText }:
         </div>
       </div>
       
-      <div className="pt-2 flex items-center gap-2">
+      <div className="pt-2 flex items-center gap-3">
         <div className="relative flex-1">
            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
              <LinkIcon className="h-4 w-4 text-gray-400" />
@@ -116,13 +118,13 @@ export function MultiImageUpload({ name, defaultValue = [], label, helperText }:
              value={urlInput}
              onChange={e => setUrlInput(e.target.value)}
              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addUrl(); } }}
-             className="w-full pl-9 pr-3 py-2 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+             className="w-full pl-9 pr-3 h-10 bg-white border border-[#eaeaea] rounded-lg text-[13px] focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors shadow-sm"
            />
         </div>
         <button 
           type="button" 
           onClick={addUrl}
-          className="px-4 py-2 bg-gray-800 text-white text-sm font-medium rounded-md hover:bg-gray-900 transition-colors"
+          className="h-10 px-5 bg-black text-white text-[13px] font-medium rounded-lg hover:bg-gray-800 transition-colors shadow-sm"
         >
           Thêm
         </button>

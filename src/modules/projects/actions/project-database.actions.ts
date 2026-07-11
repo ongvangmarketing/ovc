@@ -4,8 +4,8 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { PROJECT_PERMISSIONS } from "@/modules/projects/constants/project-permissions";
-import { requireProjectModule } from "@/modules/projects/guards/project-module.guard";
+import { PROJECT_PERMISSIONS } from "@/modules/projects/types/project-permissions";
+import { requireProjectModule } from "@/modules/projects/services/project-module.guard";
 import {
   projectDatabaseCreateSchema,
   projectDatabaseFieldCreateSchema,
@@ -13,7 +13,7 @@ import {
   projectDatabaseShareCreateSchema,
   projectDatabaseViewCreateSchema,
   publicRecordUpdateSchema,
-} from "@/modules/projects/schemas/project-database.schema";
+} from "@/modules/projects/types/project-database.schema";
 import {
   createDatabaseFieldService,
   createDatabaseRecordService,

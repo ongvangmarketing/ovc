@@ -1,16 +1,16 @@
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 export class OrganizationService {
   /**
    * Get basic Organization info (fallback to main organization record if profile not found)
    */
   static async getProfile(organizationId: string) {
-      const profile = await db.organizationProfile.findUnique({
+      const profile = await getTenantDb().organizationProfile.findUnique({
         where: { organizationId },
       });
       if (profile) return profile;
 
-      const org = await db.organization.findUnique({
+      const org = await getTenantDb().organization.findUnique({
         where: { id: organizationId },
       });
       if (!org) return null;
@@ -43,7 +43,7 @@ export class OrganizationService {
    * Get Brand identity settings
    */
   static async getBrand(organizationId: string) {
-      const brand = await db.organizationBrand.findUnique({
+      const brand = await getTenantDb().organizationBrand.findUnique({
         where: { organizationId },
       });
       return brand || {
@@ -63,7 +63,7 @@ export class OrganizationService {
    * Get formatting rules and timezone
    */
   static async getLocale(organizationId: string) {
-      const locale = await db.organizationLocale.findUnique({
+      const locale = await getTenantDb().organizationLocale.findUnique({
         where: { organizationId },
       });
       return locale || {
@@ -81,13 +81,13 @@ export class OrganizationService {
    * Get all active modules for the organization
    */
   static async getModules(organizationId: string) {
-      const modules = await db.organizationModule.findMany({
+      const modules = await getTenantDb().organizationModule.findMany({
         where: { organizationId, status: 'ACTIVE' },
       });
       if (modules.length > 0) return modules.map(m => m.moduleKey);
 
       // Fallback to old activeModules array
-      const org = await db.organization.findUnique({
+      const org = await getTenantDb().organization.findUnique({
         where: { id: organizationId },
         select: { activeModules: true }
       });
@@ -98,7 +98,7 @@ export class OrganizationService {
    * Get specific workflow
    */
   static async getWorkflow(organizationId: string, moduleKey: string, workflowKey: string) {
-      const workflow = await db.organizationWorkflow.findUnique({
+      const workflow = await getTenantDb().organizationWorkflow.findUnique({
         where: { organizationId_moduleKey_workflowKey: { organizationId, moduleKey, workflowKey } }
       });
       return workflow;

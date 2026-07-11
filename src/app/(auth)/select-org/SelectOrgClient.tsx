@@ -1,8 +1,4 @@
-"use client";
-
-import { useTransition } from "react";
-import { Building2, ChevronRight, Loader2, LogOut } from "lucide-react";
-import { setActiveOrganization } from "./actions";
+import { Building2, ChevronRight, LogOut } from "lucide-react";
 import Link from "next/link";
 
 type Organization = {
@@ -13,17 +9,6 @@ type Organization = {
 };
 
 export function SelectOrgClient({ orgs, userName }: { orgs: Organization[], userName: string }) {
-  const [isPending, startTransition] = useTransition();
-
-  const handleSelect = (orgId: string) => {
-    startTransition(async () => {
-      const res = await setActiveOrganization(orgId);
-      if (res?.success && res.targetUrl) {
-        window.location.href = res.targetUrl;
-      }
-    });
-  };
-
   return (
     <div className="flex min-h-screen w-full flex-col items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-md">
@@ -40,11 +25,10 @@ export function SelectOrgClient({ orgs, userName }: { orgs: Organization[], user
 
         <div className="space-y-3">
           {orgs.map((org) => (
-            <button
+            <Link
               key={org.id}
-              onClick={() => handleSelect(org.id)}
-              disabled={isPending}
-              className="group flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-all hover:border-emerald-300 hover:shadow-md disabled:opacity-50"
+              href={`/api/select-org?organizationId=${encodeURIComponent(org.id)}`}
+              className="group flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition-all hover:border-emerald-300 hover:shadow-md"
             >
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-100 overflow-hidden">
@@ -60,15 +44,9 @@ export function SelectOrgClient({ orgs, userName }: { orgs: Organization[], user
                 </div>
               </div>
               <ChevronRight className="h-5 w-5 text-slate-300 transition-transform group-hover:translate-x-1 group-hover:text-emerald-500" />
-            </button>
+            </Link>
           ))}
         </div>
-
-        {isPending && (
-          <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-500">
-            <Loader2 className="h-4 w-4 animate-spin" /> Đang chuyển hướng...
-          </div>
-        )}
 
         <div className="mt-8 text-center">
           <Link href="/api/logout" className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition-colors">

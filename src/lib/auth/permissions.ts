@@ -116,6 +116,10 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     "courses:read",
     "files:read",
   ],
+  AGENT: [
+    "projects:read",
+    "files:read",
+  ],
 };
 
 // ============================================================
@@ -148,15 +152,15 @@ export function hasAllPermissions(
 // ============================================================
 
 export const ROUTE_PERMISSIONS: Record<string, Permission[]> = {
-  "/workspace/crm": ["crm:read"],
-  "/workspace/finance": ["finance:read"],
-  "/workspace/projects": ["projects:read"],
-  "/workspace/courses": ["courses:read"],
-  "/workspace/marketing": ["marketing:read"],
+  "/crm": ["crm:read"],
+  "/finance": ["finance:read"],
+  "/projects": ["projects:read"],
+  "/courses": ["courses:read"],
+  "/marketing": ["marketing:read"],
   "/workspace/cms": ["cms:read"],
   "/workspace/users": ["users:read"],
-  "/workspace/settings": ["system:read"],
-  "/workspace/reports": ["reports:read"],
+  "/settings": ["system:read"],
+  "/reports": ["reports:read"],
 };
 
 // ============================================================
@@ -164,11 +168,12 @@ export const ROUTE_PERMISSIONS: Record<string, Permission[]> = {
 // ============================================================
 
 export const ROLE_DEFAULT_ROUTES: Record<UserRole, string> = {
-  SUPER_ADMIN: "/workspace/dashboard",
-  ADMIN: "/workspace/dashboard",
-  MANAGER: "/workspace/dashboard",
-  STAFF: "/workspace/dashboard",
+  SUPER_ADMIN: "/workspace",
+  ADMIN: "/workspace",
+  MANAGER: "/workspace",
+  STAFF: "/workspace",
   CUSTOMER: "/customer",
   INSTRUCTOR: "/instructor",
   STUDENT: "/student",
+  AGENT: "/agent",
 };

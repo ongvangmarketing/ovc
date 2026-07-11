@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useTransition } from "react";
-import { updateSettings } from "@/app/actions/settings";
+import { updateSettings } from "@/actions/settings";
 import { toast } from "sonner";
 import { Settings, CheckCircle2, LayoutTemplate, FileText, Save } from "lucide-react";
 
@@ -75,27 +75,27 @@ function FormatBuilder({
   return (
     <div className="flex flex-col gap-3 p-4 bg-white border border-slate-200 rounded-xl shadow-sm hover:border-slate-300 transition-colors">
       <div className="flex justify-between items-center mb-1">
-        <label className="text-[13px] font-medium text-slate-800 uppercase tracking-wide">{label}</label>
-        <div className="text-[11px] font-mono bg-slate-100 text-slate-600 px-2 py-1 rounded">
+        <label className="text-[15px] font-medium text-slate-800 uppercase tracking-wide">{label}</label>
+        <div className="text-[15px] font-mono bg-slate-100 text-slate-600 px-2 py-1 rounded">
           Mẫu: <span className="font-medium text-slate-800">{previewCode(value)}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-12 gap-5">
         <div className="col-span-12 md:col-span-4 flex flex-col gap-1.5">
-           <span className="text-sm font-medium text-slate-700">Tiền tố</span>
+           <span className="text-[15px] font-medium text-slate-700">Tiền tố</span>
            <input
              type="text"
-             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 uppercase"
+             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[15px] focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 uppercase"
              value={value.prefix}
              onChange={(e) => onChange("prefix", e.target.value.toUpperCase())}
              placeholder="Tiền tố..."
            />
         </div>
         <div className="col-span-12 md:col-span-4 flex flex-col gap-1.5">
-           <span className="text-sm font-medium text-slate-700">Định dạng Ngày</span>
+           <span className="text-[15px] font-medium text-slate-700">Định dạng Ngày</span>
            <select
-             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white"
+             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[15px] focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white"
              value={value.dateFormat}
              onChange={(e) => onChange("dateFormat", e.target.value)}
            >
@@ -106,9 +106,9 @@ function FormatBuilder({
            </select>
         </div>
         <div className="col-span-12 md:col-span-4 flex flex-col gap-1.5">
-           <span className="text-sm font-medium text-slate-700">Số tự động</span>
+           <span className="text-[15px] font-medium text-slate-700">Số tự động</span>
            <select
-             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white"
+             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-[15px] focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white"
              value={value.counterLength}
              onChange={(e) => onChange("counterLength", parseInt(e.target.value))}
            >
@@ -174,16 +174,16 @@ export function FinanceSettingsClient({ initialSettings }: { initialSettings: an
 
   return (
     <div className="flex-1 h-full overflow-y-auto">
-      <div className="quote-page mx-auto max-w-[1440px] px-6 py-6 animate-in fade-in duration-300">
+      <div className="quote-page mx-auto max-w-[1060px] px-6 py-6 animate-in fade-in duration-300">
         
         {/* Page Header */}
         <div className="mb-5 flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-[14px] font-light text-slate-500">
+            <div className="mb-2 flex items-center gap-2 text-[15px] font-light text-slate-500">
               <Settings className="h-4 w-4 text-orange-500" />
               Tài chính / Cấu hình
             </div>
-            <h1 className="text-[14px] font-light text-slate-950">Quản lý cài đặt Báo giá, Hợp đồng, Hóa đơn và giao diện hiển thị tài liệu.</h1>
+            <h1 className="text-[15px] font-light text-slate-950">Quản lý cài đặt Báo giá, Hợp đồng, Hóa đơn và giao diện hiển thị tài liệu.</h1>
           </div>
           
           <div className="flex items-center gap-3">
@@ -229,7 +229,7 @@ export function FinanceSettingsClient({ initialSettings }: { initialSettings: an
                           <h3 className={`font-medium ${isSelected ? 'text-orange-900' : 'text-slate-900'}`}>
                             {template.name}
                           </h3>
-                          <p className="mt-1 text-sm text-slate-500 line-clamp-2">
+                          <p className="mt-1 text-[15px] text-slate-500 line-clamp-2">
                             {template.description}
                           </p>
                         </div>

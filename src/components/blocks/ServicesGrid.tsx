@@ -1,5 +1,5 @@
 import React from "react";
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 function fmtVND(price: number | string | { toNumber?: () => number }): string {
   const n = typeof price === "object" && price?.toNumber ? price.toNumber() : Number(price);
@@ -26,7 +26,7 @@ export default async function ServicesGrid({
 }: ServicesGridProps) {
   if (!orgId) return null;
 
-  const services = await db.service.findMany({
+  const services = await getTenantDb().service.findMany({
     where: { organizationId: orgId },
     include: {
       category: { select: { id: true, name: true } },

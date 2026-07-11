@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { LeadService } from "@/lib/services/lead.service";
+import { getTenantDb } from "@/lib/db";
+import { LeadService } from "@/modules/leads/services/lead.service";
 
 // CORS Headers for allowing cross-origin form submissions
 const corsHeaders = {
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Họ và tên là bắt buộc" }, { status: 400, headers: corsHeaders });
     }
 
-    const form = await db.leadForm.findUnique({
+    const form = await getTenantDb().leadForm.findUnique({
       where: { id: formId },
     });
 

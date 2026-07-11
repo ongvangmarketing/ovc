@@ -1,7 +1,7 @@
 import { ContactStatus, ContactType, InvoiceStatus } from "@prisma/client";
 import { randomUUID } from "crypto";
 
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 type TuitionFinanceSession = {
   organizationId: string;
@@ -26,7 +26,7 @@ export function formatTuitionInvoiceNumber(period: string, sequence: number) {
 
 async function nextTuitionInvoiceNumber(organizationId: string, date = new Date()) {
   const period = tuitionInvoicePeriod(date);
-  const invoices = await db.invoice.findMany({
+  const invoices = await getTenantDb().invoice.findMany({
     where: {
       organizationId,
       number: { startsWith: `HP-${period}` },
@@ -43,7 +43,7 @@ async function nextTuitionInvoiceNumber(organizationId: string, date = new Date(
 }
 
 export async function syncTuitionInvoiceForSession(enrollmentId: string, session: TuitionFinanceSession) {
-  const enrollment = await db.enrollment.findFirst({
+  const enrollment = await getTenantDb().enrollment.findFirst({
     where: { id: enrollmentId, course: { organizationId: session.organizationId } },
     include: { course: true, student: true, class: true },
   });
@@ -62,13 +62,13 @@ export async function syncTuitionInvoiceForSession(enrollmentId: string, session
       : InvoiceStatus.SENT;
 
   let contact = enrollment.student.email
-    ? await db.contact.findFirst({
+    ? await getTenantDb().contact.findFirst({
         where: { email: enrollment.student.email, organizationId: session.organizationId },
       })
     : null;
 
   if (!contact) {
-    contact = await db.contact.create({
+    contact = await getTenantDb().contact.create({
       data: {
         organizationId: session.organizationId,
         firstName: enrollment.student.name,
@@ -85,7 +85,7 @@ export async function syncTuitionInvoiceForSession(enrollmentId: string, session
   const itemName = `Học phí: ${enrollment.course.title}`;
   const itemDescription = enrollment.class ? `Lớp: ${enrollment.class.name}` : "Đăng ký khóa học";
 
-  let invoice = await db.invoice.findFirst({
+  let invoice = await getTenantDb().invoice.findFirst({
     where: {
       organizationId: session.organizationId,
       OR: [
@@ -104,7 +104,7 @@ export async function syncTuitionInvoiceForSession(enrollmentId: string, session
       : await nextTuitionInvoiceNumber(session.organizationId, issuedAt);
 
   if (invoice) {
-    invoice = await db.invoice.update({
+    invoice = await getTenantDb().invoice.update({
       where: { id: invoice.id },
       data: {
         number,
@@ -121,7 +121,7 @@ export async function syncTuitionInvoiceForSession(enrollmentId: string, session
       },
     });
   } else {
-    invoice = await db.invoice.create({
+    invoice = await getTenantDb().invoice.create({
       data: {
       organizationId: session.organizationId,
       token: randomUUID(),
@@ -152,13 +152,13 @@ export async function syncTuitionInvoiceForSession(enrollmentId: string, session
     });
   }
 
-  const existingItem = await db.invoiceItem.findFirst({
+  const existingItem = await getTenantDb().invoiceItem.findFirst({
     where: { invoiceId: invoice.id },
     orderBy: { createdAt: "asc" },
   });
 
   if (existingItem) {
-    await db.invoiceItem.update({
+    await getTenantDb().invoiceItem.update({
       where: { id: existingItem.id },
       data: {
         name: itemName,
@@ -169,7 +169,7 @@ export async function syncTuitionInvoiceForSession(enrollmentId: string, session
       },
     });
   } else {
-    await db.invoiceItem.create({
+    await getTenantDb().invoiceItem.create({
       data: {
         invoiceId: invoice.id,
         name: itemName,

@@ -31,9 +31,11 @@ export async function setActiveOrganization(organizationId: string) {
     targetUrl = "/instructor";
   } else if (role === "STUDENT") {
     targetUrl = "/student";
+  } else if (role === "AGENT") {
+    targetUrl = "/agent";
   } else {
     // Admin / Staff / Manager
-    targetUrl = "/workspace/dashboard"; // Default workspace
+    targetUrl = "/workspace";
   }
 
   return { success: true, targetUrl };

@@ -1,5 +1,5 @@
 import React from "react";
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 function fmtVND(price: number | string | { toNumber?: () => number }): string {
   const n = typeof price === "object" && price?.toNumber ? price.toNumber() : Number(price);
@@ -41,7 +41,7 @@ export default async function CoursesGrid({
 }: CoursesGridProps) {
   if (!orgId) return null;
 
-  const courses = await db.course.findMany({
+  const courses = await getTenantDb().course.findMany({
     where: {
       organizationId: orgId,
     },

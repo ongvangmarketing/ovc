@@ -9,7 +9,7 @@ export async function requireLicensedModule(code: PlatformModuleCode) {
   const entitlements = await getOrganizationEntitlements(session.organizationId);
 
   if (!hasModule(entitlements, code)) {
-    redirect(`/workspace/dashboard?module=${code.toLowerCase()}-disabled`);
+    redirect(`/workspace?module=${code.toLowerCase()}-disabled`);
   }
 
   return { session, entitlements };

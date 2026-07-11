@@ -1,179 +1,1334 @@
-import { ProjectActivityType, ProjectStatus } from "@prisma/client";
+import { getTenantDb } from "@/lib/db";
+import { assertLicensedModule } from "@/lib/modules/guards";
+import { getOrganizationEntitlements, hasModule } from "@/lib/modules/entitlements";
+import { decryptSocialToken, encryptSocialToken } from "@/modules/social-marketing/services/security/token-crypto";
+import { revalidatePath } from "next/cache";
+import { Prisma, ProjectStatus, Priority, TaskStatus } from "@prisma/client";
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
+import crypto from "crypto";
 
-import { db } from "@/lib/db";
-import { createProjectActivity } from "@/modules/projects/services/project-activity.service";
-import type { ProjectCreateInput, ProjectUpdateInput } from "@/modules/projects/schemas/project.schema";
 
-function asDate(value?: string | null) {
-  return value ? new Date(value) : null;
+const requireProjectsSession = () => assertLicensedModule("PROJECTS");
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Có lỗi xảy ra";
 }
 
-function asBudget(value?: string | number | null) {
-  if (value === undefined || value === null || value === "") return null;
-  return String(value);
+function objectValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function progressFromTasks(tasks: Array<{ status: string }>) {
-  if (!tasks.length) return 0;
-  return Math.round((tasks.filter((task) => task.status === "DONE").length / tasks.length) * 100);
+function stringArrayValue(value: unknown) {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string" && item.trim().length > 0) : [];
 }
 
-export async function getProjectsService(organizationId: string) {
-  const projects = await db.project.findMany({
-    where: { organizationId, isArchived: false },
-    include: {
-      owner: { select: { id: true, name: true, email: true, image: true } },
-      members: { include: { user: { select: { id: true, name: true, email: true, image: true } } } },
-      tasks: { select: { id: true, status: true } },
-      _count: { select: { tasks: true, files: true, databases: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+function listFromText(value: string) {
+  return Array.from(new Set(value.split(/[\s,;]+/).map((item) => item.trim()).filter(Boolean)));
+}
 
-  return projects.map((project) => ({
-    ...project,
-    progress: progressFromTasks(project.tasks),
+function tokenEnvelopeExists(value: unknown) {
+  const token = objectValue(value);
+  return Boolean(token.ciphertext && token.iv && token.authTag);
+}
+
+async function getProjectFacebookAdReport(organizationId: string, projectId: string, customFields: unknown) {
+  const fields = objectValue(customFields);
+  const facebookReport = objectValue(fields.facebookReport);
+  const enabledSources = objectValue(facebookReport.enabledSources);
+  const adAccountExternalId = typeof facebookReport.adAccountExternalId === "string" ? facebookReport.adAccountExternalId : "";
+  const adsEnabled = Boolean(enabledSources.ads ?? (adAccountExternalId || stringArrayValue(fields.facebookAdIds).length > 0 || stringArrayValue(facebookReport.campaignIds).length > 0));
+  const adIds = adsEnabled ? stringArrayValue(fields.facebookAdIds) : [];
+  if (!adIds.length) {
+    return { adIds, totals: { spend: 0, reach: 0, impressions: 0, clicks: 0, leads: 0 }, ads: [] };
+  }
+
+  const dateFrom = new Date();
+  dateFrom.setUTCDate(dateFrom.getUTCDate() - 29);
+  dateFrom.setUTCHours(0, 0, 0, 0);
+
+  const [insights, ads] = await Promise.all([
+    getTenantDb().socialInsight.findMany({
+      where: {
+        organizationId,
+        provider: "FACEBOOK",
+        entityType: "AD",
+        ...(adIds.length ? { entityExternalId: { in: adIds } } : {}),
+        ...(adAccountExternalId ? { adAccountExternalId } : {}),
+        dateStart: { gte: dateFrom },
+        deletedAt: null,
+      },
+      select: { spend: true, reach: true, impressions: true, clicks: true, leads: true },
+    }),
+    getTenantDb().socialAd.findMany({
+      where: { organizationId, provider: "FACEBOOK", externalId: { in: adIds }, deletedAt: null },
+      select: { externalId: true, name: true, status: true },
+    }),
+  ]);
+
+  const totals = insights.reduce((sum, row) => ({
+    spend: sum.spend + Number(row.spend),
+    reach: sum.reach + Number(row.reach),
+    impressions: sum.impressions + Number(row.impressions),
+    clicks: sum.clicks + Number(row.clicks),
+    leads: sum.leads + Number(row.leads),
+  }), { spend: 0, reach: 0, impressions: 0, clicks: 0, leads: 0 });
+
+  return { adIds, totals, ads };
+}
+
+async function getProjectFacebookReport(organizationId: string, customFields: unknown) {
+  const fields = objectValue(customFields);
+  const facebookReport = objectValue(fields.facebookReport);
+  const enabledSources = objectValue(facebookReport.enabledSources);
+  const pageExternalId = typeof facebookReport.pageExternalId === "string" ? facebookReport.pageExternalId : "";
+  const pageName = typeof facebookReport.pageName === "string" ? facebookReport.pageName : "";
+  const adAccountExternalId = typeof facebookReport.adAccountExternalId === "string" ? facebookReport.adAccountExternalId : "";
+  const adAccountName = typeof facebookReport.adAccountName === "string" ? facebookReport.adAccountName : "";
+  const configuredAdIds = stringArrayValue(fields.facebookAdIds);
+  const configuredCampaignIds = stringArrayValue(facebookReport.campaignIds);
+  const pageEnabled = Boolean(enabledSources.page ?? pageExternalId);
+  const adsEnabled = Boolean(enabledSources.ads ?? (adAccountExternalId || configuredAdIds.length > 0 || configuredCampaignIds.length > 0));
+  const adIds = adsEnabled ? configuredAdIds : [];
+  const campaignIds = adsEnabled ? configuredCampaignIds : [];
+  const emptyTotals = { spend: 0, reach: 0, impressions: 0, clicks: 0, leads: 0, engagements: 0 };
+
+  if (!pageEnabled && !adsEnabled) {
+    return {
+      pageEnabled,
+      adsEnabled,
+      pageExternalId,
+      pageName,
+      adAccountExternalId,
+      adAccountName,
+      adIds,
+      campaignIds,
+      pageTotals: emptyTotals,
+      adsTotals: emptyTotals,
+      posts: [],
+      pageDaily: [],
+      adsDaily: [],
+      diagnostics: { pageInsightRows: 0, pagePostRows: 0, adInsightRows: 0 },
+    };
+  }
+
+  const dateFrom = new Date();
+  dateFrom.setUTCDate(dateFrom.getUTCDate() - 29);
+  dateFrom.setUTCHours(0, 0, 0, 0);
+
+  const [pageInsights, adInsights, posts] = await Promise.all([
+    pageEnabled && pageExternalId ? getTenantDb().socialInsight.findMany({
+      where: { organizationId, provider: "FACEBOOK", entityType: "PAGE", entityExternalId: pageExternalId, dateStart: { gte: dateFrom }, deletedAt: null },
+      orderBy: { dateStart: "asc" },
+      select: { dateStart: true, reach: true, impressions: true, clicks: true, leads: true },
+    }) : [],
+    adsEnabled ? getTenantDb().socialInsight.findMany({
+      where: {
+        organizationId,
+        provider: "FACEBOOK",
+        entityType: "AD",
+        ...(adIds.length ? { entityExternalId: { in: adIds } } : {}),
+        ...(adAccountExternalId ? { adAccountExternalId } : {}),
+        dateStart: { gte: dateFrom },
+        deletedAt: null,
+      },
+      orderBy: { dateStart: "asc" },
+      select: { dateStart: true, spend: true, reach: true, impressions: true, clicks: true, leads: true },
+    }) : [],
+    pageEnabled && pageExternalId ? getTenantDb().socialPost.findMany({
+      where: { organizationId, provider: "FACEBOOK", pageExternalId, publishedAt: { gte: dateFrom }, deletedAt: null },
+      select: { id: true, caption: true, permalinkUrl: true, publishedAt: true },
+      orderBy: { publishedAt: "desc" },
+      take: 5,
+    }) : [],
+  ]);
+
+  const pageTotals = pageInsights.reduce((sum, row) => ({
+    ...sum,
+    reach: sum.reach + Number(row.reach),
+    impressions: sum.impressions + Number(row.impressions),
+    engagements: sum.engagements + Number(row.clicks),
+    leads: sum.leads + Number(row.leads),
+  }), emptyTotals);
+  const adsTotals = adInsights.reduce((sum, row) => ({
+    ...sum,
+    spend: sum.spend + Number(row.spend),
+    reach: sum.reach + Number(row.reach),
+    impressions: sum.impressions + Number(row.impressions),
+    clicks: sum.clicks + Number(row.clicks),
+    leads: sum.leads + Number(row.leads),
+  }), emptyTotals);
+
+  const pageDaily = pageInsights.map((row) => ({
+    date: row.dateStart.toISOString().slice(5, 10),
+    reach: Number(row.reach),
+    impressions: Number(row.impressions),
+    engagements: Number(row.clicks),
+    leads: Number(row.leads),
   }));
+  const adsDaily = adInsights.map((row) => ({
+    date: row.dateStart.toISOString().slice(5, 10),
+    spend: Number(row.spend),
+    reach: Number(row.reach),
+    impressions: Number(row.impressions),
+    clicks: Number(row.clicks),
+    leads: Number(row.leads),
+  }));
+
+  return {
+    pageEnabled,
+    adsEnabled,
+    pageExternalId,
+    pageName,
+    adAccountExternalId,
+    adAccountName,
+    adIds,
+    campaignIds,
+    pageTotals,
+    adsTotals,
+    posts,
+    pageDaily,
+    adsDaily,
+    diagnostics: {
+      pageInsightRows: pageInsights.length,
+      pagePostRows: posts.length,
+      adInsightRows: adInsights.length,
+    },
+  };
 }
 
-export async function getProjectByIdService(organizationId: string, id: string) {
-  return db.project.findFirst({
-    where: { id, organizationId },
-    include: {
-      owner: { select: { id: true, name: true, email: true, image: true } },
-      members: { include: { user: { select: { id: true, name: true, email: true, image: true } } }, orderBy: { joinedAt: "asc" } },
-      taskLists: { orderBy: { order: "asc" } },
+
+export class ProjectService {
+static async getAIContext(projectId?: string) {
+  const session = await requireProjectsSession();
+  const now = new Date();
+  const projects = await getTenantDb(session.organizationId).project.findMany({
+    where: {
+      organizationId: session.organizationId,
+      isArchived: false,
+      ...(projectId ? { id: projectId } : {}),
+    },
+    select: {
+      id: true,
+      name: true,
+      status: true,
       tasks: {
+        where: { parentId: null },
+        orderBy: [{ dueDate: "asc" }, { priority: "desc" }],
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          priority: true,
+          dueDate: true,
+          assignee: { select: { id: true, name: true } },
+          _count: { select: { subtasks: true } },
+        },
+      },
+    },
+  });
+  const tasks = projects.flatMap((project) =>
+    project.tasks.map((task) => ({
+      ...task,
+      project: { id: project.id, name: project.name, status: project.status },
+    })),
+  ).slice(0, 50);
+  const statusCounts = tasks.reduce<Record<string, number>>((counts, task) => {
+    counts[task.status] = (counts[task.status] ?? 0) + 1;
+    return counts;
+  }, {});
+  const projectCount = projects.length;
+  const unfinished = tasks.filter((task) => !["DONE", "CANCELLED"].includes(task.status));
+  return {
+    generatedAt: now.toISOString(),
+    projectCount,
+    summary: {
+      totalTopLevelTasks: tasks.length,
+      unfinishedTasks: unfinished.length,
+      overdueTasks: unfinished.filter((task) => task.dueDate && task.dueDate < now).length,
+      unassignedTasks: unfinished.filter((task) => !task.assignee).length,
+    },
+    byStatus: statusCounts,
+    tasks: tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      status: task.status,
+      priority: task.priority,
+      dueDate: task.dueDate,
+      project: task.project,
+      assignee: task.assignee,
+      subtaskCount: task._count.subtasks,
+    })),
+  };
+}
+
+
+
+
+
+
+
+
+
+
+static async getProjects() {
+  const session = await requireProjectsSession();
+  try {
+    const projects = await getTenantDb().project.findMany({
+      where: { organizationId: session.organizationId, isArchived: false },
+      include: {
+        members: { include: { user: true } },
+        _count: { select: { tasks: true } }
+      },
+      orderBy: { updatedAt: "desc" }
+    });
+    return projects.map((p: any) => ({
+      ...p,
+      budget: p.budget ? Number(p.budget) : 0,
+    }));
+  } catch (error) {
+    console.error("Error fetching projects:", error);
+    return [];
+  }
+}
+
+static async getProjectTasksDashboard() {
+  const session = await requireProjectsSession();
+  try {
+    return getTenantDb().task.findMany({
+      where: {
+        project: {
+          organizationId: session.organizationId,
+          isArchived: false,
+        },
+        parentId: null,
+      },
+      include: {
+        project: { select: { id: true, name: true, color: true, status: true } },
+        assignee: { select: { id: true, name: true, email: true, image: true } },
+        subtasks: { select: { id: true, title: true, status: true }, orderBy: { order: "asc" } },
+        comments: { select: { id: true }, take: 1 },
+        attachments: { select: { id: true } },
+      },
+      orderBy: [
+        { dueDate: "asc" },
+        { updatedAt: "desc" },
+      ],
+    });
+  } catch (error) {
+    console.error("Error fetching project tasks dashboard:", error);
+    return [];
+  }
+}
+
+static async getProjectById(id: string) {
+  const session = await requireProjectsSession();
+  try {
+    const entitlements = await getOrganizationEntitlements(session.organizationId);
+    const socialMarketingEnabled = hasModule(entitlements, "SOCIAL_MARKETING");
+    const project = await getTenantDb().project.findFirst({
+      where: { id, organizationId: session.organizationId },
+      include: {
+        owner: true,
+        members: { include: { user: true } },
+        organization: {
+          include: {
+            members: { include: { user: true }, orderBy: { joinedAt: "desc" } },
+          },
+        },
+        taskLists: { orderBy: { order: "asc" } },
+        tasks: {
+          include: {
+            assignee: true,
+            subtasks: { orderBy: { order: "asc" } },
+            comments: { include: { user: true }, orderBy: { createdAt: "desc" } },
+            attachments: true,
+          },
+          orderBy: { order: "asc" }
+        },
+        contentPlans: { 
+          include: { 
+            author: { select: { name: true, image: true } },
+            campaign: true,
+            brand: true,
+            client: true,
+            landingPage: true,
+            socialAsset: true,
+            aiPrompt: true,
+            designer: { select: { name: true, image: true } },
+            writer: { select: { name: true, image: true } },
+            reviewer: { select: { name: true, image: true } },
+            publisher: { select: { name: true, image: true } },
+            taxonomies: { include: { taxonomy: true } },
+            mediaAssets: { include: { media: true } },
+            reports: true
+          } 
+        }
+      }
+    });
+    if (!project) return null;
+
+    const customFields = objectValue(project.customFields);
+    const facebookReport = objectValue(customFields.facebookReport);
+    const pages = socialMarketingEnabled
+      ? await getTenantDb().socialProviderAsset.findMany({
+        where: {
+          organizationId: session.organizationId,
+          provider: "FACEBOOK",
+          assetType: "PAGE",
+          deletedAt: null,
+        },
+        select: { id: true, externalId: true, name: true, avatarUrl: true, selected: true },
+        orderBy: { name: "asc" },
+      })
+      : [];
+    const adAccounts = socialMarketingEnabled
+      ? await getTenantDb().socialProviderAsset.findMany({
+        where: {
+          organizationId: session.organizationId,
+          provider: "FACEBOOK",
+          assetType: "AD_ACCOUNT",
+          deletedAt: null,
+        },
+        select: { id: true, externalId: true, name: true, currency: true, timezone: true, selected: true },
+        orderBy: { name: "asc" },
+      })
+      : [];
+    const customerContacts = await getTenantDb().contact.findMany({
+      where: { organizationId: session.organizationId, status: "ACTIVE" },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        source: true,
+        company: { select: { name: true } },
+      },
+      orderBy: [{ updatedAt: "desc" }],
+      take: 200,
+    });
+    const uniqueCustomerContacts = Array.from(
+      customerContacts.reduce((items, contact) => {
+        const name = contact.company?.name || `${contact.firstName} ${contact.lastName}`.trim() || contact.email || "Khách hàng";
+        const key = `${contact.email || ""}::${contact.company?.name || name}`.toLowerCase();
+        const current = items.get(key);
+        if (!current || current.source === "portal-seed") items.set(key, { ...contact, displayName: name });
+        return items;
+      }, new Map<string, (typeof customerContacts)[number] & { displayName: string }>()).values(),
+    );
+
+    return {
+      ...project,
+      portalVisible: customFields.portalVisible === true,
+      availableMembers: project.organization.members.map((member) => ({
+        userId: member.userId,
+        role: member.role,
+        user: member.user,
+      })),
+      customerContacts: uniqueCustomerContacts.map((contact: any) => ({
+        id: contact.id,
+        name: contact.displayName,
+        email: contact.email,
+      })),
+      socialMarketingEnabled,
+      facebookPages: pages,
+      facebookAdAccounts: adAccounts,
+      facebookReportSetup: socialMarketingEnabled ? {
+        enabledSources: objectValue(facebookReport.enabledSources),
+        pageExternalId: typeof facebookReport.pageExternalId === "string" ? facebookReport.pageExternalId : "",
+        pageName: typeof facebookReport.pageName === "string" ? facebookReport.pageName : "",
+        adAccountExternalId: typeof facebookReport.adAccountExternalId === "string" ? facebookReport.adAccountExternalId : "",
+        adAccountName: typeof facebookReport.adAccountName === "string" ? facebookReport.adAccountName : "",
+        pageTokenSaved: tokenEnvelopeExists(facebookReport.pageToken),
+        adsTokenSaved: tokenEnvelopeExists(facebookReport.adsToken),
+        campaignIds: stringArrayValue(facebookReport.campaignIds),
+        adIds: stringArrayValue(customFields.facebookAdIds),
+      } : null,
+      facebookProjectReport: socialMarketingEnabled ? await getProjectFacebookReport(session.organizationId, project.customFields) : null,
+      facebookAdReport: await getProjectFacebookAdReport(session.organizationId, project.id, project.customFields),
+      organization: undefined,
+    };
+  } catch (error) {
+    console.error("Error fetching project by id:", error);
+    return null;
+  }
+}
+
+
+
+static async uploadProjectThumbnail(file: FormDataEntryValue | null) {
+  if (!file || typeof file === "string") return null;
+  const session = await requireProjectsSession();
+  
+  const ext = file.name.split('.').pop()?.toLowerCase();
+  if (!['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext || '')) {
+    throw new Error("Vui lòng upload ảnh định dạng JPG, PNG, WEBP hoặc GIF");
+  }
+  
+  const filename = crypto.randomBytes(16).toString('hex') + "." + ext;
+  const uploadDir = path.join(process.cwd(), "public", "uploads", "projects");
+  await mkdir(uploadDir, { recursive: true });
+  await writeFile(path.join(uploadDir, filename), Buffer.from(await file.arrayBuffer()));
+  return `/uploads/projects/${filename}`;
+}
+
+static async createProject(data: { name: string, description?: string, color?: string, thumbnail?: string }) {
+  const session = await requireProjectsSession();
+  try {
+    const project = await getTenantDb().project.create({
+      data: {
+        organizationId: session.organizationId,
+        ownerId: session.userId,
+        name: data.name,
+        description: data.description,
+        color: data.color || "#3b82f6",
+        thumbnail: data.thumbnail,
+        // Default task lists for Kanban
+        taskLists: {
+          create: [
+            { name: "To Do", order: 0, color: "#94a3b8" },
+            { name: "In Progress", order: 1, color: "#3b82f6" },
+            { name: "Review", order: 2, color: "#f59e0b" },
+            { name: "Done", order: 3, color: "#10b981" },
+          ]
+        }
+      }
+    });
+    
+    // Add owner as a member
+    await getTenantDb().projectMember.create({
+      data: {
+        projectId: project.id,
+        userId: session.userId,
+        role: "OWNER" // Make sure this enum matches Prisma Schema
+      }
+    });
+    
+    revalidatePath("/workspace/projects");
+    return { success: true, id: project.id };
+  } catch (error: unknown) {
+    console.error("Error creating project:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+static async updateProject(id: string, data: {
+  name: string;
+  description?: string;
+  color?: string;
+  thumbnail?: string | null;
+  status?: ProjectStatus;
+  priority?: Priority;
+  startDate?: string | null;
+  dueDate?: string | null;
+  budget?: string | number | null;
+  ownerId?: string | null;
+  contactId?: string | null;
+  portalVisible?: boolean;
+}) {
+  const session = await requireProjectsSession();
+  try {
+    const project = await getTenantDb().project.findFirst({
+      where: { id, organizationId: session.organizationId },
+      select: { id: true, customFields: true },
+    });
+
+    if (!project) {
+      return { success: false, error: "Không tìm thấy dự án hoặc bạn không có quyền sửa." };
+    }
+
+    await getTenantDb().project.update({
+      where: { id: project.id },
+      data: {
+        name: data.name,
+        description: data.description || null,
+        color: data.color || "#F59E0B",
+        thumbnail: data.thumbnail !== undefined ? data.thumbnail : null,
+        status: data.status || "ACTIVE",
+        priority: data.priority || "MEDIUM",
+        startDate: data.startDate ? new Date(data.startDate) : null,
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        budget: data.budget ? String(data.budget) : null,
+        ownerId: data.ownerId || undefined,
+        contactId: data.contactId || null,
+        customFields: {
+          ...objectValue(project.customFields),
+          portalVisible: Boolean(data.contactId && data.portalVisible),
+        },
+      },
+    });
+
+    revalidatePath("/workspace/projects");
+    revalidatePath(`/workspace/projects/${id}`);
+    revalidatePath(`/workspace/projects/${id}/edit`);
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("Error updating project:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+static async addProjectMember(projectId: string, userId: string, role: "OWNER" | "ADMIN" | "MEMBER" | "VIEWER" = "MEMBER") {
+  const session = await requireProjectsSession();
+  try {
+    const project = await getTenantDb().project.findFirst({
+      where: { id: projectId, organizationId: session.organizationId },
+      select: { id: true },
+    });
+    if (!project) {
+      return { success: false, error: "Không tìm thấy dự án." };
+    }
+
+    const orgMember = await getTenantDb().organizationMember.findUnique({
+      where: { organizationId_userId: { organizationId: session.organizationId, userId } },
+      select: { userId: true },
+    });
+    if (!orgMember) {
+      return { success: false, error: "Người này chưa thuộc workspace." };
+    }
+
+    await getTenantDb().projectMember.upsert({
+      where: { projectId_userId: { projectId, userId } },
+      update: { role },
+      create: { projectId, userId, role },
+    });
+
+    revalidatePath(`/workspace/projects/${projectId}`);
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("Error adding project member:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+static async updateProjectOwner(projectId: string, ownerId: string) {
+  const session = await requireProjectsSession();
+  try {
+    const result = await getTenantDb().project.updateMany({
+      where: { id: projectId, organizationId: session.organizationId },
+      data: { ownerId },
+    });
+    if (!result.count) {
+      return { success: false, error: "Không tìm thấy dự án." };
+    }
+
+    await getTenantDb().projectMember.upsert({
+      where: { projectId_userId: { projectId, userId: ownerId } },
+      update: { role: "OWNER" },
+      create: { projectId, userId: ownerId, role: "OWNER" },
+    });
+
+    revalidatePath(`/workspace/projects/${projectId}`);
+    revalidatePath(`/workspace/projects/${projectId}/edit`);
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("Error updating project owner:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+static async removeProjectMember(projectId: string, userId: string) {
+  const session = await requireProjectsSession();
+  try {
+    const project = await getTenantDb().project.findFirst({
+      where: { id: projectId, organizationId: session.organizationId },
+      select: { id: true, ownerId: true },
+    });
+    if (!project) {
+      return { success: false, error: "Không tìm thấy dự án." };
+    }
+    if (project.ownerId === userId) {
+      return { success: false, error: "Không thể xóa người đang chịu trách nhiệm chính." };
+    }
+
+    await getTenantDb().projectMember.deleteMany({
+      where: { projectId, userId },
+    });
+
+    await getTenantDb().task.updateMany({
+      where: { projectId, assigneeId: userId },
+      data: { assigneeId: null },
+    });
+
+    revalidatePath(`/workspace/projects/${projectId}`);
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("Error removing project member:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+static async updateProjectFacebookAds(projectId: string, adIdsText: string) {
+  const session = await requireProjectsSession();
+  try {
+    const project = await getTenantDb().project.findFirst({
+      where: { id: projectId, organizationId: session.organizationId },
+      select: { id: true, customFields: true },
+    });
+    if (!project) {
+      return { success: false, error: "Không tìm thấy dự án." };
+    }
+
+    const adIds = adIdsText
+      .split(/[\s,;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    await getTenantDb().project.update({
+      where: { id: projectId },
+      data: {
+        customFields: {
+          ...objectValue(project.customFields),
+          facebookAdIds: Array.from(new Set(adIds)),
+        },
+      },
+    });
+
+    revalidatePath(`/workspace/projects/${projectId}`);
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("Error updating project Facebook Ads:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+static async updateProjectSocialReportSetup(projectId: string, data: {
+  enablePage: boolean;
+  enableAds: boolean;
+  pageExternalId?: string;
+  pageAccessToken?: string;
+  adsAccessToken?: string;
+  adAccountExternalId?: string;
+  campaignIdsText?: string;
+  adIdsText?: string;
+}) {
+  const session = await requireProjectsSession();
+  try {
+    const entitlements = await getOrganizationEntitlements(session.organizationId);
+    if (!hasModule(entitlements, "SOCIAL_MARKETING")) {
+      return { success: false, error: "Module Social Marketing chưa được kích hoạt." };
+    }
+
+    const project = await getTenantDb().project.findFirst({
+      where: { id: projectId, organizationId: session.organizationId },
+      select: { id: true, customFields: true },
+    });
+    if (!project) {
+      return { success: false, error: "Không tìm thấy dự án." };
+    }
+
+    const page = data.pageExternalId
+      ? await getTenantDb().socialProviderAsset.findFirst({
+        where: {
+          organizationId: session.organizationId,
+          provider: "FACEBOOK",
+          assetType: "PAGE",
+          externalId: data.pageExternalId,
+          deletedAt: null,
+        },
+        select: { externalId: true, name: true },
+      })
+      : null;
+    const adAccount = data.adAccountExternalId
+      ? await getTenantDb().socialProviderAsset.findFirst({
+        where: {
+          organizationId: session.organizationId,
+          provider: "FACEBOOK",
+          assetType: "AD_ACCOUNT",
+          externalId: data.adAccountExternalId,
+          deletedAt: null,
+        },
+        select: { externalId: true, name: true },
+      })
+      : null;
+
+    const fields = objectValue(project.customFields);
+    const currentReport = objectValue(fields.facebookReport);
+    const nextReport: Record<string, unknown> = {
+      ...currentReport,
+      enabledSources: {
+        page: data.enablePage,
+        ads: data.enableAds,
+      },
+      pageExternalId: data.enablePage ? (page?.externalId || data.pageExternalId || "") : "",
+      pageName: data.enablePage ? (page?.name || "") : "",
+      adAccountExternalId: data.enableAds ? (adAccount?.externalId || data.adAccountExternalId || "") : "",
+      adAccountName: data.enableAds ? (adAccount?.name || "") : "",
+      campaignIds: data.enableAds ? listFromText(data.campaignIdsText || "") : [],
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (data.pageAccessToken?.trim()) {
+      nextReport.pageToken = encryptSocialToken(data.pageAccessToken.trim());
+    } else if (!data.enablePage) {
+      delete nextReport.pageToken;
+    }
+
+    if (data.adsAccessToken?.trim()) {
+      nextReport.adsToken = encryptSocialToken(data.adsAccessToken.trim());
+    } else if (!data.enableAds) {
+      delete nextReport.adsToken;
+    }
+
+    await getTenantDb().project.update({
+      where: { id: projectId },
+      data: {
+        customFields: {
+          ...fields,
+          facebookAdIds: data.enableAds ? listFromText(data.adIdsText || "") : [],
+          facebookReport: nextReport as Prisma.InputJsonObject,
+        } satisfies Prisma.InputJsonObject,
+      },
+    });
+
+    revalidatePath("/workspace/projects", "layout");
+    revalidatePath(`/workspace/projects/${projectId}`);
+    revalidatePath("/customer", "layout");
+    revalidatePath("/customer/reports");
+    return {
+      success: true,
+      setup: {
+        enabledSources: nextReport.enabledSources,
+        pageExternalId: nextReport.pageExternalId,
+        pageName: nextReport.pageName,
+        adAccountExternalId: nextReport.adAccountExternalId,
+        adAccountName: nextReport.adAccountName,
+        campaignIds: nextReport.campaignIds,
+        adIds: data.enableAds ? listFromText(data.adIdsText || "") : [],
+      },
+    };
+  } catch (error: unknown) {
+    console.error("Error updating project social report setup:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+static async createTask(data: {
+  projectId: string;
+  title: string;
+  description?: string;
+  taskListId?: string | null;
+  status?: TaskStatus;
+  priority?: Priority;
+  startDate?: string | null;
+  dueDate?: string | null;
+  assigneeId?: string | null;
+  tags?: string[];
+  followerIds?: string[];
+  subtasks?: Array<{ title: string; done?: boolean }>;
+  attachmentNames?: string[];
+}) {
+  const session = await requireProjectsSession();
+  try {
+    const task = await getTenantDb().task.create({
+      data: {
+        projectId: data.projectId,
+        title: data.title,
+        description: data.description,
+        creatorId: session.userId,
+        status: data.status || "TODO",
+        priority: data.priority || "MEDIUM",
+        startDate: data.startDate ? new Date(data.startDate) : null,
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        assigneeId: data.assigneeId || null,
+        tags: data.tags || [],
+        customFields: {
+          followerIds: data.followerIds || [],
+          attachmentNames: data.attachmentNames || [],
+        },
+        taskListId: data.taskListId,
+        order: Date.now(), // Simple ordering
+        subtasks: data.subtasks?.length
+          ? {
+              create: data.subtasks.map((subtask, index) => ({
+                projectId: data.projectId,
+                title: subtask.title,
+                creatorId: session.userId,
+                status: subtask.done ? "DONE" : "TODO",
+                priority: data.priority || "MEDIUM",
+                order: index,
+              })),
+            }
+          : undefined,
+        comments: {
+          create: {
+            userId: session.userId,
+            content: `Đã tạo phân công ở trạng thái ${data.status || "TODO"}`,
+          },
+        },
+      },
+      include: { assignee: true, subtasks: true, comments: true },
+    });
+    revalidatePath(`/workspace/projects/${data.projectId}`);
+    return { success: true, task };
+  } catch (error: unknown) {
+    console.error("Error creating task:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+static async updateTaskDetails(taskId: string, projectId: string, data: {
+  title: string;
+  description?: string;
+  status?: TaskStatus;
+  taskListId?: string | null;
+  priority?: Priority;
+  startDate?: string | null;
+  dueDate?: string | null;
+  assigneeId?: string | null;
+  tags?: string[];
+  followerIds?: string[];
+  attachmentNames?: string[];
+  subtasks?: Array<{ id?: string; title: string; done?: boolean }>;
+}) {
+  const session = await requireProjectsSession();
+  try {
+    const existing = await getTenantDb().task.findFirst({
+      where: { id: taskId, project: { organizationId: session.organizationId }, projectId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return { success: false, error: "Không tìm thấy phân công." };
+    }
+
+    const task = await getTenantDb().$transaction(async (tx) => {
+      await tx.task.update({
+        where: { id: taskId },
+        data: {
+          title: data.title,
+          description: data.description || null,
+          status: data.status || "TODO",
+          priority: data.priority || "MEDIUM",
+          startDate: data.startDate ? new Date(data.startDate) : null,
+          dueDate: data.dueDate ? new Date(data.dueDate) : null,
+          assigneeId: data.assigneeId || null,
+          tags: data.tags || [],
+          customFields: {
+            followerIds: data.followerIds || [],
+            attachmentNames: data.attachmentNames || [],
+          },
+        },
+      });
+
+      for (const subtask of data.subtasks || []) {
+        if (!subtask.title.trim()) continue;
+
+        if (subtask.id) {
+          await tx.task.updateMany({
+            where: { id: subtask.id, parentId: taskId, projectId },
+            data: { title: subtask.title.trim(), status: subtask.done ? "DONE" : "TODO" },
+          });
+        } else {
+          await tx.task.create({
+            data: {
+              projectId,
+              parentId: taskId,
+              title: subtask.title.trim(),
+              creatorId: session.userId,
+              status: subtask.done ? "DONE" : "TODO",
+              priority: data.priority || "MEDIUM",
+              order: Date.now(),
+            },
+          });
+        }
+      }
+
+      await tx.taskComment.create({
+        data: {
+          taskId,
+          userId: session.userId,
+          content: `Đã cập nhật phân công sang trạng thái ${data.status || "TODO"}`,
+        },
+      });
+
+      return tx.task.findUnique({
+        where: { id: taskId },
         include: {
-          assignee: { select: { id: true, name: true, email: true, image: true } },
+          assignee: true,
           subtasks: { orderBy: { order: "asc" } },
-          comments: { orderBy: { createdAt: "desc" }, take: 5, include: { user: { select: { id: true, name: true, email: true, image: true } } } },
+          comments: { include: { user: true }, orderBy: { createdAt: "desc" } },
           attachments: true,
         },
-        orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-      },
-      files: { orderBy: { createdAt: "desc" } },
-      databases: {
-        where: { deletedAt: null },
-        include: { _count: { select: { fields: true, records: true, views: true, shareLinks: true } } },
-        orderBy: { updatedAt: "desc" },
-      },
-      activities: {
-        include: { actor: { select: { id: true, name: true, email: true, image: true } } },
-        orderBy: { createdAt: "desc" },
-        take: 80,
-      },
-    },
-  });
+      });
+    });
+
+    revalidatePath(`/workspace/projects/${projectId}`);
+    return { success: true, task };
+  } catch (error: unknown) {
+    console.error("Error updating task details:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
 }
 
-export async function createProjectService(organizationId: string, userId: string, input: ProjectCreateInput) {
-  const project = await db.project.create({
+static async updateTaskStatus(taskId: string, projectId: string, newStatus: TaskStatus, newListId?: string) {
+  await requireProjectsSession();
+  try {
+    await getTenantDb().task.update({
+      where: { id: taskId },
+      data: { 
+        status: newStatus,
+        taskListId: newListId || undefined
+      }
+    });
+    revalidatePath(`/workspace/projects/${projectId}`);
+    return { success: true };
+  } catch (error: unknown) {
+    console.error("Error updating task:", error);
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+// ==========================================
+// KANBAN TASK LISTS (CUSTOM COLUMNS)
+// ==========================================
+
+static async createTaskList(projectId: string, name: string) {
+  const session = await requireProjectsSession();
+  
+  // Get max order
+  const maxOrderList = await getTenantDb().taskList.findFirst({
+    where: { projectId },
+    orderBy: { order: 'desc' },
+  });
+  
+  const order = maxOrderList ? maxOrderList.order + 1000 : 1000;
+  
+  return getTenantDb().taskList.create({
     data: {
-      organizationId,
-      ownerId: input.ownerId || userId,
-      contactId: input.contactId || null,
-      name: input.name,
-      description: input.description || null,
-      status: input.status,
-      priority: input.priority,
-      startDate: asDate(input.startDate),
-      dueDate: asDate(input.dueDate),
-      budget: asBudget(input.budget),
-      color: input.color || "#F59E0B",
-      icon: input.icon || null,
-      members: {
-        create: { userId, role: "OWNER" },
-      },
-      taskLists: {
-        create: [
-          { name: "Chưa bắt đầu", order: 0, color: "#9ca3af", isDefault: true },
-          { name: "Cần làm", order: 1, color: "#64748b" },
-          { name: "Đang làm", order: 2, color: "#3b82f6" },
-          { name: "Đang duyệt", order: 3, color: "#f59e0b" },
-          { name: "Hoàn thành", order: 4, color: "#10b981" },
-        ],
-      },
+      projectId,
+      name,
+      order,
     },
   });
-
-  await createProjectActivity({
-    organizationId,
-    projectId: project.id,
-    type: ProjectActivityType.PROJECT_CREATED,
-    title: "Tạo dự án",
-    description: `Đã tạo dự án ${project.name}`,
-    actorId: userId,
-  });
-
-  return project;
 }
 
-export async function updateProjectService(organizationId: string, userId: string, input: ProjectUpdateInput) {
-  const existing = await db.project.findFirst({ where: { id: input.id, organizationId } });
-  if (!existing) throw new Error("Không tìm thấy dự án");
-
-  const project = await db.project.update({
-    where: { id: existing.id },
-    data: {
-      name: input.name ?? undefined,
-      description: input.description === undefined ? undefined : input.description || null,
-      contactId: input.contactId === undefined ? undefined : input.contactId || null,
-      status: input.status ?? undefined,
-      priority: input.priority ?? undefined,
-      startDate: input.startDate === undefined ? undefined : asDate(input.startDate),
-      dueDate: input.dueDate === undefined ? undefined : asDate(input.dueDate),
-      budget: input.budget === undefined ? undefined : asBudget(input.budget),
-      color: input.color === undefined ? undefined : input.color || "#F59E0B",
-      icon: input.icon === undefined ? undefined : input.icon || null,
-    },
+static async updateTaskList(listId: string, name: string) {
+  const session = await requireProjectsSession();
+  return getTenantDb().taskList.update({
+    where: { id: listId },
+    data: { name },
   });
-
-  await createProjectActivity({
-    organizationId,
-    projectId: project.id,
-    type: ProjectActivityType.PROJECT_UPDATED,
-    title: "Cập nhật dự án",
-    description: `Đã cập nhật dự án ${project.name}`,
-    actorId: userId,
-  });
-
-  return project;
 }
 
-export async function changeProjectStatusService(organizationId: string, userId: string, id: string, status: ProjectStatus) {
-  const project = await db.project.update({
-    where: { id, organizationId },
-    data: { status, completedAt: status === "COMPLETED" ? new Date() : null },
+static async deleteTaskList(listId: string) {
+  const session = await requireProjectsSession();
+  // Check if it has tasks
+  const tasksCount = await getTenantDb().task.count({ where: { taskListId: listId } });
+  if (tasksCount > 0) {
+    throw new Error("Không thể xóa cột đang có công việc");
+  }
+  return getTenantDb().taskList.delete({
+    where: { id: listId },
   });
-
-  await createProjectActivity({
-    organizationId,
-    projectId: id,
-    type: ProjectActivityType.PROJECT_UPDATED,
-    title: "Đổi trạng thái dự án",
-    description: `Dự án chuyển sang ${status}`,
-    actorId: userId,
-    metadata: { status },
-  });
-
-  return project;
 }
 
-export async function deleteProjectService(organizationId: string, userId: string, id: string) {
-  const project = await db.project.update({
-    where: { id, organizationId },
-    data: { isArchived: true, status: "ARCHIVED" },
-  });
+static async updateTaskColumn(taskId: string, projectId: string, taskListId: string | null) {
+  try {
+    const session = await requireProjectsSession();
+    
+    const task = await getTenantDb().task.update({
+      where: { id: taskId, projectId },
+      data: { taskListId },
+    });
+    
+    revalidatePath(`/workspace/projects/${projectId}`);
+    return { success: true, task };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
 
-  await createProjectActivity({
-    organizationId,
-    projectId: id,
-    type: ProjectActivityType.PROJECT_DELETED,
-    title: "Lưu trữ dự án",
-    description: `Đã lưu trữ dự án ${project.name}`,
-    actorId: userId,
-  });
 
-  return project;
+static async generateProjectShareToken(projectId: string) {
+  const session = await requireProjectsSession();
+  try {
+    const project = await getTenantDb().project.findFirst({
+      where: { id: projectId, organizationId: session.organizationId },
+      select: { id: true, shareToken: true },
+    });
+    if (!project) return { success: false, error: "Không tìm thấy dự án." };
+
+    const crypto = require("crypto");
+    const token = `prj_${crypto.randomBytes(16).toString("hex")}`;
+
+    await getTenantDb().project.update({
+      where: { id: projectId },
+      data: { shareToken: token },
+    });
+
+    revalidatePath(`/workspace/projects/${projectId}`);
+    revalidatePath(`/workspace/projects/${projectId}/edit`);
+    return { success: true, token };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+static async revokeProjectShareToken(projectId: string) {
+  const session = await requireProjectsSession();
+  try {
+    const project = await getTenantDb().project.findFirst({
+      where: { id: projectId, organizationId: session.organizationId },
+      select: { id: true },
+    });
+    if (!project) return { success: false, error: "Không tìm thấy dự án." };
+
+    await getTenantDb().project.update({
+      where: { id: projectId },
+      data: { shareToken: null },
+    });
+
+    revalidatePath(`/workspace/projects/${projectId}`);
+    revalidatePath(`/workspace/projects/${projectId}/edit`);
+    return { success: true };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+
+static async getPublicProjectByShareToken(token: string) {
+    try {
+    
+    const project = await getTenantDb().project.findFirst({
+      where: { shareToken: token },
+      include: {
+        owner: true,
+        members: { include: { user: true } },
+        organization: {
+          include: {
+            members: { include: { user: true }, orderBy: { joinedAt: "desc" } },
+          },
+        },
+        taskLists: { orderBy: { order: "asc" } },
+        tasks: {
+          include: {
+            assignee: true,
+            subtasks: { orderBy: { order: "asc" } },
+            comments: { include: { user: true }, orderBy: { createdAt: "desc" } },
+            attachments: true,
+          },
+          orderBy: { order: "asc" }
+        },
+        contentPlans: { 
+          include: { 
+            author: { select: { name: true, image: true } },
+            campaign: true,
+            brand: true,
+            client: true,
+            landingPage: true,
+            socialAsset: true,
+            aiPrompt: true,
+            designer: { select: { name: true, image: true } },
+            writer: { select: { name: true, image: true } },
+            reviewer: { select: { name: true, image: true } },
+            publisher: { select: { name: true, image: true } },
+            taxonomies: { include: { taxonomy: true } },
+            mediaAssets: { include: { media: true } },
+            reports: true
+          } 
+        }
+      }
+    });
+    if (!project) return null;
+    const organizationId = project.organizationId;
+    const entitlements = await getOrganizationEntitlements(organizationId);
+    const socialMarketingEnabled = hasModule(entitlements, "SOCIAL_MARKETING");
+
+
+    const customFields = objectValue(project.customFields);
+    const facebookReport = objectValue(customFields.facebookReport);
+    const pages = socialMarketingEnabled
+      ? await getTenantDb().socialProviderAsset.findMany({
+        where: {
+          organizationId: organizationId,
+          provider: "FACEBOOK",
+          assetType: "PAGE",
+          deletedAt: null,
+        },
+        select: { id: true, externalId: true, name: true, avatarUrl: true, selected: true },
+        orderBy: { name: "asc" },
+      })
+      : [];
+    const adAccounts = socialMarketingEnabled
+      ? await getTenantDb().socialProviderAsset.findMany({
+        where: {
+          organizationId: organizationId,
+          provider: "FACEBOOK",
+          assetType: "AD_ACCOUNT",
+          deletedAt: null,
+        },
+        select: { id: true, externalId: true, name: true, currency: true, timezone: true, selected: true },
+        orderBy: { name: "asc" },
+      })
+      : [];
+    const customerContacts = await getTenantDb().contact.findMany({
+      where: { organizationId: organizationId, status: "ACTIVE" },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        source: true,
+        company: { select: { name: true } },
+      },
+      orderBy: [{ updatedAt: "desc" }],
+      take: 200,
+    });
+    const uniqueCustomerContacts = Array.from(
+      customerContacts.reduce((items, contact) => {
+        const name = contact.company?.name || `${contact.firstName} ${contact.lastName}`.trim() || contact.email || "Khách hàng";
+        const key = `${contact.email || ""}::${contact.company?.name || name}`.toLowerCase();
+        const current = items.get(key);
+        if (!current || current.source === "portal-seed") items.set(key, { ...contact, displayName: name });
+        return items;
+      }, new Map<string, (typeof customerContacts)[number] & { displayName: string }>()).values(),
+    );
+
+    return {
+      ...project,
+      portalVisible: customFields.portalVisible === true,
+      availableMembers: project.organization.members.map((member) => ({
+        userId: member.userId,
+        role: member.role,
+        user: member.user,
+      })),
+      customerContacts: uniqueCustomerContacts.map((contact: any) => ({
+        id: contact.id,
+        name: contact.displayName,
+        email: contact.email,
+      })),
+      socialMarketingEnabled,
+      facebookPages: pages,
+      facebookAdAccounts: adAccounts,
+      facebookReportSetup: socialMarketingEnabled ? {
+        enabledSources: objectValue(facebookReport.enabledSources),
+        pageExternalId: typeof facebookReport.pageExternalId === "string" ? facebookReport.pageExternalId : "",
+        pageName: typeof facebookReport.pageName === "string" ? facebookReport.pageName : "",
+        adAccountExternalId: typeof facebookReport.adAccountExternalId === "string" ? facebookReport.adAccountExternalId : "",
+        adAccountName: typeof facebookReport.adAccountName === "string" ? facebookReport.adAccountName : "",
+        pageTokenSaved: tokenEnvelopeExists(facebookReport.pageToken),
+        adsTokenSaved: tokenEnvelopeExists(facebookReport.adsToken),
+        campaignIds: stringArrayValue(facebookReport.campaignIds),
+        adIds: stringArrayValue(customFields.facebookAdIds),
+      } : null,
+      facebookProjectReport: socialMarketingEnabled ? await getProjectFacebookReport(organizationId, project.customFields) : null,
+      facebookAdReport: await getProjectFacebookAdReport(organizationId, project.id, project.customFields),
+      organization: undefined,
+    };
+  } catch (error) {
+    console.error("Error fetching project by id:", error);
+    return null;
+  }
+}
+
+static async publicAddComment(shareToken: string, taskId: string, guestName: string, content: string) {
+  try {
+    const project = await getTenantDb().project.findFirst({
+      where: { shareToken, tasks: { some: { id: taskId } } },
+      select: { id: true },
+    });
+    if (!project) return { success: false, error: "Không tìm thấy dự án hoặc công việc." };
+
+    const comment = await getTenantDb().taskComment.create({
+      data: {
+        taskId,
+        content,
+        guestName,
+      },
+    });
+
+    revalidatePath(`/share/p/${shareToken}`);
+    return { success: true, comment };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+static async addTaskComment(taskId: string, content: string) {
+  const session = await requireProjectsSession();
+  try {
+    const task = await getTenantDb().task.findFirst({
+      where: { id: taskId, project: { organizationId: session.organizationId } },
+      select: { id: true, projectId: true },
+    });
+    if (!task) return { success: false, error: "Không tìm thấy công việc." };
+
+    const comment = await getTenantDb().taskComment.create({
+      data: {
+        taskId,
+        userId: session.userId,
+        content,
+      },
+      include: { user: true }
+    });
+
+    revalidatePath(`/workspace/projects/${task.projectId}`);
+    return { success: true, comment };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+static async publicUpdateTaskStatus(shareToken: string, taskId: string, newStatus: TaskStatus) {
+  try {
+    const project = await getTenantDb().project.findFirst({
+      where: { shareToken, tasks: { some: { id: taskId } } },
+      select: { id: true },
+    });
+    if (!project) return { success: false, error: "Không tìm thấy công việc." };
+
+    await getTenantDb().task.update({
+      where: { id: taskId },
+      data: { status: newStatus },
+    });
+
+    revalidatePath(`/share/p/${shareToken}`);
+    return { success: true };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+static async publicUpdateTaskColumn(shareToken: string, taskId: string, taskListId: string | null) {
+  try {
+    const project = await getTenantDb().project.findFirst({
+      where: { shareToken, tasks: { some: { id: taskId } } },
+      select: { id: true },
+    });
+    if (!project) return { success: false, error: "Không tìm thấy công việc." };
+
+    await getTenantDb().task.update({
+      where: { id: taskId },
+      data: { taskListId },
+    });
+
+    revalidatePath(`/share/p/${shareToken}`);
+    return { success: true };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+static async publicApproveContentPlan(shareToken: string, planId: string, guestName: string, clientStatus: string) {
+  try {
+    const project = await getTenantDb().project.findFirst({
+      where: { shareToken, contentPlans: { some: { id: planId } } },
+      select: { id: true },
+    });
+    if (!project) throw new Error('Invalid token or plan not found');
+    
+    await getTenantDb().contentPlan.update({
+      where: { id: planId },
+      data: { clientStatus },
+    });
+    
+    revalidatePath(`/share/p/${shareToken}`);
+    return { success: true };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
 }

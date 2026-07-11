@@ -1,6 +1,6 @@
 import "server-only";
 
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import {
   defaultModuleCodes,
   moduleDefinitions,
@@ -39,7 +39,7 @@ function expandDependencies(codes: PlatformModuleCode[]) {
 }
 
 export async function getOrganizationEntitlements(organizationId: string): Promise<OrganizationEntitlements> {
-  const organization = await db.organization.findUnique({
+  const organization = await getTenantDb().organization.findUnique({
     where: { id: organizationId },
     select: {
       id: true,

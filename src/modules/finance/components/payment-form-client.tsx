@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { ArrowLeft, Save } from "lucide-react";
 
-import { createPayment, updatePayment } from "@/app/actions/finance-crud";
+import {  createPayment, updatePayment  } from "@/modules/finance/actions/finance.actions";
 import { formatCurrency } from "@/lib/utils/format";
 import { TiptapEditor } from "@/components/ui/tiptap-editor";
 
@@ -70,7 +70,7 @@ function formatMoney(value: unknown, currency = "VND") {
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <label className={className}>
-      <span className="mb-1.5 block text-[14px] font-light text-slate-600">{label}</span>
+      <span className="mb-1.5 block text-[15px] font-light text-slate-600">{label}</span>
       {children}
     </label>
   );
@@ -131,20 +131,20 @@ export function PaymentFormClient({
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 md:py-12">
+    <div className="mx-auto max-w-[1060px] px-6 py-6">
       <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-gray-400">
+          <div className="mb-2 flex items-center gap-2 text-[15px] font-medium uppercase tracking-widest text-gray-400">
             Tài chính / Thanh toán
           </div>
           <h1 className="text-[48px] md:text-[56px] font-medium tracking-tighter text-black leading-none">{initialData ? "Chỉnh sửa phiếu thanh toán" : "Tạo phiếu thanh toán"}</h1>
           <p className="mt-4 text-[16px] text-gray-500">Ghi nhận thanh toán theo hóa đơn, kênh chuyển khoản hoặc tiền mặt.</p>
         </div>
         <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto">
-          <Link href={initialData ? `/workspace/finance/payments/${initialData.id}` : "/workspace/finance/payments"} className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-gray-50">
+          <Link href={initialData ? `/workspace/finance/payments/${initialData.id}` : "/workspace/finance/payments"} className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[15px] font-medium text-black transition-colors hover:bg-gray-50">
             Quay lại
           </Link>
-          <button type="button" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="rounded-full bg-black px-6 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-gray-800">
+          <button type="button" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="rounded-full bg-black px-6 py-2.5 text-[15px] font-medium text-white transition-colors hover:bg-gray-800">
             {saveMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
         </div>
@@ -154,14 +154,14 @@ export function PaymentFormClient({
         <section className="rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
           <div className="mb-8 flex flex-col gap-2 border-b border-[#eaeaea] pb-4">
             <h2 className="m-0 text-[24px] font-medium tracking-tight text-black">Thông tin thanh toán</h2>
-            <span className="text-[14px] text-gray-500">Liên kết hóa đơn và số tiền thực thu</span>
+            <span className="text-[15px] text-gray-500">Liên kết hóa đơn và số tiền thực thu</span>
           </div>
           <div className="grid gap-4 lg:grid-cols-3">
             <Field label="Số phiếu thanh toán">
-              <input value={number} onChange={(event) => setNumber(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" placeholder="Tự sinh nếu bỏ trống" />
+              <input value={number} onChange={(event) => setNumber(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" placeholder="Tự sinh nếu bỏ trống" />
             </Field>
             <Field label="Hóa đơn">
-              <select value={invoiceId} onChange={(event) => setInvoiceId(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
+              <select value={invoiceId} onChange={(event) => setInvoiceId(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
                 <option value="">Không gắn hóa đơn</option>
                 {invoices.map((invoice) => (
                   <option key={invoice.id} value={invoice.id}>{invoiceLabel(invoice)}</option>
@@ -169,47 +169,47 @@ export function PaymentFormClient({
               </select>
             </Field>
             <Field label="Số tiền">
-              <input value={amount} onChange={(event) => setAmount(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" inputMode="decimal" />
+              <input value={amount} onChange={(event) => setAmount(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" inputMode="decimal" />
             </Field>
             <Field label="Loại tiền">
-              <select value={currency} onChange={(event) => setCurrency(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
+              <select value={currency} onChange={(event) => setCurrency(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
                 <option value="VND">VND</option>
                 <option value="USD">USD</option>
               </select>
             </Field>
             <Field label="Phương thức">
-              <select value={method} onChange={(event) => setMethod(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
+              <select value={method} onChange={(event) => setMethod(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
                 {methods.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </Field>
             <Field label="Trạng thái">
-              <select value={status} onChange={(event) => setStatus(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
+              <select value={status} onChange={(event) => setStatus(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
                 {statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </Field>
             <Field label="Ngày thanh toán">
-              <input type="date" value={paidAt} onChange={(event) => setPaidAt(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
+              <input type="date" value={paidAt} onChange={(event) => setPaidAt(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
             </Field>
             <Field label="Mã tham chiếu">
-              <input value={reference} onChange={(event) => setReference(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" placeholder="VD: GD-0629..." />
+              <input value={reference} onChange={(event) => setReference(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" placeholder="VD: GD-0629..." />
             </Field>
           </div>
           {selectedInvoice ? (
             <div className="mt-8 rounded-xl border border-[#eaeaea] bg-gray-50/50 p-6">
               <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between text-[14px]">
+                <div className="flex items-center justify-between text-[15px]">
                   <span className="text-gray-500">Hóa đơn</span>
                   <strong className="font-medium text-black">{selectedInvoice.number}</strong>
                 </div>
-                <div className="flex items-center justify-between text-[14px]">
+                <div className="flex items-center justify-between text-[15px]">
                   <span className="text-gray-500">Còn phải thu</span>
                   <strong className="font-medium text-red-600">{formatMoney(selectedInvoice.amountDue ?? selectedInvoice.total, selectedInvoice.currency)}</strong>
                 </div>
-                <div className="flex items-center justify-between border-t border-[#eaeaea] pt-4 text-[14px]">
+                <div className="flex items-center justify-between border-t border-[#eaeaea] pt-4 text-[15px]">
                   <span className="text-gray-500">Tổng hóa đơn</span>
                   <strong className="font-medium text-black">{formatMoney(selectedInvoice.total, selectedInvoice.currency)}</strong>
                 </div>
-                <button type="button" onClick={fillInvoiceDue} className="mt-2 inline-flex items-center justify-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[14px] font-medium text-black transition-colors hover:bg-gray-50">Lấy số còn phải thu</button>
+                <button type="button" onClick={fillInvoiceDue} className="mt-2 inline-flex items-center justify-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[15px] font-medium text-black transition-colors hover:bg-gray-50">Lấy số còn phải thu</button>
               </div>
             </div>
           ) : null}

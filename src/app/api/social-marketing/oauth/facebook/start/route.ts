@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { requireSocialMarketingAccess } from "@/modules/social-marketing/policy";
-import { createOAuthState } from "@/modules/social-marketing/security/oauth-state";
+import { requireSocialMarketingAccess } from "@/modules/social-marketing/services/policy";
+import { createOAuthState } from "@/modules/social-marketing/services/security/oauth-state";
 
 export async function GET(request: Request) {
   try {

@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils/cn";
 import { formatDate } from "@/lib/utils/format";
 
 import { useQuery } from "@tanstack/react-query";
-import { getProjects } from "@/app/actions/projects";
+import { createProject, uploadProjectThumbnail } from "@/modules/projects/actions/project.actions";
+import { getProjects } from "@/modules/projects/actions/project.actions";
 
 const statusConfig = {
   ACTIVE: { label: "Đang chạy", cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" },
@@ -23,10 +24,10 @@ export function ProjectsClient() {
     queryFn: () => getProjects(),
   });
 
-  const projects = fetchedProjects.map((p) => ({
+  const projects = (fetchedProjects as any[]).map((p: any) => ({
     id: p.id,
     name: p.name,
-    status: p.status,
+    status: p.status || "ACTIVE",
     priority: p.priority,
     progress: 0, // Placeholder
     members: p.members?.length || 0,
@@ -36,7 +37,7 @@ export function ProjectsClient() {
     completedTasks: 0,
   }));
 
-  const filtered = projects.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+  const filteredProjects = projects.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="page-container">
@@ -45,7 +46,7 @@ export function ProjectsClient() {
         <div>
           <h2 className="text-2xl font-bold text-foreground">Dự án</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {isLoading ? "Đang tải..." : `${filtered.length} dự án trong hệ thống`}
+            {isLoading ? "Đang tải..." : `${filteredProjects.length} dự án trong hệ thống`}
           </p>
         </div>
         <button className="flex items-center gap-2 h-9 px-4 rounded-xl bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-all shadow-sm">
@@ -68,7 +69,7 @@ export function ProjectsClient() {
 
       {/* Projects Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 stagger-children">
-        {filtered.map((project) => {
+        {filteredProjects.map((project: any) => {
           const status = statusConfig[project.status as keyof typeof statusConfig];
           const isOverdue = Boolean(project.dueDate && project.dueDate < new Date() && project.status !== "COMPLETED");
 

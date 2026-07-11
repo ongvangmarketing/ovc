@@ -1,0 +1,49 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 1156 >>
+stream
+BT /F1 11 Tf 72 760 Td (ONG VANG CLOUD) Tj ET
+BT /F1 22 Tf 72 735 Td (DIGITAL OFFICE) Tj ET
+BT /F1 16 Tf 72 705 Td (VAN BAN THU NGHIEM KY SO) Tj ET
+BT /F1 11 Tf 72 660 Td (Document code: OVC-DO-SIGN-TEST-001) Tj ET
+BT /F1 11 Tf 72 640 Td (Document type: Digital signature test confirmation) Tj ET
+BT /F1 11 Tf 72 620 Td (Created by: Digital Office module) Tj ET
+BT /F1 11 Tf 72 600 Td (Purpose: Generate a stable PDF input for MISA eSign sandbox flow.) Tj ET
+BT /F1 13 Tf 72 560 Td (Signing flow:) Tj ET
+BT /F1 11 Tf 96 535 Td (1. Convert this PDF to base64 on the server.) Tj ET
+BT /F1 11 Tf 96 515 Td (2. Create document hash with certificate and certificate chain.) Tj ET
+BT /F1 11 Tf 96 495 Td (3. Send digest to remote signing provider.) Tj ET
+BT /F1 11 Tf 96 475 Td (4. Poll transaction status or receive webhook.) Tj ET
+BT /F1 11 Tf 96 455 Td (5. Attach signature to this PDF and store signed version.) Tj ET
+BT /F1 13 Tf 72 360 Td (Signature placeholder) Tj ET
+0.8 w 72 300 220 70 re S
+BT /F1 11 Tf 90 335 Td (Signer:) Tj ET
+BT /F1 11 Tf 90 315 Td (Signed at:) Tj ET
+BT /F1 9 Tf 72 110 Td (This PDF is generated for integration testing only.) Tj ET
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+1519
+%%EOF

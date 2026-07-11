@@ -14,12 +14,14 @@ import {
   Phone,
   ReceiptText,
   UserRound,
+  Share2,
 } from "lucide-react";
 
 import { formatCurrency, formatDate } from "@/lib/utils/format";
-import { sendPortalAccessEmailForContact } from "@/app/actions/crm";
+import { sendPortalAccessEmailForContact } from "@/modules/crm/actions/crm.actions";
 import { cn } from "@/lib/utils/cn";
 import { SelectBox } from "@/components/ui/select-box";
+import { ShareResourceModal } from "@/modules/core/components/role-permission/share-resource-modal";
 
 type MoneyValue = number | string | { toString(): string } | null | undefined;
 
@@ -317,13 +319,13 @@ function FinanceTable({
   const hasRows = Array.isArray(children) ? children.some(Boolean) : Boolean(children);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border">
+    <div className="overflow-hidden rounded-lg border border-[#eaeaea]">
       <div className="overflow-x-auto scrollable-x">
         <table className="w-full min-w-[680px] text-sm">
           <thead>
-            <tr className="border-b border-border bg-slate-50/70">
+            <tr className="border-b border-[#eaeaea] bg-gray-50/50">
               {headers.map((header, index) => (
-                <th key={header} className={cn("px-4 py-3 text-xs font-medium text-muted-foreground", index >= headers.length - 2 ? "text-right" : "text-left")}>
+                <th key={header} className={cn("px-4 py-3 text-xs font-medium uppercase tracking-widest text-gray-400", index >= headers.length - 2 ? "text-right" : "text-left")}>
                   {header}
                 </th>
               ))}
@@ -331,7 +333,7 @@ function FinanceTable({
           </thead>
           <tbody>{children}</tbody>
         </table>
-        {!hasRows ? <div className="quote-detail-empty m-4">{empty}</div> : null}
+        {!hasRows ? <div className="text-[14px] text-gray-500 bg-gray-50 rounded-lg p-4 text-center m-4 border border-dashed border-[#eaeaea]">{empty}</div> : null}
       </div>
     </div>
   );
@@ -339,17 +341,17 @@ function FinanceTable({
 
 function FinanceTitleCell({ href, title, sub }: { href?: string; title: string; sub?: string }) {
   const titleNode = href ? (
-    <Link href={href} className="text-sm font-medium text-blue-600 hover:underline">
+    <Link href={href} className="text-sm font-medium text-black hover:underline">
       {title}
     </Link>
   ) : (
-    <strong className="text-sm font-medium text-slate-900">{title}</strong>
+    <strong className="text-sm font-medium text-black">{title}</strong>
   );
 
   return (
     <div className="min-w-0">
       {titleNode}
-      {sub ? <p className="mt-0.5 truncate text-xs text-muted-foreground">{sub}</p> : null}
+      {sub ? <p className="mt-0.5 truncate text-xs text-gray-500">{sub}</p> : null}
     </div>
   );
 }
@@ -357,33 +359,33 @@ function FinanceTitleCell({ href, title, sub }: { href?: string; title: string; 
 function ProjectSummaryList({ projects }: { projects: NonNullable<ContactDetail["projects"]> }) {
   return (
     <>
-      <div className="flex items-start justify-between gap-3">
-        <h2>Dự án</h2>
-        <Link href="/workspace/projects" className="quote-detail-action">Xem tất cả</Link>
+      <div className="flex items-start justify-between gap-3 mb-6">
+        <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Dự án</h2>
+        <Link href="/workspace/projects" className="text-[13px] text-gray-500 hover:text-black transition-colors">Xem tất cả</Link>
       </div>
       {projects.length ? (
-        <div className="customer-project-list">
+        <div className="flex flex-col gap-4">
           {projects.slice(0, 4).map((project) => {
             const taskCount = project.tasks?.length || 0;
             const doneCount = project.tasks?.filter((task) => task.status === "DONE").length || 0;
 
             return (
-              <Link key={project.id} href={`/workspace/projects/${project.id}`} className="customer-project-card">
-                <span className="customer-project-dot" />
-                <div className="customer-project-main">
-                  <strong>{project.name}</strong>
-                  <p>{project.dueDate ? `Hạn: ${formatDate(project.dueDate)}` : "Chưa có hạn hoàn thành"}</p>
+              <Link key={project.id} href={`/workspace/projects/${project.id}`} className="flex items-start gap-3 group">
+                <div className="mt-1 h-2 w-2 rounded-full bg-gray-200 group-hover:bg-black transition-colors shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <strong className="block text-[14px] font-medium text-black truncate">{project.name}</strong>
+                  <p className="text-[13px] text-gray-500 truncate">{project.dueDate ? `Hạn: ${formatDate(project.dueDate)}` : "Chưa có hạn hoàn thành"}</p>
                 </div>
-                <div className="customer-project-meta">
-                  <span className="customer-project-status">{statusText(project.status)}</span>
-                  <small>{doneCount}/{taskCount} việc</small>
+                <div className="text-right shrink-0">
+                  <span className="block text-[12px] font-medium text-gray-400 mb-0.5">{statusText(project.status)}</span>
+                  <small className="text-[11px] text-gray-400">{doneCount}/{taskCount} việc</small>
                 </div>
               </Link>
             );
           })}
         </div>
       ) : (
-        <div className="quote-detail-empty">Chưa có dự án cho khách hàng này.</div>
+        <div className="text-[14px] text-gray-500 bg-gray-50 rounded-lg p-4 text-center border border-dashed border-[#eaeaea]">Chưa có dự án cho khách hàng này.</div>
       )}
     </>
   );
@@ -395,28 +397,28 @@ function MiniList({
   items,
   framed = true,
 }: {
-  title: string;
-  empty: string;
+  title: React.ReactNode;
+  empty: React.ReactNode;
   items: Array<{ id: string; title: string; sub?: string; right?: string; href?: string }>;
   framed?: boolean;
 }) {
   const content = (
     <>
-      <div className="flex items-start justify-between gap-3">
-        <h2>{title}</h2>
-        <button type="button" className="quote-detail-action">Xem tất cả</button>
+      <div className="flex items-start justify-between gap-3 mb-4">
+        <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">{title}</h2>
+        <button type="button" className="text-[13px] text-gray-500 hover:text-black transition-colors">Xem tất cả</button>
       </div>
-      <div className="finance-activity-list">
+      <div className="flex flex-col gap-4">
         {items.length ? items.map((item) => (
-          <Link href={item.href || "#"} key={item.id} className="finance-activity-item">
-            <span />
-            <div>
-              <strong>{shortText(item.title)}</strong>
-              <p>{shortText(item.sub)}</p>
+          <Link href={item.href || "#"} key={item.id} className="flex items-start gap-3 group">
+            <div className="mt-1 h-2 w-2 rounded-full bg-gray-200 group-hover:bg-black transition-colors shrink-0" />
+            <div className="flex-1 min-w-0">
+              <strong className="block text-[14px] font-medium text-black truncate">{item.title}</strong>
+              <p className="text-[13px] text-gray-500 truncate">{item.sub}</p>
             </div>
-            {item.right ? <time>{item.right}</time> : null}
+            {item.right ? <time className="text-[12px] font-medium text-gray-400 shrink-0">{item.right}</time> : null}
           </Link>
-        )) : <div className="quote-detail-empty">{empty}</div>}
+        )) : <div className="text-[14px] text-gray-500 bg-gray-50 rounded-lg p-4 text-center border border-dashed border-[#eaeaea]">{empty}</div>}
       </div>
     </>
   );
@@ -424,7 +426,7 @@ function MiniList({
   if (!framed) return content;
 
   return (
-    <section className="quote-detail-card">
+    <section className="bg-white rounded-2xl border border-[#eaeaea] p-6 lg:p-8">
       {content}
     </section>
   );
@@ -436,6 +438,7 @@ export function ContactDetailClient({ contact, hasProjectsModule = true }: { con
   const [menuOpen, setMenuOpen] = useState(false);
   const [chartMetric, setChartMetric] = useState<"revenue" | "debt">("revenue");
   const [chartRange, setChartRange] = useState<"30d" | "3m" | "6m" | "12m">("6m");
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isPortalPending, startPortalTransition] = useTransition();
   const name = displayCustomerName(contact);
   const personalName = contactName(contact);
@@ -547,133 +550,168 @@ export function ContactDetailClient({ contact, hasProjectsModule = true }: { con
   ];
 
   return (
-    <div className="quote-detail-page">
-      <header className="quote-detail-hero">
-        <div className="quote-detail-title">
-          <div className="quote-detail-icon">
-            <UserRound className="h-7 w-7" />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1>{name}</h1>
-              <span className="quote-status quote-status-accepted">
-                {typeLabel[contact.type || "CUSTOMER"] || "Khách hàng"}
-              </span>
-            </div>
-            <p>
-              Mã khách hàng: KH-{contact.id.slice(-3).toUpperCase()} · Nhóm: {(contact.company?.industry || contact.source || "business").toLowerCase()}
-            </p>
-          </div>
-        </div>
+    <div className="max-w-[1200px] mx-auto p-4 sm:p-8 space-y-8">
+      <header className="flex flex-col lg:flex-row items-start justify-between gap-6 pb-6 mb-8">
+        <div className="flex items-start gap-6 w-full">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-4">
+              <div className="flex-1 min-w-0 pr-4">
+                <div className="flex items-center gap-3 mb-6">
+                  <span className="rounded-full bg-black px-3 py-1.5 text-[11px] font-semibold text-white tracking-wide uppercase w-fit">
+                    CRM Contact Detail
+                  </span>
+                </div>
+                <h1 className="text-[32px] md:text-[44px] tracking-tight leading-[1.15] font-medium mb-4 uppercase line-clamp-2">{name}</h1>
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="rounded-full border border-[#eaeaea] bg-white px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-gray-600">
+                    {typeLabel[contact.type || "CUSTOMER"] || "Khách hàng"}
+                  </span>
+                  
+                  <span className={cn("rounded-full border px-3 py-1 text-[10px] font-medium uppercase tracking-widest", contact.company ? "border-emerald-200 bg-emerald-50 text-emerald-600" : "border-blue-200 bg-blue-50 text-blue-600")}>
+                    {contact.company ? "Công ty" : "Cá nhân"}
+                  </span>
 
-        <div className="quote-detail-top-actions">
-          <Link href={`/workspace/crm/contacts/${contact.id}/edit`} className="quote-detail-top-button">
-            <Edit3 className="h-4 w-4" />
-            Chỉnh sửa
-          </Link>
-          {callHref ? (
-            <a href={callHref} className="quote-detail-top-button">
-              <Phone className="h-4 w-4" />
-              Gọi điện
-            </a>
-          ) : null}
-          {mailHref ? (
-            <a href={mailHref} className="quote-detail-top-button">
-              <Mail className="h-4 w-4" />
-              Gửi email
-            </a>
-          ) : null}
-          <div className="relative">
-            <button type="button" onClick={() => setMenuOpen((current) => !current)} className="quote-detail-more">
-              <ChevronDown className="h-4 w-4" />
-            </button>
-            {menuOpen ? (
-              <div className="quote-detail-menu">
-                {actionItems.map((item) => item.href ? (
-                  <Link key={item.label} href={item.href} onClick={() => setMenuOpen(false)}>
-                    {item.icon}
-                    {item.label}
-                  </Link>
-                ) : (
-                  <button key={item.label} type="button" onClick={() => { setMenuOpen(false); item.onClick?.(); }}>
-                    {item.icon}
-                    {item.label}
-                  </button>
-                ))}
+                  {contact.tags?.map((tag) => (
+                    <span key={tag} className="rounded-full border border-[#eaeaea] bg-white px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-gray-500">
+                      {tag}
+                    </span>
+                  ))}
+
+                  <p className="text-[14px] text-gray-500 font-light ml-2">
+                    Mã khách hàng: KH-{contact.id.slice(-3).toUpperCase()} <span className="mx-2 text-gray-300">|</span> Nhóm: {(contact.company?.industry || contact.source || "business").toLowerCase()}
+                  </p>
+                </div>
               </div>
-            ) : null}
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={() => setIsShareModalOpen(true)} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[13px] font-medium text-black rounded-md hover:bg-gray-50 transition-colors">
+                  <Share2 className="h-4 w-4 text-gray-500" />
+                  Phân quyền
+                </button>
+                <Link href={`/workspace/crm/contacts/${contact.id}/edit`} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[13px] font-medium text-black rounded-md hover:bg-gray-50 transition-colors">
+                  <Edit3 className="h-4 w-4" />
+                  Sửa
+                </Link>
+                {callHref ? (
+                  <a href={callHref} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[13px] font-medium text-black rounded-md hover:bg-gray-50 transition-colors">
+                    <Phone className="h-4 w-4" />
+                    Gọi
+                  </a>
+                ) : null}
+                {mailHref ? (
+                  <a href={mailHref} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[13px] font-medium text-black rounded-md hover:bg-gray-50 transition-colors">
+                    <Mail className="h-4 w-4" />
+                    Email
+                  </a>
+                ) : null}
+                <div className="relative">
+                  <button type="button" onClick={() => setMenuOpen((current) => !current)} className="flex items-center justify-center w-9 h-9 bg-black text-white rounded-md hover:bg-gray-800 transition-colors">
+                    <ChevronDown className="h-4 w-4" />
+                  </button>
+                  {menuOpen ? (
+                    <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[#eaeaea] bg-white shadow-xl shadow-black/5 p-1 z-50">
+                      {actionItems.map((item) => item.href ? (
+                        <Link key={item.label} href={item.href} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2 text-[14px] text-gray-700 rounded-lg hover:bg-gray-50 hover:text-black transition-colors w-full text-left">
+                          {item.icon}
+                          {item.label}
+                        </Link>
+                      ) : (
+                        <button key={item.label} type="button" onClick={() => { setMenuOpen(false); item.onClick?.(); }} className="flex items-center gap-3 px-3 py-2 text-[14px] text-gray-700 rounded-lg hover:bg-gray-50 hover:text-black transition-colors w-full text-left">
+                          {item.icon}
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            {/* Customer Info Moved Up */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-8 mt-5 pt-5 border-t border-[#eaeaea]">
+              <div className="flex items-center text-[14px]">
+                <span className="text-gray-400 font-medium uppercase tracking-widest text-[11px] w-28 shrink-0">MST</span>
+                <span className="text-black">{companyTaxCode(contact.company?.customFields) || "Chưa cập nhật"}</span>
+              </div>
+              <div className="flex items-start text-[14px]">
+                <span className="text-gray-400 font-medium uppercase tracking-widest text-[11px] w-28 shrink-0 pt-[2px]">Địa chỉ</span>
+                <span className="text-black leading-snug">{contact.address || contact.company?.address || "Chưa cập nhật"}</span>
+              </div>
+              <div className="flex items-center text-[14px]">
+                <span className="text-gray-400 font-medium uppercase tracking-widest text-[11px] w-28 shrink-0">Đại diện</span>
+                <span className="text-black">{personalName || "Chưa cập nhật"}</span>
+              </div>
+              <div className="flex items-center text-[14px]">
+                <span className="text-gray-400 font-medium uppercase tracking-widest text-[11px] w-28 shrink-0">Chức danh</span>
+                <span className="text-black">{contact.jobTitle || "Chưa cập nhật"}</span>
+              </div>
+              <div className="flex items-center text-[14px]">
+                <span className="text-gray-400 font-medium uppercase tracking-widest text-[11px] w-28 shrink-0">Điện thoại</span>
+                <span className="text-black">{contact.phone || contact.mobile || "Chưa cập nhật"}</span>
+              </div>
+              <div className="flex items-center text-[14px]">
+                <span className="text-gray-400 font-medium uppercase tracking-widest text-[11px] w-28 shrink-0">Email</span>
+                <span className="text-black">{contact.email || "Chưa cập nhật"}</span>
+              </div>
+            </div>
           </div>
         </div>
       </header>
 
-      <section className="customer-kpi-grid">
-        <div className="customer-kpi-card">
-          <span className="customer-kpi-icon is-blue"><ReceiptText className="h-5 w-5" /></span>
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        <div className="rounded-2xl border border-[#eaeaea] bg-white p-6 flex flex-col gap-4 hover:border-gray-300 transition-colors duration-200">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Tổng doanh thu</p>
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#eaeaea] bg-gray-50 text-black"><ReceiptText className="h-4 w-4" /></span>
+          </div>
           <div>
-            <p>Tổng doanh thu</p>
-            <strong>{formatCurrency(totalRevenue)}</strong>
-            <small>Từ hóa đơn</small>
+            <strong className="block text-[28px] font-medium text-black tracking-tighter leading-none mb-2">{formatCurrency(totalRevenue)}</strong>
+            <small className="text-[13px] text-gray-500 font-light">Từ hóa đơn</small>
           </div>
         </div>
-        <div className="customer-kpi-card">
-          <span className="customer-kpi-icon is-red"><CircleAlert className="h-5 w-5" /></span>
+        <div className="rounded-2xl border border-[#eaeaea] bg-white p-6 flex flex-col gap-4 hover:border-gray-300 transition-colors duration-200">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Công nợ hiện tại</p>
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600"><CircleAlert className="h-4 w-4" /></span>
+          </div>
           <div>
-            <p>Công nợ hiện tại</p>
-            <strong>{formatCurrency(currentDebt)}</strong>
-            <small>Cần theo dõi</small>
+            <strong className="block text-[28px] font-medium text-black tracking-tighter leading-none mb-2">{formatCurrency(currentDebt)}</strong>
+            <small className="text-[13px] text-gray-500 font-light">Cần theo dõi</small>
           </div>
         </div>
-        <div className="customer-kpi-card">
-          <span className="customer-kpi-icon is-green"><BriefcaseBusiness className="h-5 w-5" /></span>
+        <div className="rounded-2xl border border-[#eaeaea] bg-white p-6 flex flex-col gap-4 hover:border-gray-300 transition-colors duration-200">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Hợp đồng</p>
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#eaeaea] bg-gray-50 text-black"><BriefcaseBusiness className="h-4 w-4" /></span>
+          </div>
           <div>
-            <p>Hợp đồng</p>
-            <strong>{contracts.length}</strong>
-            <small>{contracts.filter((item) => item.status === "ACTIVE" || item.status === "SIGNED").length} đang hiệu lực</small>
+            <strong className="block text-[28px] font-medium text-black tracking-tighter leading-none mb-2">{contracts.length}</strong>
+            <small className="text-[13px] text-gray-500 font-light">{contracts.filter((item) => item.status === "ACTIVE" || item.status === "SIGNED").length} đang hiệu lực</small>
           </div>
         </div>
-        <div className="customer-kpi-card">
-          <span className="customer-kpi-icon is-orange"><BadgeDollarSign className="h-5 w-5" /></span>
+        <div className="rounded-2xl border border-[#eaeaea] bg-white p-6 flex flex-col gap-4 hover:border-gray-300 transition-colors duration-200">
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Báo giá</p>
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#eaeaea] bg-gray-50 text-black"><BadgeDollarSign className="h-4 w-4" /></span>
+          </div>
           <div>
-            <p>Báo giá</p>
-            <strong>{quotations.length}</strong>
-            <small>Tổng số báo giá</small>
+            <strong className="block text-[28px] font-medium text-black tracking-tighter leading-none mb-2">{quotations.length}</strong>
+            <small className="text-[13px] text-gray-500 font-light">Tổng số báo giá</small>
           </div>
         </div>
       </section>
 
-      <section className="quote-detail-summary">
-        <div>
-          <span>Khách hàng</span>
-          <strong>{personalName}</strong>
-          <p>{contact.phone || contact.mobile || "Chưa có số điện thoại"}</p>
-          <p>{contact.email || "Chưa có email"}</p>
-        </div>
-        <div>
-          <span>Công ty</span>
-          <strong>{contact.company?.name || "Chưa gắn công ty"}</strong>
-          <p>{companyTaxCode(contact.company?.customFields) ? `MST: ${companyTaxCode(contact.company?.customFields)}` : "Chưa có mã số thuế"}</p>
-          <p>{companyContactLine(contact.company)}</p>
-        </div>
-        <div>
-          <span>Địa chỉ</span>
-          <strong>{contact.address || contact.company?.address || "Chưa cập nhật"}</strong>
-          <p>{[contact.city, contact.country].filter(Boolean).join(", ") || "Chưa cập nhật"}</p>
-        </div>
-        <div>
-          <span>Ghi chú</span>
-          <strong>{contact.notes || "Chưa có ghi chú"}</strong>
-          <p>Nguồn: {contact.source || "other"}</p>
-        </div>
-      </section>
 
-      <div className="quote-detail-layout">
-        <main className="space-y-5">
-          <div className="grid gap-5">
-            <section className="quote-detail-card">
-              <div className="flex items-start justify-between gap-3">
+
+      <div className="flex flex-col lg:flex-row gap-8">
+        <main className="flex-1 space-y-6">
+          <div className="grid gap-6">
+            <section className="bg-white rounded-2xl border border-[#eaeaea] p-6 lg:p-8">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
                 <div>
-                  <h2>{chartMetric === "revenue" ? "Doanh thu theo thời gian" : "Công nợ theo trạng thái"}</h2>
-                  <strong>{formatCurrency(chartMetric === "revenue" ? rangeRevenue : rangeDebt)}</strong>
+                  <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">{chartMetric === "revenue" ? "Doanh thu theo thời gian" : "Công nợ theo trạng thái"}</h2>
+                  <strong className="block text-[24px] font-medium tracking-tight text-black mt-1">{formatCurrency(chartMetric === "revenue" ? rangeRevenue : rangeDebt)}</strong>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                   <SelectBox ariaLabel="Loại biểu đồ khách hàng" value={chartMetric} onChange={(value) => setChartMetric(value as "revenue" | "debt")} options={[{ value: "revenue", label: "Doanh thu" }, { value: "debt", label: "Công nợ" }]} className="w-[118px]" />
@@ -704,11 +742,11 @@ export function ContactDetailClient({ contact, hasProjectsModule = true }: { con
 
           {hasProjectsModule && (
             <>
-              <section className="quote-detail-card">
+              <section className="bg-white rounded-2xl border border-[#eaeaea] p-6 lg:p-8">
                 <ProjectSummaryList projects={projects} />
               </section>
 
-              <section className="quote-detail-card">
+              <section className="bg-white rounded-2xl border border-[#eaeaea] p-6 lg:p-8">
                 <MiniList
                   framed={false}
                   title="Nhiệm vụ"
@@ -725,16 +763,16 @@ export function ContactDetailClient({ contact, hasProjectsModule = true }: { con
             </>
           )}
 
-          <section className="quote-detail-card">
-            <div className="mb-3 flex items-start justify-between gap-3">
+          <section className="bg-white rounded-2xl border border-[#eaeaea] p-6 lg:p-8">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div>
-                <h2>Tài chính</h2>
-                <p className="mt-1 text-sm text-slate-500">Báo giá, hợp đồng, hóa đơn và thanh toán của khách hàng.</p>
+                <h2 className="text-[16px] font-medium text-black tracking-tight">Tài chính</h2>
+                <p className="mt-1 text-[14px] text-gray-500 font-light">Báo giá, hợp đồng, hóa đơn và thanh toán của khách hàng.</p>
               </div>
             </div>
-            <nav className="quote-detail-tabs mb-4">
+            <nav className="flex items-center gap-6 border-b border-[#eaeaea] mb-6 overflow-x-auto no-scrollbar">
               {financeTabs.map((tab) => (
-                <button key={tab.id} type="button" onClick={() => setActiveFinanceTab(tab.id)} className={activeFinanceTab === tab.id ? "active" : ""}>
+                <button key={tab.id} type="button" onClick={() => setActiveFinanceTab(tab.id)} className={cn("pb-3 text-[14px] font-medium whitespace-nowrap transition-colors", activeFinanceTab === tab.id ? "text-black border-b-2 border-black" : "text-gray-500 hover:text-black border-b-2 border-transparent")}>
                   {tab.label}
                 </button>
               ))}
@@ -818,24 +856,24 @@ export function ContactDetailClient({ contact, hasProjectsModule = true }: { con
             ) : null}
           </section>
 
-          <section className="quote-detail-card">
-            <div className="mb-3 flex items-start justify-between gap-3">
+          <section className="bg-white rounded-2xl border border-[#eaeaea] p-6 lg:p-8">
+            <div className="mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
               <div>
-                <h2>Theo dõi</h2>
-                <p className="mt-1 text-sm text-slate-500">Ghi chú, tệp tin, lịch sử hoạt động và tự động hóa.</p>
+                <h2 className="text-[16px] font-medium text-black tracking-tight">Theo dõi</h2>
+                <p className="mt-1 text-[14px] text-gray-500 font-light">Ghi chú, tệp tin, lịch sử hoạt động và tự động hóa.</p>
               </div>
             </div>
-            <nav className="quote-detail-tabs mb-4">
+            <nav className="flex items-center gap-6 border-b border-[#eaeaea] mb-6 overflow-x-auto no-scrollbar">
               {detailTabs.map((tab) => (
-                <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={activeTab === tab.id ? "active" : ""}>
+                <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={cn("pb-3 text-[14px] font-medium whitespace-nowrap transition-colors", activeTab === tab.id ? "text-black border-b-2 border-black" : "text-gray-500 hover:text-black border-b-2 border-transparent")}>
                   {tab.label}
                 </button>
               ))}
             </nav>
             {activeTab === "notes" ? (
               <>
-                <h2>Ghi chú</h2>
-                <div className="quote-detail-empty">{contact.notes || "Chưa có ghi chú."}</div>
+                <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Ghi chú</h2>
+                <div className="text-[14px] text-gray-500 bg-gray-50 rounded-lg p-4 text-center border border-dashed border-[#eaeaea]">{contact.notes || "Chưa có ghi chú."}</div>
               </>
             ) : null}
             {activeTab === "files" ? (
@@ -867,54 +905,63 @@ export function ContactDetailClient({ contact, hasProjectsModule = true }: { con
             ) : null}
             {activeTab === "automation" ? (
               <>
-                <h2>Tự động hóa</h2>
-                <div className="quote-detail-empty">Tính năng đang phát triển.</div>
+                <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Tự động hóa</h2>
+                <div className="text-[14px] text-gray-500 bg-gray-50 rounded-lg p-4 text-center border border-dashed border-[#eaeaea]">Tính năng đang phát triển.</div>
               </>
             ) : null}
           </section>
         </main>
 
-        <aside className="space-y-5">
-          <section className="quote-detail-card">
-            <h2>Thông tin nhanh</h2>
-            <div className="quote-side-list">
-              <div><span>Loại khách hàng</span><strong>{typeLabel[contact.type || "CUSTOMER"] || contact.type}</strong></div>
-              <div><span>Trạng thái</span><strong>{statusLabel[contact.status || "ACTIVE"] || contact.status}</strong></div>
-              <div><span>Ngành nghề</span><strong>{contact.company?.industry || contact.department || "Đang cập nhật"}</strong></div>
-              <div><span>Nguồn khách hàng</span><strong>{contact.source || "other"}</strong></div>
-              <div><span>Người phụ trách</span><strong>{contact.assignee?.name || "Chưa gán"}</strong></div>
-              <div><span>Ngày tạo</span><strong>{formatDate(contact.createdAt)}</strong></div>
+        <aside className="w-full lg:w-[340px] shrink-0 space-y-6">
+          <section className="bg-white rounded-2xl border border-[#eaeaea] p-6 mb-6">
+            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Thông tin nhanh</h2>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-[13px] mt-4">
+              <div className="text-slate-500 font-light">Loại khách hàng</div><div className="font-medium text-right text-black">{typeLabel[contact.type || "CUSTOMER"] || contact.type}</div>
+              <div className="text-slate-500 font-light">Trạng thái</div><div className="font-medium text-right text-black">{statusLabel[contact.status || "ACTIVE"] || contact.status}</div>
+              <div className="text-slate-500 font-light">Ngành nghề</div><div className="font-medium text-right text-black">{contact.company?.industry || contact.department || "Đang cập nhật"}</div>
+              <div className="text-slate-500 font-light">Nguồn KH</div><div className="font-medium text-right text-black">{contact.source || "other"}</div>
+              <div className="text-slate-500 font-light">Phụ trách</div><div className="font-medium text-right text-black">{contact.assignee?.name || "Chưa gán"}</div>
+              <div className="text-slate-500 font-light">Ngày tạo</div><div className="font-medium text-right text-black">{formatDate(contact.createdAt)}</div>
             </div>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Giá trị & thanh toán</h2>
-            <div className="quote-side-list">
-              <div><span>Tổng doanh thu</span><strong>{formatCurrency(totalRevenue)}</strong></div>
-              <div><span>Đã thu</span><strong>{formatCurrency(paidAmount)}</strong></div>
-              <div><span>Công nợ</span><strong>{formatCurrency(currentDebt)}</strong></div>
-              <div><span>Hợp đồng</span><strong>{contracts.length}</strong></div>
-              <div><span>Báo giá</span><strong>{quotations.length}</strong></div>
-              <div><span>Dự án</span><strong>{projects.length}</strong></div>
-              <div><span>Nhiệm vụ</span><strong>{tasks.length}</strong></div>
+          <section className="bg-white rounded-2xl border border-[#eaeaea] p-6 mb-6">
+            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Giá trị & thanh toán</h2>
+            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-[13px] mt-4">
+              <div className="text-slate-500 font-light">Tổng doanh thu</div><div className="font-medium text-right text-black">{formatCurrency(totalRevenue)}</div>
+              <div className="text-slate-500 font-light">Đã thu</div><div className="font-medium text-right text-black">{formatCurrency(paidAmount)}</div>
+              <div className="text-slate-500 font-light mt-2">Công nợ</div><div className="font-medium text-orange-600 text-[14px] text-right mt-2">{formatCurrency(currentDebt)}</div>
+              <div className="text-slate-500 font-light">Hợp đồng</div><div className="font-medium text-right text-black">{contracts.length}</div>
+              <div className="text-slate-500 font-light">Báo giá</div><div className="font-medium text-right text-black">{quotations.length}</div>
+              <div className="text-slate-500 font-light">Dự án</div><div className="font-medium text-right text-black">{projects.length}</div>
+              <div className="text-slate-500 font-light">Nhiệm vụ</div><div className="font-medium text-right text-black">{tasks.length}</div>
             </div>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Thao tác</h2>
-            <div className="quote-side-actions">
-              <Link href={`/workspace/crm/contacts/${contact.id}/edit`} className="quote-detail-action"><Edit3 className="h-4 w-4" />Chỉnh sửa</Link>
-              {callHref ? <a href={callHref} className="quote-detail-action"><Phone className="h-4 w-4" />Gọi điện</a> : null}
-              {mailHref ? <a href={mailHref} className="quote-detail-action"><Mail className="h-4 w-4" />Gửi email</a> : null}
+          <section className="bg-white rounded-2xl border border-[#eaeaea] p-6 mb-6">
+            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Thao tác</h2>
+            <div className="grid gap-3">
+              <Link href={`/workspace/crm/contacts/${contact.id}/edit`} className="flex items-center justify-center gap-2 px-4 h-9 bg-black text-white text-[14px] font-medium rounded-lg hover:bg-gray-800 transition-colors w-full"><Edit3 className="h-4 w-4" />Chỉnh sửa</Link>
+              {callHref ? <a href={callHref} className="flex items-center justify-center gap-2 px-4 h-9 bg-black text-white text-[14px] font-medium rounded-lg hover:bg-gray-800 transition-colors w-full"><Phone className="h-4 w-4" />Gọi điện</a> : null}
+              {mailHref ? <a href={mailHref} className="flex items-center justify-center gap-2 px-4 h-9 bg-black text-white text-[14px] font-medium rounded-lg hover:bg-gray-800 transition-colors w-full"><Mail className="h-4 w-4" />Gửi email</a> : null}
               {actionItems.map((item) => item.href ? (
-                <Link key={item.label} href={item.href} className="quote-detail-action">{item.icon}{item.label}</Link>
+                <Link key={item.label} href={item.href} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors w-full">{item.icon}{item.label}</Link>
               ) : (
-                <button key={item.label} type="button" onClick={item.onClick} className="quote-detail-action">{item.icon}{item.label}</button>
+                <button key={item.label} type="button" onClick={item.onClick} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors w-full">{item.icon}{item.label}</button>
               ))}
             </div>
           </section>
         </aside>
       </div>
+
+      {isShareModalOpen && (
+        <ShareResourceModal
+          resourceType="CONTACT"
+          resourceId={contact.id}
+          resourceName={name || "Khách hàng"}
+          onClose={() => setIsShareModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

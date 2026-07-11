@@ -5,6 +5,12 @@ const authCookies = [
   "better-auth.session_token",
   "better-auth.session_data",
   "better-auth.active_organization",
+  "__Secure-better-auth.session_token",
+  "__Secure-better-auth.session_data",
+  "__Secure-better-auth.active_organization",
+  "__Host-better-auth.session_token",
+  "__Host-better-auth.session_data",
+  "__Host-better-auth.active_organization",
 ];
 
 function clearAuthCookies(response: NextResponse, request?: NextRequest) {
@@ -16,6 +22,9 @@ function clearAuthCookies(response: NextResponse, request?: NextRequest) {
   for (const name of cookieNames) {
     response.cookies.set(name, "", {
       path: "/",
+      secure: name.startsWith("__Secure-") || name.startsWith("__Host-"),
+      httpOnly: name.includes("session"),
+      sameSite: "lax",
       maxAge: 0,
       expires: new Date(0),
     });

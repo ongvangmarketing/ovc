@@ -1,6 +1,6 @@
 import { Prisma, type ProjectActivityType } from "@prisma/client";
 
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 type ActivityInput = {
   organizationId: string;
@@ -18,7 +18,7 @@ function jsonValue(value?: Record<string, unknown> | null) {
 }
 
 export async function createProjectActivity(input: ActivityInput) {
-  const activity = await db.projectActivity.create({
+  const activity = await getTenantDb().projectActivity.create({
     data: {
       organizationId: input.organizationId,
       projectId: input.projectId || null,
@@ -31,7 +31,7 @@ export async function createProjectActivity(input: ActivityInput) {
     },
   });
 
-  await db.activityLog.create({
+  await getTenantDb().activityLog.create({
     data: {
       organizationId: input.organizationId,
       userId: input.actorId || null,
@@ -47,7 +47,7 @@ export async function createProjectActivity(input: ActivityInput) {
 }
 
 export async function getProjectActivities(organizationId: string, projectId: string) {
-  return db.projectActivity.findMany({
+  return getTenantDb().projectActivity.findMany({
     where: { organizationId, projectId },
     include: { actor: { select: { id: true, name: true, email: true, image: true } } },
     orderBy: { createdAt: "desc" },

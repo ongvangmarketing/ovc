@@ -130,26 +130,7 @@ export const moduleDefinitions: PlatformModuleDefinition[] = [
       ],
     },
   },
-  {
-    code: "DASHBOARD",
-    name: "Custom Dashboard",
-    version: "1.0.0",
-    category: "WORKSPACE",
-    description: "Tạo và chia sẻ Dashboard tùy chỉnh với các Widget kéo thả.",
-    icon: "layout-dashboard",
-    dependencies: [],
-    sortOrder: 11,
-    lifecycle: "DEVELOPMENT",
-    nav: {
-      code: "DASHBOARD",
-      label: "Dashboards",
-      href: "/workspace/dashboards",
-      icon: <LayoutDashboard className="h-5 w-5" />,
-      children: [
-        { label: "Tất cả Dashboard", href: "/workspace/dashboards", available: true },
-      ],
-    },
-  },
+
   {
     code: "BUSINESS_CHAT",
     name: "Chat",

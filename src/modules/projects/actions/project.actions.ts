@@ -1,76 +1,108 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { ProjectService } from "../services/project.service";
 
-import { PROJECT_PERMISSIONS } from "@/modules/projects/constants/project-permissions";
-import { requireProjectModule } from "@/modules/projects/guards/project-module.guard";
-import { projectCreateSchema, projectStatusSchema, projectUpdateSchema } from "@/modules/projects/schemas/project.schema";
-import {
-  changeProjectStatusService,
-  createProjectService,
-  deleteProjectService,
-  getProjectByIdService,
-  getProjectsService,
-  updateProjectService,
-} from "@/modules/projects/services/project.service";
-
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Có lỗi xảy ra";
+export async function getProjects(...args: Parameters<typeof ProjectService.getProjects>): Promise<ReturnType<typeof ProjectService.getProjects>> {
+  return ProjectService.getProjects(...args);
 }
 
-export async function getProjects() {
-  const { organizationId } = await requireProjectModule(PROJECT_PERMISSIONS.READ);
-  return getProjectsService(organizationId);
+export async function getProjectTasksDashboard(...args: Parameters<typeof ProjectService.getProjectTasksDashboard>): Promise<ReturnType<typeof ProjectService.getProjectTasksDashboard>> {
+  return ProjectService.getProjectTasksDashboard(...args);
 }
 
-export async function getProjectById(id: string) {
-  const { organizationId } = await requireProjectModule(PROJECT_PERMISSIONS.READ);
-  return getProjectByIdService(organizationId, id);
+export async function getProjectById(...args: Parameters<typeof ProjectService.getProjectById>): Promise<ReturnType<typeof ProjectService.getProjectById>> {
+  return ProjectService.getProjectById(...args);
 }
 
-export async function createProject(data: unknown) {
-  const { organizationId, userId } = await requireProjectModule(PROJECT_PERMISSIONS.CREATE);
-  try {
-    const project = await createProjectService(organizationId, userId, projectCreateSchema.parse(data));
-    revalidatePath("/workspace/projects");
-    return { success: true, id: project.id };
-  } catch (error) {
-    return { success: false, error: errorMessage(error) };
-  }
+export async function uploadProjectThumbnail(...args: Parameters<typeof ProjectService.uploadProjectThumbnail>): Promise<ReturnType<typeof ProjectService.uploadProjectThumbnail>> {
+  return ProjectService.uploadProjectThumbnail(...args);
 }
 
-export async function updateProject(id: string, data: unknown) {
-  const { organizationId, userId } = await requireProjectModule(PROJECT_PERMISSIONS.UPDATE);
-  try {
-    const project = await updateProjectService(organizationId, userId, projectUpdateSchema.parse({ ...data as Record<string, unknown>, id }));
-    revalidatePath("/workspace/projects");
-    revalidatePath(`/workspace/projects/${project.id}`);
-    return { success: true, id: project.id };
-  } catch (error) {
-    return { success: false, error: errorMessage(error) };
-  }
+export async function createProject(...args: Parameters<typeof ProjectService.createProject>): Promise<ReturnType<typeof ProjectService.createProject>> {
+  return ProjectService.createProject(...args);
 }
 
-export async function changeProjectStatus(data: unknown) {
-  const { organizationId, userId } = await requireProjectModule(PROJECT_PERMISSIONS.UPDATE);
-  try {
-    const input = projectStatusSchema.parse(data);
-    const project = await changeProjectStatusService(organizationId, userId, input.id, input.status);
-    revalidatePath("/workspace/projects");
-    revalidatePath(`/workspace/projects/${project.id}`);
-    return { success: true, id: project.id };
-  } catch (error) {
-    return { success: false, error: errorMessage(error) };
-  }
+export async function updateProject(...args: Parameters<typeof ProjectService.updateProject>): Promise<ReturnType<typeof ProjectService.updateProject>> {
+  return ProjectService.updateProject(...args);
 }
 
-export async function deleteProject(id: string) {
-  const { organizationId, userId } = await requireProjectModule(PROJECT_PERMISSIONS.DELETE);
-  try {
-    const project = await deleteProjectService(organizationId, userId, id);
-    revalidatePath("/workspace/projects");
-    return { success: true, id: project.id };
-  } catch (error) {
-    return { success: false, error: errorMessage(error) };
-  }
+export async function addProjectMember(...args: Parameters<typeof ProjectService.addProjectMember>): Promise<ReturnType<typeof ProjectService.addProjectMember>> {
+  return ProjectService.addProjectMember(...args);
 }
+
+export async function updateProjectOwner(...args: Parameters<typeof ProjectService.updateProjectOwner>): Promise<ReturnType<typeof ProjectService.updateProjectOwner>> {
+  return ProjectService.updateProjectOwner(...args);
+}
+
+export async function removeProjectMember(...args: Parameters<typeof ProjectService.removeProjectMember>): Promise<ReturnType<typeof ProjectService.removeProjectMember>> {
+  return ProjectService.removeProjectMember(...args);
+}
+
+export async function updateProjectFacebookAds(...args: Parameters<typeof ProjectService.updateProjectFacebookAds>): Promise<ReturnType<typeof ProjectService.updateProjectFacebookAds>> {
+  return ProjectService.updateProjectFacebookAds(...args);
+}
+
+export async function updateProjectSocialReportSetup(...args: Parameters<typeof ProjectService.updateProjectSocialReportSetup>): Promise<ReturnType<typeof ProjectService.updateProjectSocialReportSetup>> {
+  return ProjectService.updateProjectSocialReportSetup(...args);
+}
+
+export async function createTask(...args: Parameters<typeof ProjectService.createTask>): Promise<ReturnType<typeof ProjectService.createTask>> {
+  return ProjectService.createTask(...args);
+}
+
+export async function updateTaskDetails(...args: Parameters<typeof ProjectService.updateTaskDetails>): Promise<ReturnType<typeof ProjectService.updateTaskDetails>> {
+  return ProjectService.updateTaskDetails(...args);
+}
+
+export async function updateTaskStatus(...args: Parameters<typeof ProjectService.updateTaskStatus>): Promise<ReturnType<typeof ProjectService.updateTaskStatus>> {
+  return ProjectService.updateTaskStatus(...args);
+}
+
+export async function createTaskList(...args: Parameters<typeof ProjectService.createTaskList>): Promise<ReturnType<typeof ProjectService.createTaskList>> {
+  return ProjectService.createTaskList(...args);
+}
+
+export async function updateTaskList(...args: Parameters<typeof ProjectService.updateTaskList>): Promise<ReturnType<typeof ProjectService.updateTaskList>> {
+  return ProjectService.updateTaskList(...args);
+}
+
+export async function deleteTaskList(...args: Parameters<typeof ProjectService.deleteTaskList>): Promise<ReturnType<typeof ProjectService.deleteTaskList>> {
+  return ProjectService.deleteTaskList(...args);
+}
+
+export async function updateTaskColumn(...args: Parameters<typeof ProjectService.updateTaskColumn>): Promise<ReturnType<typeof ProjectService.updateTaskColumn>> {
+  return ProjectService.updateTaskColumn(...args);
+}
+
+export async function generateProjectShareToken(...args: Parameters<typeof ProjectService.generateProjectShareToken>): Promise<ReturnType<typeof ProjectService.generateProjectShareToken>> {
+  return ProjectService.generateProjectShareToken(...args);
+}
+
+export async function revokeProjectShareToken(...args: Parameters<typeof ProjectService.revokeProjectShareToken>): Promise<ReturnType<typeof ProjectService.revokeProjectShareToken>> {
+  return ProjectService.revokeProjectShareToken(...args);
+}
+
+export async function getPublicProjectByShareToken(...args: Parameters<typeof ProjectService.getPublicProjectByShareToken>): Promise<ReturnType<typeof ProjectService.getPublicProjectByShareToken>> {
+  return ProjectService.getPublicProjectByShareToken(...args);
+}
+
+export async function publicAddComment(...args: Parameters<typeof ProjectService.publicAddComment>): Promise<ReturnType<typeof ProjectService.publicAddComment>> {
+  return ProjectService.publicAddComment(...args);
+}
+
+export async function addTaskComment(...args: Parameters<typeof ProjectService.addTaskComment>): Promise<ReturnType<typeof ProjectService.addTaskComment>> {
+  return ProjectService.addTaskComment(...args);
+}
+
+export async function publicUpdateTaskStatus(...args: Parameters<typeof ProjectService.publicUpdateTaskStatus>): Promise<ReturnType<typeof ProjectService.publicUpdateTaskStatus>> {
+  return ProjectService.publicUpdateTaskStatus(...args);
+}
+
+export async function publicUpdateTaskColumn(...args: Parameters<typeof ProjectService.publicUpdateTaskColumn>): Promise<ReturnType<typeof ProjectService.publicUpdateTaskColumn>> {
+  return ProjectService.publicUpdateTaskColumn(...args);
+}
+
+export async function publicApproveContentPlan(...args: Parameters<typeof ProjectService.publicApproveContentPlan>): Promise<ReturnType<typeof ProjectService.publicApproveContentPlan>> {
+  return ProjectService.publicApproveContentPlan(...args);
+}
+

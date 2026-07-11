@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { requireSocialMarketingAccess } from "@/modules/social-marketing/policy";
-import { verifyOAuthState } from "@/modules/social-marketing/security/oauth-state";
-import { saveFacebookConnection } from "@/modules/social-marketing/services/facebook-connection";
+import { requireSocialMarketingAccess } from "@/modules/social-marketing/services/policy";
+import { verifyOAuthState } from "@/modules/social-marketing/services/security/oauth-state";
+import { FacebookConnectionService } from "@/modules/social-marketing/services/facebook-connection";
 
 export async function GET(request: Request) {
   const returnUrl = new URL("/workspace/social-marketing/settings", request.url);
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     if (state.organizationId !== organizationId || state.userId !== session.user.id) {
       throw new Error("Kết nối Facebook không thuộc tổ chức hiện tại.");
     }
-    await saveFacebookConnection({ organizationId, code, redirectUri: new URL("/api/social-marketing/oauth/facebook/callback", request.url).toString() });
+    await FacebookConnectionService.saveFacebookConnection({ organizationId, code, redirectUri: new URL("/api/social-marketing/oauth/facebook/callback", request.url).toString() });
     returnUrl.searchParams.set("connected", "1");
   } catch (error) {
     returnUrl.searchParams.set("error", error instanceof Error ? error.message.slice(0, 180) : "facebook-oauth");

@@ -1,38 +1,29 @@
 import { ProjectActivityType, TaskStatus } from "@prisma/client";
 
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import { createProjectActivity } from "@/modules/projects/services/project-activity.service";
-import type { TaskCreateInput, TaskUpdateInput } from "@/modules/projects/schemas/task.schema";
+import type { TaskCreateInput, TaskUpdateInput } from "@/modules/projects/types/task.schema";
+import { TaskRepository } from "@/modules/projects/repositories/task.repository";
+import { AuthorizationService } from "@/modules/core/services/authorization.service";
 
 function asDate(value?: string | null) {
   return value ? new Date(value) : null;
 }
 
 async function assertProject(organizationId: string, projectId: string) {
-  const project = await db.project.findFirst({ where: { id: projectId, organizationId }, select: { id: true } });
+  const project = await getTenantDb().project.findFirst({ where: { id: projectId, organizationId }, select: { id: true } });
   if (!project) throw new Error("Không tìm thấy dự án");
   return project;
 }
 
 export async function getProjectTasksService(organizationId: string, projectId: string) {
   await assertProject(organizationId, projectId);
-  return db.task.findMany({
-    where: { projectId },
-    include: {
-      assignee: { select: { id: true, name: true, email: true, image: true } },
-      creator: { select: { id: true, name: true, email: true, image: true } },
-      subtasks: { orderBy: { order: "asc" } },
-      comments: { orderBy: { createdAt: "desc" }, take: 5 },
-      attachments: true,
-    },
-    orderBy: [{ order: "asc" }, { createdAt: "asc" }],
-  });
+  return TaskRepository.findTasksByProjectId(projectId);
 }
 
 export async function createProjectTaskService(organizationId: string, userId: string, projectId: string, input: TaskCreateInput) {
   await assertProject(organizationId, projectId);
-  const task = await db.task.create({
-    data: {
+  const task = await TaskRepository.createTask({
       projectId,
       taskListId: input.taskListId || null,
       parentId: input.parentId || null,
@@ -46,7 +37,6 @@ export async function createProjectTaskService(organizationId: string, userId: s
       dueDate: asDate(input.dueDate),
       tags: input.tags,
       order: input.order ?? 0,
-    },
   });
 
   await createProjectActivity({
@@ -59,19 +49,41 @@ export async function createProjectTaskService(organizationId: string, userId: s
     actorId: userId,
   });
 
+  // Tự động cấp quyền Data-Level (Phase 2)
+  const db = getTenantDb(organizationId);
+  await db.resourceAccess.create({
+    data: {
+      organizationId,
+      resourceType: "TASK",
+      resourceId: task.id,
+      userId: userId,
+      permissionLevel: "FULL",
+    }
+  });
+
+  if (input.assigneeId && input.assigneeId !== userId) {
+    await db.resourceAccess.create({
+      data: {
+        organizationId,
+        resourceType: "TASK",
+        resourceId: task.id,
+        userId: input.assigneeId,
+        permissionLevel: "EDIT",
+      }
+    });
+  }
+
   return task;
 }
 
 export async function updateProjectTaskService(organizationId: string, userId: string, input: TaskUpdateInput) {
-  const existing = await db.task.findFirst({
-    where: { id: input.id, project: { organizationId } },
-    select: { id: true, projectId: true, status: true, title: true },
-  });
+  // Check data-level permission
+  await AuthorizationService.checkResourceAccess(userId, organizationId, "TASK", input.id, "EDIT");
+
+  const existing = await TaskRepository.findTaskByIdAndOrg(input.id, organizationId);
   if (!existing) throw new Error("Không tìm thấy công việc");
 
-  const task = await db.task.update({
-    where: { id: existing.id },
-    data: {
+  const task = await TaskRepository.updateTask(existing.id, {
       taskListId: input.taskListId === undefined ? undefined : input.taskListId || null,
       parentId: input.parentId === undefined ? undefined : input.parentId || null,
       title: input.title ?? undefined,
@@ -84,7 +96,6 @@ export async function updateProjectTaskService(organizationId: string, userId: s
       tags: input.tags ?? undefined,
       order: input.order ?? undefined,
       completedAt: input.status === TaskStatus.DONE ? new Date() : input.status ? null : undefined,
-    },
   });
 
   await createProjectActivity({
@@ -102,9 +113,12 @@ export async function updateProjectTaskService(organizationId: string, userId: s
 }
 
 export async function completeTaskService(organizationId: string, userId: string, taskId: string) {
-  const existing = await db.task.findFirst({ where: { id: taskId, project: { organizationId } }, select: { id: true, projectId: true, title: true } });
+  // Check data-level permission
+  await AuthorizationService.checkResourceAccess(userId, organizationId, "TASK", taskId, "EDIT");
+
+  const existing = await TaskRepository.findTaskByIdAndOrg(taskId, organizationId);
   if (!existing) throw new Error("Không tìm thấy công việc");
-  const task = await db.task.update({ where: { id: existing.id }, data: { status: TaskStatus.DONE, completedAt: new Date() } });
+  const task = await TaskRepository.updateTask(existing.id, { status: TaskStatus.DONE, completedAt: new Date() });
 
   await createProjectActivity({
     organizationId,
@@ -121,12 +135,7 @@ export async function completeTaskService(organizationId: string, userId: string
 
 export async function reorderTasksService(organizationId: string, userId: string, projectId: string, tasks: Array<{ id: string; taskListId?: string | null; status?: TaskStatus; order: number }>) {
   await assertProject(organizationId, projectId);
-  await db.$transaction(tasks.map((task) =>
-    db.task.updateMany({
-      where: { id: task.id, projectId },
-      data: { order: task.order, taskListId: task.taskListId ?? undefined, status: task.status ?? undefined },
-    }),
-  ));
+  await getTenantDb().$transaction((tx) => TaskRepository.updateTasksOrder(projectId, tasks, tx));
 
   await createProjectActivity({
     organizationId,
@@ -142,9 +151,9 @@ export async function reorderTasksService(organizationId: string, userId: string
 }
 
 export async function addTaskCommentService(organizationId: string, userId: string, taskId: string, content: string) {
-  const task = await db.task.findFirst({ where: { id: taskId, project: { organizationId } }, select: { id: true, projectId: true, title: true } });
+  const task = await TaskRepository.findTaskByIdAndOrg(taskId, organizationId);
   if (!task) throw new Error("Không tìm thấy công việc");
-  const comment = await db.taskComment.create({ data: { taskId, userId, content } });
+  const comment = await TaskRepository.createTaskComment(taskId, userId, content);
 
   await createProjectActivity({
     organizationId,

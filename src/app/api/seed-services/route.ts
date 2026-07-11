@@ -1,12 +1,12 @@
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
     const code = 'SERVICES';
-    const existing = await db.platformModule.findUnique({ where: { code } });
+    const existing = await getTenantDb().platformModule.findUnique({ where: { code } });
     if (!existing) {
-      await db.platformModule.create({
+      await getTenantDb().platformModule.create({
         data: {
           code,
           name: 'Dịch vụ (Catalog)',

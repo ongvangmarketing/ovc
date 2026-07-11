@@ -1,10 +1,9 @@
 import "server-only";
-
 import { createHash, randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
-import { db } from "@/lib/db";
-import { allPages } from "@/modules/social-marketing/providers/facebook/provider";
-import { getFacebookAccessToken } from "@/modules/social-marketing/services/facebook-connection";
+import { getTenantDb } from "@/lib/db";
+import { allPages } from "@/modules/social-marketing/services/providers/facebook/provider";
+import { FacebookConnectionService } from "@/modules/social-marketing/services/facebook-connection";
 
 type FacebookAction = { action_type?: string; value?: string };
 type InsightRow = {
@@ -13,6 +12,7 @@ type InsightRow = {
   account_id?: string; account_currency?: string; spend?: string; reach?: string;
   impressions?: string; clicks?: string; actions?: FacebookAction[]; action_values?: FacebookAction[];
 };
+
 type PageInsightRow = {
   name: string;
   period: string;
@@ -37,7 +37,13 @@ function jsonObject(value: Record<string, unknown>): Prisma.InputJsonObject {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonObject;
 }
 
-export async function syncFacebookReport(params: {
+export class FacebookSyncService {
+
+
+
+
+
+static async syncFacebookReport(params: {
   organizationId: string;
   connectionId: string;
   initiatedById: string;
@@ -50,7 +56,7 @@ export async function syncFacebookReport(params: {
     .update(`${params.connectionId}:MANUAL:${range}:${Date.now()}`)
     .digest("hex");
   const correlationId = randomUUID();
-  const log = await db.socialMarketingSyncLog.create({
+  const log = await getTenantDb().socialMarketingSyncLog.create({
     data: {
       organizationId: params.organizationId, connectionId: params.connectionId,
       provider: "FACEBOOK", mode: "MANUAL", scope: "REPORT", status: "RUNNING",
@@ -60,14 +66,14 @@ export async function syncFacebookReport(params: {
   });
 
   try {
-    const token = await getFacebookAccessToken(params.organizationId, params.connectionId);
-    const accounts = await db.socialProviderAsset.findMany({
+    const token = await FacebookConnectionService.getFacebookAccessToken(params.organizationId, params.connectionId);
+    const accounts = await getTenantDb().socialProviderAsset.findMany({
       where: {
         organizationId: params.organizationId, connectionId: params.connectionId,
         provider: "FACEBOOK", assetType: "AD_ACCOUNT", selected: true, deletedAt: null,
       },
     });
-    const pages = await db.socialProviderAsset.findMany({
+    const pages = await getTenantDb().socialProviderAsset.findMany({
       where: {
         organizationId: params.organizationId, connectionId: params.connectionId,
         provider: "FACEBOOK", assetType: "PAGE", selected: true, deletedAt: null,
@@ -99,7 +105,7 @@ export async function syncFacebookReport(params: {
           }),
         ]);
 
-        await db.$transaction(async (tx) => {
+        await getTenantDb().$transaction(async (tx) => {
           for (const row of campaigns) {
             await tx.socialCampaign.upsert({
               where: { organizationId_provider_externalId: { organizationId: params.organizationId, provider: "FACEBOOK", externalId: row.id } },
@@ -172,7 +178,7 @@ export async function syncFacebookReport(params: {
           }
         }
 
-        await db.$transaction(async (tx) => {
+        await getTenantDb().$transaction(async (tx) => {
           for (const post of posts) {
             await tx.socialPost.upsert({
               where: {
@@ -246,14 +252,17 @@ export async function syncFacebookReport(params: {
       }
     }
 
-    await db.$transaction([
-      db.socialProviderConnection.updateMany({ where: { id: params.connectionId, organizationId: params.organizationId }, data: { lastSyncAt: new Date(), status: failedRecords ? "ATTENTION_REQUIRED" : "ACTIVE" } }),
-      db.socialMarketingSyncLog.update({ where: { id: log.id }, data: { status: failedRecords ? "PARTIAL" : "SUCCESS", totalRecords: successRecords + failedRecords, successRecords, failedRecords, completedAt: new Date() } }),
+    await getTenantDb().$transaction([
+      getTenantDb().socialProviderConnection.updateMany({ where: { id: params.connectionId, organizationId: params.organizationId }, data: { lastSyncAt: new Date(), status: failedRecords ? "ATTENTION_REQUIRED" : "ACTIVE" } }),
+      getTenantDb().socialMarketingSyncLog.update({ where: { id: log.id }, data: { status: failedRecords ? "PARTIAL" : "SUCCESS", totalRecords: successRecords + failedRecords, successRecords, failedRecords, completedAt: new Date() } }),
     ]);
     return { successRecords, failedRecords };
   } catch (error) {
     const message = error instanceof Error ? error.message.replace(/access_token=[^&\s]+/gi, "access_token=[REDACTED]") : "Facebook sync failed";
-    await db.socialMarketingSyncLog.update({ where: { id: log.id }, data: { status: "FAILED", errorMessage: message.slice(0, 1000), failedRecords: 1, completedAt: new Date() } });
+    await getTenantDb().socialMarketingSyncLog.update({ where: { id: log.id }, data: { status: "FAILED", errorMessage: message.slice(0, 1000), failedRecords: 1, completedAt: new Date() } });
     throw new Error(message);
   }
+}
+
+
 }

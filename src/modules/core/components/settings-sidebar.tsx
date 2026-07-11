@@ -5,7 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { 
   Building2, Globe, Hash, CreditCard, Settings, 
   ShieldCheck, Server, Mail, ScrollText, Bell, Archive, 
-  Braces, Activity, Wrench, Users, Database, KeyRound, Palette
+  Braces, Activity, Wrench, Users, Database, KeyRound, Palette, Zap, Workflow, HardDrive
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { LucideIcon } from "lucide-react";
@@ -24,23 +24,31 @@ export function SettingsSidebar() {
     { href: "/workspace/settings/organization", label: "Hồ sơ doanh nghiệp", icon: Building2 },
     { href: "/workspace/settings/domains", label: "Tên miền", icon: Globe },
     
+    { label: "Tự động hóa", group: true },
+    { href: "/workspace/settings/automations/reminders", label: "Nhắc nhở tự động", icon: Bell },
+    { href: "/workspace/workflows", label: "Quy trình (Workflows)", icon: Workflow },
+    
     { label: "Thiết lập hệ thống", group: true },
-    { href: "/workspace/settings/auto-code", label: "Cài đặt sinh mã", icon: Hash },
     { href: "/workspace/settings/payment", label: "Cài đặt thanh toán", icon: CreditCard },
     { href: "/workspace/settings?tab=security", label: "Bảo mật", icon: ShieldCheck, tab: "security" },
-    { href: "/workspace/settings?tab=email", label: "Hệ thống Email", icon: Server, tab: "email" },
-    { href: "/workspace/settings/email-templates", label: "Mẫu Email", icon: Mail },
-    { href: "/workspace/settings?tab=email-logs", label: "Email Logs", icon: ScrollText, tab: "email-logs" },
+    { href: "/workspace/settings/email", label: "Cài đặt Email", icon: Mail, tab: "email" },
+    { href: "/workspace/settings?tab=storage", label: "Storage Center", icon: HardDrive, tab: "storage" },
     { href: "/workspace/settings?tab=notifications", label: "Thông báo", icon: Bell, tab: "notifications" },
     { href: "/workspace/settings?tab=backup", label: "Sao lưu", icon: Archive, tab: "backup" },
     { href: "/workspace/settings?tab=integrations", label: "Tích hợp API", icon: Braces, tab: "integrations" },
+    { href: "/workspace/settings/chat", label: "Cài đặt Chat (Zalo)", icon: Activity },
     { href: "/workspace/settings?tab=logs", label: "Nhật ký hệ thống", icon: Activity, tab: "logs" },
     { href: "/workspace/settings?tab=tools", label: "Công cụ", icon: Wrench, tab: "tools" },
 
-    { label: "Quản lý tổ chức", group: true },
+    { label: "Tổ chức & Phân quyền lõi", group: true },
+    { href: "/workspace/settings/roles-permissions", label: "Tổng quan", icon: ShieldCheck },
     { href: "/workspace/settings?tab=members", label: "Thành viên", icon: Users, tab: "members" },
-    { href: "/workspace/settings?tab=departments", label: "Phòng ban", icon: Database, tab: "departments" },
-    { href: "/workspace/settings?tab=roles", label: "Vai trò", icon: KeyRound, tab: "roles" },
+    { href: "/workspace/settings/roles-permissions/departments", label: "Sơ đồ tổ chức", icon: Database },
+    { href: "/workspace/settings/roles-permissions/members", label: "Thành viên", icon: Users },
+    { href: "/workspace/settings/roles-permissions/roles", label: "Vai trò (Roles)", icon: KeyRound },
+    { href: "/workspace/settings/roles-permissions/permissions", label: "Quyền hạn", icon: KeyRound },
+    { href: "/workspace/settings/roles-permissions/resources", label: "Tài nguyên", icon: Database },
+    { href: "/workspace/settings/roles-permissions/audit", label: "Audit Logs", icon: Activity },
   ];
 
   return (

@@ -13,10 +13,10 @@ import {
 } from "lucide-react";
 
 import { normalizePaymentChannelKeys, getDynamicPaymentChannels, type PaymentChannelKey } from "@/lib/finance/payment-channels";
-import { createQuotation, updateQuotation } from "@/app/actions/finance-crud";
-import { getContacts, getCompanies, getContactAssignees, getDeals, lookupCompanyByTaxCode } from "@/app/actions/crm";
+import {  createQuotation, updateQuotation  } from "@/modules/finance/actions/finance.actions";
+import { getContacts, getCompanies, getContactAssignees, getDeals, lookupCompanyByTaxCode } from "@/modules/crm/actions/crm.actions";
 import { TiptapEditor } from "@/components/ui/tiptap-editor";
-import { getProjects } from "@/app/actions/projects";
+import { getProjects } from "@/modules/projects/actions/project.actions";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 import { CustomerFormSection } from "./customer-form-section";
@@ -231,7 +231,7 @@ function Field({
   return (
     <label className={cn("block", className)}>
       {label ? (
-        <span className="mb-1.5 block text-[14px] font-light text-slate-600">{label}</span>
+        <span className="mb-1.5 block text-[15px] font-light text-slate-600">{label}</span>
       ) : null}
       {children}
     </label>
@@ -299,7 +299,7 @@ function VercelPicker<T extends { id: string }>({
           onSearchChange(event.target.value);
           setOpen(true);
         }}
-        className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none vercel-picker-input font-medium"
+        className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none vercel-picker-input font-medium"
         placeholder={placeholder}
       />
       {(value || selectedTitle || search) ? (
@@ -340,15 +340,15 @@ function VercelPicker<T extends { id: string }>({
                     )}
                   >
                     <span className="min-w-0">
-                      <span className="block truncate text-[14px] font-medium text-black">{title}</span>
-                      {subtitle ? <span className="mt-0.5 block truncate text-[12px] text-gray-500">{subtitle}</span> : null}
+                      <span className="block truncate text-[15px] font-medium text-black">{title}</span>
+                      {subtitle ? <span className="mt-0.5 block truncate text-[15px] text-gray-500">{subtitle}</span> : null}
                     </span>
                     {selected ? <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-black" /> : null}
                   </button>
                 );
               })
             ) : (
-              <div className="px-3 py-8 text-center text-[13px] text-gray-500">Không tìm thấy dữ liệu phù hợp.</div>
+              <div className="px-3 py-8 text-center text-[15px] text-gray-500">Không tìm thấy dữ liệu phù hợp.</div>
             )}
           </div>
         </div>
@@ -365,8 +365,8 @@ function SignatureToggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex h-[46px] mt-[30px] cursor-pointer items-center justify-between rounded-lg border-transparent bg-gray-50/50 px-4 hover:bg-gray-100 transition-colors" aria-label="Ký số">
-      <span className="text-[13px] font-medium text-black">{checked ? "Bật ký số" : "Tắt ký số"}</span>
+    <label className="flex h-[46px] mt-[30px] cursor-pointer items-center justify-between rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 hover:bg-gray-100 transition-colors" aria-label="Ký số">
+      <span className="text-[15px] font-medium text-black">{checked ? "Bật ký số" : "Tắt ký số"}</span>
       <div className={cn("relative h-5 w-9 rounded-full transition-colors", checked ? "bg-black" : "bg-gray-200")}>
         <div className={cn("absolute top-[2px] left-[2px] h-4 w-4 rounded-full bg-white transition-transform", checked && "translate-x-4")} />
       </div>
@@ -441,10 +441,10 @@ const router = useRouter();
       : [emptyItem()]
   );
 
-  const { data: contacts = [] } = useQuery({
+  const { data: contacts = [] } = useQuery<ContactOption[]>({
     queryKey: ["contacts"],
-    queryFn: () => getContacts(),
-    initialData: initialContacts,
+    queryFn: async () => (await getContacts()) as ContactOption[],
+    initialData: initialContacts ?? [],
     staleTime: 60_000,
   });
 
@@ -856,26 +856,26 @@ const router = useRouter();
   const mobilePanelHeaderStyle = isMobileLayout ? { alignItems: "flex-start", gap: "0.5rem" } : undefined;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <div className="mb-8 flex flex-col gap-5 border-b border-[#eaeaea] pb-6 lg:flex-row lg:items-center lg:justify-between">
+    <div className="mx-auto max-w-[1200px] px-6 py-6">
+      <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-gray-400">
+          <div className="mb-2 flex items-center gap-2 text-[15px] font-medium uppercase tracking-widest text-gray-400">
             Tài chính / Báo giá
           </div>
-          <h1 className="text-[32px] md:text-[40px] font-medium tracking-tight text-black leading-none">
+          <h1 className="text-[48px] md:text-[56px] font-medium tracking-tighter text-black leading-none">
             {mode === "create" ? "Tạo báo giá" : `Báo giá ${initialData?.number || ""}`}
           </h1>
         </div>
 
-        <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto">
-          <button type="button" onClick={() => router.back()} className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[14px] font-medium text-black hover:bg-gray-50 transition-colors">
+        <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto">
+          <button type="button" onClick={() => router.back()} className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[15px] font-medium text-black hover:bg-gray-50 transition-colors">
             Quay lại
           </button>
           <button
             type="button"
             onClick={() => handleSave("DRAFT")}
             disabled={saveMutation.isPending}
-            className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[14px] font-medium text-black hover:bg-gray-50 transition-colors"
+            className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[15px] font-medium text-black hover:bg-gray-50 transition-colors"
           >
             {saveMutation.isPending ? "Đang lưu..." : "Lưu nháp"}
           </button>
@@ -883,7 +883,7 @@ const router = useRouter();
             type="submit"
             form="quotation-form"
             disabled={saveMutation.isPending}
-            className="rounded-full bg-black px-6 py-2.5 text-[14px] font-medium text-white hover:bg-gray-800 transition-colors"
+            className="rounded-full bg-black px-6 py-2.5 text-[15px] font-medium text-white hover:bg-gray-800 transition-colors"
           >
             {saveMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
@@ -891,15 +891,15 @@ const router = useRouter();
       </div>
 
       {saveError ? (
-        <div className="mb-4 rounded-[8px] border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-light text-red-700">
+        <div className="mb-4 rounded-[8px] border border-red-200 bg-red-50 px-4 py-3 text-[15px] font-light text-red-700">
           Lưu báo giá thất bại: {saveError}
         </div>
       ) : null}
 
       <form id="quotation-form" onSubmit={handleSubmit} className="flex flex-col gap-8 lg:grid lg:grid-cols-12 lg:items-start lg:gap-10">
-        <section className="rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:sticky lg:top-8 lg:col-span-4 lg:col-start-9 lg:row-span-12 lg:row-start-1">
+        <section className="rounded-2xl border border-[#eaeaea] bg-white p-5 md:p-8 lg:sticky lg:top-8 lg:col-span-4 lg:col-start-9 lg:row-span-12 lg:row-start-1">
           <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
-            <h2 className="text-[24px] font-medium tracking-tight text-black">Thông tin chung</h2>
+            <h2 className="text-[22px] font-medium tracking-tight text-black md:text-[24px]">Thông tin chung</h2>
           </div>
 
           <div className="flex flex-col gap-6">
@@ -907,17 +907,17 @@ const router = useRouter();
               <input
                 value={number}
                 onChange={(event) => setNumber(event.target.value)}
-                className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
                 placeholder="Tự sinh nếu bỏ trống"
               />
             </Field>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Ngày lập">
                 <input
                   type="date"
                   value={quotationDate}
                   onChange={(event) => setQuotationDate(event.target.value)}
-                  className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                  className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
                 />
               </Field>
               <Field label="Hạn chót">
@@ -925,13 +925,13 @@ const router = useRouter();
                   type="date"
                   value={validUntil}
                   onChange={(event) => setValidUntil(event.target.value)}
-                  className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                  className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
                 />
               </Field>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Trạng thái">
-                <select value={status} onChange={(event) => setStatus(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
+                <select value={status} onChange={(event) => setStatus(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
                   {statusOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
@@ -940,7 +940,7 @@ const router = useRouter();
                 </select>
               </Field>
               <Field label="Loại tiền">
-                <select value={currency} onChange={(event) => setCurrency(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
+                <select value={currency} onChange={(event) => setCurrency(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
                   <option value="VND">VND</option>
                   <option value="USD">USD</option>
                 </select>
@@ -992,10 +992,10 @@ const router = useRouter();
           contactIdentityNumber={contactIdentityNumber}
           setContactIdentityNumber={setContactIdentityNumber}
         />
-          <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
-            <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
-              <h2 className="text-[24px] font-medium tracking-tight text-black">Nội dung công việc</h2>
-              <button type="button" onClick={addItem} className="inline-flex items-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[14px] font-medium text-black transition-colors hover:bg-gray-50">
+          <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-5 md:p-8 lg:col-span-8 lg:col-start-1">
+            <div className="mb-8 flex flex-col gap-4 border-b border-[#eaeaea] pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-[22px] font-medium tracking-tight text-black md:text-[24px]">Nội dung công việc</h2>
+              <button type="button" onClick={addItem} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[15px] font-medium text-black transition-colors hover:bg-gray-50 sm:min-h-0">
                 <Plus className="h-4 w-4" />
                 Thêm dòng
               </button>
@@ -1011,12 +1011,12 @@ const router = useRouter();
                       placeholder="Nhập mô tả chi tiết, phạm vi công việc, ghi chú riêng cho hạng mục..."
                     />
                   </Field>
-                  <div className="grid grid-cols-2 gap-4 md:grid-cols-[1fr_1fr_1fr_1fr_1.5fr_auto] md:items-end">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-[1fr_1fr_1fr_1fr_1.5fr_auto] md:items-end">
                     <Field label="Đơn vị">
                       <input
                         value={item.unit || ""}
                         onChange={(event) => updateItem(index, "unit", event.target.value)}
-                        className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                        className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
                         placeholder=""
                       />
                     </Field>
@@ -1026,7 +1026,7 @@ const router = useRouter();
                         min={0}
                         value={item.quantity}
                         onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                        className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                        className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
                       />
                     </Field>
                     <Field label="Đơn giá">
@@ -1035,7 +1035,7 @@ const router = useRouter();
                         min={0}
                         value={item.unitPrice}
                         onChange={(event) => updateItem(index, "unitPrice", event.target.value)}
-                        className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                        className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
                       />
                     </Field>
                     <Field label="Thuế %">
@@ -1044,13 +1044,13 @@ const router = useRouter();
                         min={0}
                         value={item.tax}
                         onChange={(event) => updateItem(index, "tax", event.target.value)}
-                        className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                        className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
                       />
                     </Field>
                     <Field label="Thành tiền">
-                      <input readOnly value={formatCurrency(item.total)} className="w-full rounded-lg border-transparent bg-gray-100/50 px-4 py-3 text-[14px] font-medium text-gray-500 transition-colors placeholder:text-gray-300 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
+                      <input readOnly value={formatCurrency(item.total)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-100/50 px-4 py-3 text-[15px] font-medium text-gray-500 transition-colors placeholder:text-gray-300 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
                     </Field>
-                    <button type="button" onClick={() => removeItem(index)} className="inline-flex h-[46px] w-[46px] items-center justify-center rounded-lg border-transparent bg-gray-50/50 text-gray-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Xóa dòng">
+                    <button type="button" onClick={() => removeItem(index)} className="inline-flex h-[46px] w-full items-center justify-center rounded-lg border border-[#eaeaea] bg-gray-50/50 text-gray-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 sm:w-[46px]" title="Xóa dòng">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
@@ -1062,7 +1062,7 @@ const router = useRouter();
               <div className="grid gap-8 md:grid-cols-2">
                 <div className="flex flex-col gap-4">
                   <Field label="Loại chiết khấu">
-                    <select value={discountType} onChange={(event) => setDiscountType(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
+                    <select value={discountType} onChange={(event) => setDiscountType(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
                       <option value="fixed">VND</option>
                       <option value="percent">%</option>
                     </select>
@@ -1073,10 +1073,10 @@ const router = useRouter();
                       min={0}
                       value={discount}
                       onChange={(event) => setDiscount(numberValue(event.target.value))}
-                      className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                      className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
                     />
                   </Field>
-                  <div className="flex items-center justify-between border-t border-[#eaeaea] pt-4 text-[14px] text-gray-500">
+                  <div className="flex items-center justify-between border-t border-[#eaeaea] pt-4 text-[15px] text-gray-500">
                     <span>Tổng chiết khấu</span>
                     <strong className="text-red-500 font-medium">-{formatCurrency(lineDiscount)}</strong>
                   </div>
@@ -1091,7 +1091,7 @@ const router = useRouter();
                       onChange={(event) => {
                         setSubtotalOverride(numberValue(event.target.value));
                       }}
-                      className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                      className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
                     />
                   </Field>
                   <Field label="Tổng thuế">
@@ -1102,7 +1102,7 @@ const router = useRouter();
                       onChange={(event) => {
                         setTotalTaxOverride(numberValue(event.target.value));
                       }}
-                      className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+                      className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
                     />
                   </Field>
                   <div className="flex items-center justify-between border-t border-[#eaeaea] pt-4">
@@ -1133,8 +1133,8 @@ const router = useRouter();
                 <span className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm border border-[#eaeaea]">
                   <FileUp className="h-5 w-5" />
                 </span>
-                <strong className="text-[14px] font-medium text-black">Chọn file hoặc kéo thả vào đây</strong>
-                <small className="mt-1 text-[12px] text-gray-500">PDF, DOCX, XLSX, PNG, JPG. Dữ liệu upload sẽ nối backend file ở bước tiếp theo.</small>
+                <strong className="text-[15px] font-medium text-black">Chọn file hoặc kéo thả vào đây</strong>
+                <small className="mt-1 text-[15px] text-gray-500">PDF, DOCX, XLSX, PNG, JPG. Dữ liệu upload sẽ nối backend file ở bước tiếp theo.</small>
               </label>
 
               <div className="flex flex-col gap-3">
@@ -1145,8 +1145,8 @@ const router = useRouter();
                         <FileText className="h-5 w-5" />
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col">
-                        <strong className="truncate text-[13px] font-medium text-black">{file.name}</strong>
-                        <span className="text-[11px] text-gray-500">{formatFileSize(file.size)}</span>
+                        <strong className="truncate text-[15px] font-medium text-black">{file.name}</strong>
+                        <span className="text-[15px] text-gray-500">{formatFileSize(file.size)}</span>
                       </div>
                       <button type="button" onClick={() => removeAttachment(index)} title="Gỡ file" className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors">
                         <X className="h-4 w-4" />
@@ -1154,7 +1154,7 @@ const router = useRouter();
                     </div>
                   ))
                 ) : (
-                  <div className="flex h-full min-h-[120px] items-center justify-center rounded-xl border border-dashed border-gray-200 text-[13px] text-gray-400">
+                  <div className="flex h-full min-h-[120px] items-center justify-center rounded-xl border border-dashed border-gray-200 text-[15px] text-gray-400">
                     Chưa có tệp nào được chọn.
                   </div>
                 )}

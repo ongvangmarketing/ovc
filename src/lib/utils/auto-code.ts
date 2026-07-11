@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 export interface CodeFormat {
   prefix: string;
@@ -25,23 +25,23 @@ async function existingNumbers(orgId: string, formatKey: string, startsWith: str
   const where = { organizationId: orgId, number: { startsWith } };
 
   if (formatKey === "FORMAT_QUOTE") {
-    return db.quotation.findMany({ where, select: { number: true } });
+    return getTenantDb().quotation.findMany({ where, select: { number: true } });
   }
   if (formatKey === "FORMAT_CONTRACT") {
-    return db.contract.findMany({ where, select: { number: true } });
+    return getTenantDb().contract.findMany({ where, select: { number: true } });
   }
   if (formatKey === "FORMAT_INVOICE") {
-    return db.invoice.findMany({ where, select: { number: true } });
+    return getTenantDb().invoice.findMany({ where, select: { number: true } });
   }
   if (formatKey === "FORMAT_RECEIPT") {
-    return db.payment.findMany({ where, select: { number: true } });
+    return getTenantDb().payment.findMany({ where, select: { number: true } });
   }
 
   return [];
 }
 
 export async function generateAutoCode(orgId: string, formatKey: string, defaultPrefix: string): Promise<string> {
-  const setting = await db.setting.findFirst({
+  const setting = await getTenantDb().setting.findFirst({
     where: { organizationId: orgId, key: formatKey }
   });
   

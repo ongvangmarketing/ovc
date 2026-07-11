@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { LeadService } from "@/lib/services/lead.service";
+import { getTenantDb } from "@/lib/db";
+import { LeadService } from "@/modules/leads/services/lead.service";
 
 export async function POST(
   request: Request,
@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     const secretKey = (await params).secret;
-    const webhook = await db.leadWebhook.findUnique({
+    const webhook = await getTenantDb().leadWebhook.findUnique({
       where: { secretKey },
     });
 

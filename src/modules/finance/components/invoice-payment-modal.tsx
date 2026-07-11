@@ -26,8 +26,8 @@ export function InvoicePaymentModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden">
-        <div className="p-4 border-b">
+      <div className="bg-white rounded-xl border border-[#eaeaea] max-w-md w-full overflow-hidden">
+        <div className="p-4 border-b border-[#eaeaea]">
           <h3 className="text-[15px] font-medium text-gray-900">Ghi nhận thanh toán</h3>
         </div>
         
@@ -39,7 +39,7 @@ export function InvoicePaymentModal({
               value={amount}
               onChange={e => setAmount(Number(e.target.value))}
               max={amountDue}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 focus:border-black focus:outline-none"
             />
             <p className="text-xs text-gray-500 mt-1">Còn nợ: {formatCurrency(amountDue)}</p>
           </div>
@@ -49,7 +49,7 @@ export function InvoicePaymentModal({
             <select 
               value={method}
               onChange={e => setMethod(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 focus:border-black focus:outline-none"
             >
               <option value="BANK_TRANSFER">Chuyển khoản</option>
               <option value="CASH">Tiền mặt</option>
@@ -63,7 +63,7 @@ export function InvoicePaymentModal({
               type="date" 
               value={paidAt}
               onChange={e => setPaidAt(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 focus:border-black focus:outline-none"
             />
           </div>
 
@@ -74,16 +74,16 @@ export function InvoicePaymentModal({
               value={reference}
               onChange={e => setReference(e.target.value)}
               placeholder="VD: FT2108154..."
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 focus:border-black focus:outline-none"
             />
           </div>
 
-          <label className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-700">
+          <label className="flex items-start gap-3 rounded-lg border border-[#eaeaea] bg-gray-50/50 p-3 text-sm text-gray-700">
             <input
               type="checkbox"
               checked={sendCustomerEmail}
               onChange={e => setSendCustomerEmail(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
             />
             <span>
               <span className="block font-medium text-gray-900">Gửi email xác nhận cho khách hàng</span>
@@ -92,11 +92,11 @@ export function InvoicePaymentModal({
           </label>
         </div>
 
-        <div className="p-4 bg-gray-50 border-t flex justify-end gap-3">
+        <div className="p-4 bg-gray-50/50 border-t border-[#eaeaea] flex justify-end gap-3">
           <button 
             type="button" 
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="rounded-full border border-[#eaeaea] bg-white px-5 py-2 text-sm font-medium text-black hover:bg-gray-50"
             disabled={isPending}
           >
             Hủy
@@ -104,7 +104,7 @@ export function InvoicePaymentModal({
           <button 
             type="button" 
             onClick={() => onConfirm({ amount, method, reference, paidAt: new Date(paidAt).toISOString(), sendCustomerEmail })}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-full bg-black px-5 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
             disabled={isPending || amount <= 0}
           >
             {isPending ? "Đang xử lý..." : sendCustomerEmail ? "Ghi nhận & gửi email" : "Ghi nhận, không gửi email"}

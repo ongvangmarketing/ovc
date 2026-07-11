@@ -7,7 +7,7 @@ import { CalendarDays, Save, User, Building2, ExternalLink, Loader2, Search, X }
 import Link from "next/link";
 import { TiptapEditor } from "@/components/ui/tiptap-editor";
 
-import { createContact, lookupCompanyByTaxCode, updateContact, type ContactPayload } from "@/app/actions/crm";
+import { createContact, lookupCompanyByTaxCode, updateContact, type ContactPayload } from "@/modules/crm/actions/crm.actions";
 import { cn } from "@/lib/utils/cn";
 
 type CompanyOption = {
@@ -97,7 +97,7 @@ function Field({
 }) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1.5 block text-[14px] font-light text-slate-600">{label}</span>
+      <span className="mb-2 block text-[13px] font-medium text-slate-700">{label}</span>
       {children}
     </label>
   );
@@ -121,8 +121,8 @@ function CompanyCombo({
 
   return (
     <Field label="Công ty">
-      <div className="quote-combo">
-        <Search className="quote-input-icon quote-input-icon-left top-[21px]" />
+      <div className="relative">
+        <Search className="absolute left-3 top-[11px] h-4 w-4 text-gray-400" />
         <input
           value={search}
           onChange={(event) => {
@@ -130,7 +130,7 @@ function CompanyCombo({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          className={cn("quote-input quote-input-with-left-icon", (search || value) && "quote-input-with-right-icon")}
+          className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white pl-10 pr-10 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow"
           placeholder="Gõ tên công ty, email hoặc mã số thuế..."
           type="search"
         />
@@ -143,13 +143,13 @@ function CompanyCombo({
               onSearchChange("");
               setOpen(false);
             }}
-            className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
         ) : null}
         {open ? (
-          <div className="quote-combo-menu">
+          <div className="absolute left-0 right-0 top-full mt-2 max-h-60 overflow-y-auto rounded-xl border border-[#eaeaea] bg-white p-1.5 shadow-xl shadow-black/5 z-50">
             <button
               type="button"
               onMouseDown={(event) => event.preventDefault()}
@@ -158,7 +158,7 @@ function CompanyCombo({
                 onSearchChange("");
                 setOpen(false);
               }}
-              className={cn("quote-combo-option", !value && "quote-combo-option-active")}
+              className={cn("flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[14px] transition-colors hover:bg-gray-50", !value ? "font-medium text-black bg-gray-50" : "text-gray-600")}
             >
               Không gắn công ty
             </button>
@@ -171,13 +171,13 @@ function CompanyCombo({
                   onSelect(company);
                   setOpen(false);
                 }}
-                className={cn("quote-combo-option", company.id === value && "quote-combo-option-active")}
+                className={cn("flex w-full flex-col items-start rounded-lg px-3 py-2 text-left transition-colors hover:bg-gray-50 mt-0.5", company.id === value ? "bg-gray-50" : "")}
               >
-                <span>{company.name}</span>
-                <small>{companySubtitle(company) || "Chưa có email công ty"}</small>
+                <span className={cn("text-[14px]", company.id === value ? "font-medium text-black" : "text-gray-700")}>{company.name}</span>
+                <small className="text-[12px] text-gray-500 mt-0.5">{companySubtitle(company) || "Chưa có email công ty"}</small>
               </button>
             ))}
-            {!options.length ? <div className="quote-detail-empty">Nhập tên mới để tự tạo công ty khi lưu.</div> : null}
+            {!options.length ? <div className="px-3 py-3 text-center text-[13px] text-gray-500">Nhập tên mới để tự tạo công ty khi lưu.</div> : null}
           </div>
         ) : null}
       </div>
@@ -207,8 +207,8 @@ function AssigneeCombo({
 
   return (
     <Field label="Người phụ trách">
-      <div className="quote-combo">
-        <Search className="quote-input-icon quote-input-icon-left top-[21px]" />
+      <div className="relative">
+        <Search className="absolute left-3 top-[11px] h-4 w-4 text-gray-400" />
         <input
           value={search}
           onChange={(event) => {
@@ -216,7 +216,7 @@ function AssigneeCombo({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          className={cn("quote-input quote-input-with-left-icon", value && "quote-input-with-right-icon")}
+          className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white pl-10 pr-10 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow"
           placeholder="Tìm theo tên, email hoặc vai trò..."
           type="search"
         />
@@ -229,13 +229,13 @@ function AssigneeCombo({
               onSearchChange("");
               setOpen(false);
             }}
-            className="absolute right-3 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
         ) : null}
         {open ? (
-          <div className="quote-combo-menu">
+          <div className="absolute left-0 right-0 top-full mt-2 max-h-60 overflow-y-auto rounded-xl border border-[#eaeaea] bg-white p-1.5 shadow-xl shadow-black/5 z-50">
             <button
               type="button"
               onMouseDown={(event) => event.preventDefault()}
@@ -244,10 +244,10 @@ function AssigneeCombo({
                 onSearchChange("");
                 setOpen(false);
               }}
-              className={cn("quote-combo-option", !value && "quote-combo-option-active")}
+              className={cn("flex w-full flex-col items-start rounded-lg px-3 py-2 text-left transition-colors hover:bg-gray-50", !value ? "bg-gray-50" : "")}
             >
-              Chưa gán
-              <small>Xóa người phụ trách khỏi khách hàng này</small>
+              <span className={cn("text-[14px]", !value ? "font-medium text-black" : "text-gray-700")}>Chưa gán</span>
+              <small className="text-[12px] text-gray-500 mt-0.5">Xóa người phụ trách khỏi khách hàng này</small>
             </button>
             {options.slice(0, 9).map((assignee) => (
               <button
@@ -258,13 +258,13 @@ function AssigneeCombo({
                   onSelect(assignee);
                   setOpen(false);
                 }}
-                className={cn("quote-combo-option", assignee.id === value && "quote-combo-option-active")}
+                className={cn("flex w-full flex-col items-start rounded-lg px-3 py-2 text-left transition-colors hover:bg-gray-50 mt-0.5", assignee.id === value ? "bg-gray-50" : "")}
               >
-                <span>{assignee.name}</span>
-                <small>{assigneeSubtitle(assignee) || "Chưa có email"}</small>
+                <span className={cn("text-[14px]", assignee.id === value ? "font-medium text-black" : "text-gray-700")}>{assignee.name}</span>
+                <small className="text-[12px] text-gray-500 mt-0.5">{assigneeSubtitle(assignee) || "Chưa có email"}</small>
               </button>
             ))}
-            {!options.length ? <div className="quote-detail-empty">Không tìm thấy người phụ trách phù hợp.</div> : null}
+            {!options.length ? <div className="px-3 py-3 text-center text-[13px] text-gray-500">Không tìm thấy người phụ trách phù hợp.</div> : null}
           </div>
         ) : null}
       </div>
@@ -315,6 +315,7 @@ export function ContactFormClient({
   const [error, setError] = useState<string | null>(null);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [lastLookupTaxCode, setLastLookupTaxCode] = useState("");
+  const [customerKind, setCustomerKind] = useState<"PERSONAL" | "COMPANY">("PERSONAL");
 
   const title = useMemo(() => mode === "create" ? "Tạo khách hàng" : "Chỉnh sửa khách hàng", [mode]);
   const selectedCompany = useMemo(() => companies.find((company) => company.id === form.companyId), [companies, form.companyId]);
@@ -462,53 +463,91 @@ export function ContactFormClient({
   }, [form.companyTaxCode]);
 
   return (
-    <div className="quote-page mx-auto max-w-[1280px] px-6 py-6">
-      <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+    <div className="max-w-[1200px] mx-auto p-4 sm:p-8 space-y-8">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
         <div>
-          <p className="quote-breadcrumb">Khách hàng</p>
-          <h1 className="quote-work-heading text-slate-950">{title}</h1>
+          <div className="flex items-center gap-3 mb-6">
+            <span className="rounded-full bg-black px-3 py-1.5 text-[11px] font-semibold text-white tracking-wide uppercase w-fit">
+              CRM Form
+            </span>
+          </div>
+          <h1 className="text-[32px] md:text-[44px] tracking-tight leading-[1.15] font-medium uppercase">{title}</h1>
         </div>
-        <div className="quote-form-actions">
-          <button type="button" onClick={() => router.back()} className="quote-action-button quote-action-secondary">Quay lại</button>
-          <button type="submit" form="contact-form" disabled={saveMutation.isPending} className="quote-action-button quote-action-primary">
+        <div className="flex items-center gap-3 shrink-0">
+          <button type="button" onClick={() => router.back()} className="flex items-center justify-center h-9 px-4 text-[13px] font-medium text-black bg-white border border-[#eaeaea] rounded-md hover:bg-gray-50 transition-colors">Hủy</button>
+          <button type="submit" form="contact-form" disabled={saveMutation.isPending} className="flex items-center justify-center h-9 px-6 text-[13px] font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50">
             {saveMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
         </div>
       </div>
 
+      <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg w-fit mb-8">
+        <button 
+          type="button" 
+          onClick={() => setCustomerKind("PERSONAL")}
+          className={cn("px-4 py-1.5 text-[14px] font-medium rounded-md transition-colors", customerKind === "PERSONAL" ? "bg-white text-black shadow-sm" : "text-gray-500 hover:text-black")}
+        >
+          Cá nhân
+        </button>
+        <button 
+          type="button" 
+          onClick={() => setCustomerKind("COMPANY")}
+          className={cn("px-4 py-1.5 text-[14px] font-medium rounded-md transition-colors", customerKind === "COMPANY" ? "bg-white text-black shadow-sm" : "text-gray-500 hover:text-black")}
+        >
+          Công ty
+        </button>
+      </div>
+
       {error ? <div className="mb-4 rounded-[8px] border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-light text-red-700">{error}</div> : null}
 
       <form id="contact-form" className="space-y-5" onSubmit={(event) => { event.preventDefault(); setError(null); saveMutation.mutate(); }}>
-        <section className="quote-panel">
-          <div className="quote-panel-header"><h2>Thông tin khách hàng</h2></div>
-          <div className="grid gap-4 md:grid-cols-4">
-            <Field label="Tên khách hàng" className="md:col-span-2">
-              <input value={form.firstName} onChange={(event) => update("firstName", event.target.value)} className="quote-input" placeholder="Tên khách hàng" required />
+        <section className="bg-white rounded-2xl border border-[#eaeaea] p-6 lg:p-8">
+          <h2 className="text-[16px] font-medium text-black mb-6">Thông tin khách hàng</h2>
+          <div className="grid gap-5 md:grid-cols-4">
+            <Field label={customerKind === "COMPANY" ? "Tên công ty" : "Tên khách hàng"} className={customerKind === "COMPANY" ? "md:col-span-4 lg:col-span-2" : "md:col-span-2"}>
+              <input value={form.firstName} onChange={(event) => update("firstName", event.target.value)} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow" placeholder={customerKind === "COMPANY" ? "Tên công ty" : "Tên khách hàng"} required />
             </Field>
+            {customerKind === "COMPANY" && (
+              <Field label="Mã số thuế" className="md:col-span-2">
+                <div className="flex gap-2">
+                  <input value={form.companyTaxCode || ""} onChange={(event) => handleCompanyTaxCodeChange(event.target.value)} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow" placeholder="Nhập MST để tự tra cứu" />
+                  <button
+                    type="button"
+                    onClick={() => runTaxLookup(form.companyTaxCode || "")}
+                    disabled={taxLookupMutation.isPending}
+                    className="flex h-10 items-center justify-center gap-2 rounded-lg bg-gray-100 px-4 text-[13px] font-medium text-black hover:bg-gray-200 transition-colors shrink-0"
+                  >
+                    {taxLookupMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    Tra cứu
+                  </button>
+                </div>
+                {lookupMessage ? <small className="mt-1.5 block text-[12px] text-emerald-600">{lookupMessage}</small> : null}
+              </Field>
+            )}
             <Field label="Loại khách hàng">
-              <select value={form.type} onChange={(event) => update("type", event.target.value as ContactPayload["type"])} className="quote-input">
+              <select value={form.type} onChange={(event) => update("type", event.target.value as ContactPayload["type"])} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow">
                 {typeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </Field>
             <Field label="Trạng thái">
-              <select value={form.status} onChange={(event) => update("status", event.target.value as ContactPayload["status"])} className="quote-input">
+              <select value={form.status} onChange={(event) => update("status", event.target.value as ContactPayload["status"])} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow">
                 {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </Field>
           </div>
         </section>
 
-        <section className="quote-panel">
-          <div className="quote-panel-header"><h2>Liên hệ & công ty</h2></div>
-          <div className="grid gap-4 lg:grid-cols-4">
-            <Field label="Email khách hàng">
-              <input type="email" value={form.email || ""} onChange={(event) => update("email", event.target.value)} className="quote-input" placeholder="email@domain.com" />
+        <section className="bg-white rounded-2xl border border-[#eaeaea] p-6 lg:p-8">
+          <h2 className="text-[16px] font-medium text-black mb-6">Liên hệ & thông tin thêm</h2>
+          <div className="grid gap-5 lg:grid-cols-4">
+            <Field label={customerKind === "COMPANY" ? "Email liên hệ" : "Email khách hàng"}>
+              <input type="email" value={form.email || ""} onChange={(event) => update("email", event.target.value)} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow" placeholder="email@domain.com" />
             </Field>
             <Field label="Số điện thoại">
-              <input value={form.phone || ""} onChange={(event) => update("phone", event.target.value)} className="quote-input" placeholder="0918..." />
+              <input value={form.phone || ""} onChange={(event) => update("phone", event.target.value)} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow" placeholder="0918..." />
             </Field>
             <Field label="Di động">
-              <input value={form.mobile || ""} onChange={(event) => update("mobile", event.target.value)} className="quote-input" placeholder="Số phụ nếu có" />
+              <input value={form.mobile || ""} onChange={(event) => update("mobile", event.target.value)} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow" placeholder="Số phụ nếu có" />
             </Field>
             <AssigneeCombo
               value={form.assigneeId || ""}
@@ -518,66 +557,74 @@ export function ContactFormClient({
               onSearchChange={handleAssigneeSearch}
               onSelect={handleAssigneeSelect}
             />
-            <div className="lg:col-span-2">
-              <CompanyCombo
-                value={form.companyId || ""}
-                search={companySearch}
-                selectedTitle={selectedCompany?.name || form.companyName}
-                options={filteredCompanies}
-                onSearchChange={handleCompanySearch}
-                onSelect={handleCompanySelect}
-              />
-            </div>
-            <Field label="Email công ty">
-              <input type="email" value={form.companyEmail || ""} onChange={(event) => update("companyEmail", event.target.value)} className="quote-input" placeholder="company@domain.com" />
-            </Field>
-            <Field label="Mã số thuế">
-              <div className="flex gap-2">
-                <input value={form.companyTaxCode || ""} onChange={(event) => handleCompanyTaxCodeChange(event.target.value)} className="quote-input" placeholder="Nhập MST để tự tra cứu" />
-                <button
-                  type="button"
-                  onClick={() => runTaxLookup(form.companyTaxCode || "")}
-                  disabled={taxLookupMutation.isPending}
-                  className="quote-button quote-button-soft shrink-0"
-                >
-                  {taxLookupMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                  Tra cứu
-                </button>
-              </div>
-              {lookupMessage ? <small className="mt-1 block text-[13px] text-emerald-600">{lookupMessage}</small> : null}
-            </Field>
-            <Field label="Chức danh">
-              <input value={form.jobTitle || ""} onChange={(event) => update("jobTitle", event.target.value)} className="quote-input" placeholder="Giám đốc, kế toán..." />
+            
+            {customerKind === "PERSONAL" && (
+              <>
+                <div className="lg:col-span-2">
+                  <CompanyCombo
+                    value={form.companyId || ""}
+                    search={companySearch}
+                    selectedTitle={selectedCompany?.name || form.companyName}
+                    options={filteredCompanies}
+                    onSearchChange={handleCompanySearch}
+                    onSelect={handleCompanySelect}
+                  />
+                </div>
+                <Field label="Email công ty">
+                  <input type="email" value={form.companyEmail || ""} onChange={(event) => update("companyEmail", event.target.value)} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow" placeholder="company@domain.com" />
+                </Field>
+                <Field label="Mã số thuế">
+                  <div className="flex gap-2">
+                    <input value={form.companyTaxCode || ""} onChange={(event) => handleCompanyTaxCodeChange(event.target.value)} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow" placeholder="Nhập MST để tự tra cứu" />
+                    <button
+                      type="button"
+                      onClick={() => runTaxLookup(form.companyTaxCode || "")}
+                      disabled={taxLookupMutation.isPending}
+                      className="flex h-10 items-center justify-center gap-2 rounded-lg bg-gray-100 px-4 text-[13px] font-medium text-black hover:bg-gray-200 transition-colors shrink-0"
+                    >
+                      {taxLookupMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                      Tra cứu
+                    </button>
+                  </div>
+                  {lookupMessage ? <small className="mt-1.5 block text-[12px] text-emerald-600">{lookupMessage}</small> : null}
+                </Field>
+              </>
+            )}
+
+            <Field label={customerKind === "COMPANY" ? "Người đại diện" : "Chức danh"}>
+              <input value={form.jobTitle || ""} onChange={(event) => update("jobTitle", event.target.value)} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow" placeholder={customerKind === "COMPANY" ? "Đại diện..." : "Giám đốc..."} />
             </Field>
             <Field label="Phòng ban">
-              <input value={form.department || ""} onChange={(event) => update("department", event.target.value)} className="quote-input" placeholder="Kinh doanh..." />
+              <input value={form.department || ""} onChange={(event) => update("department", event.target.value)} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow" placeholder="Kinh doanh..." />
             </Field>
             <Field label="Nguồn khách hàng">
-              <input value={form.source || ""} onChange={(event) => update("source", event.target.value)} className="quote-input" placeholder="website, referral, facebook..." />
+              <input value={form.source || ""} onChange={(event) => update("source", event.target.value)} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow" placeholder="website, referral..." />
             </Field>
             <Field label="Ưu tiên">
-              <select value={form.priority} onChange={(event) => update("priority", event.target.value as ContactPayload["priority"])} className="quote-input">
+              <select value={form.priority} onChange={(event) => update("priority", event.target.value as ContactPayload["priority"])} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow">
                 {priorityOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </Field>
           </div>
         </section>
 
-        <section className="quote-panel">
-          <div className="quote-panel-header"><h2>Địa chỉ & ghi chú</h2></div>
-          <div className="grid gap-4 lg:grid-cols-4">
-            <Field label="Địa chỉ công ty" className="lg:col-span-2">
-              <input value={form.address || ""} onChange={(event) => update("address", event.target.value)} className="quote-input" placeholder="Nhập địa chỉ công ty / khách hàng" />
+        <section className="bg-white rounded-2xl border border-[#eaeaea] p-6 lg:p-8">
+          <h2 className="text-[16px] font-medium text-black mb-6">Địa chỉ & ghi chú</h2>
+          <div className="grid gap-5 lg:grid-cols-4">
+            <Field label="Địa chỉ" className="lg:col-span-2">
+              <input value={form.address || ""} onChange={(event) => update("address", event.target.value)} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow" placeholder="Nhập địa chỉ" />
             </Field>
             <Field label="Tags" className="lg:col-span-2">
-              <input value={tagText} onChange={(event) => setTagText(event.target.value)} className="quote-input" placeholder="VIP, business, chăm sóc lại" />
+              <input value={tagText} onChange={(event) => setTagText(event.target.value)} className="flex h-10 w-full rounded-lg border border-[#eaeaea] bg-white px-3 py-2 text-[14px] placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-black transition-shadow" placeholder="VIP, business, chăm sóc lại" />
             </Field>
             <Field label="Ghi chú" className="lg:col-span-4">
-              <TiptapEditor 
-                value={form.notes || ""} 
-                onChange={(content) => update("notes", content)} 
-                placeholder="Ghi chú nội bộ, nhu cầu, lịch sử trao đổi..." 
-              />
+              <div className="rounded-lg border border-[#eaeaea] bg-white overflow-hidden focus-within:ring-1 focus-within:ring-black transition-shadow">
+                <TiptapEditor 
+                  value={form.notes || ""} 
+                  onChange={(content) => update("notes", content)} 
+                  placeholder="Ghi chú nội bộ, nhu cầu, lịch sử trao đổi..." 
+                />
+              </div>
             </Field>
           </div>
         </section>

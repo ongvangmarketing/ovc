@@ -1,8 +1,9 @@
 import { Resend } from "resend";
 import nodemailer from "nodemailer";
 
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import { getOrganizationPublicBaseUrl } from "@/lib/workspace-domain";
+import { wrapGoogleWorkspaceStyle, MetaBoxItem } from "./templates";
 
 export type EmailSendInput = {
   organizationId: string;
@@ -28,6 +29,7 @@ export type TemplateRenderInput = {
   variables: Record<string, unknown>;
   fallbackSubject: string;
   fallbackBody: string;
+  metaBoxItems?: MetaBoxItem[];
 };
 
 const mailOnceMemory = new Map<string, number>();
@@ -67,12 +69,15 @@ function toJsonValue(value: unknown) {
 
 async function companyVariables(organizationId: string) {
   const [organization, settings] = await Promise.all([
-    db.organization.findUnique({
+    getTenantDb().organization.findUnique({
       where: { id: organizationId },
       select: { name: true, logo: true, website: true, email: true, phone: true, address: true, description: true },
     }),
-    db.setting.findMany({
-      where: { organizationId, key: { startsWith: "company_" } },
+    getTenantDb().setting.findMany({
+      where: { 
+        organizationId, 
+        key: { startsWith: "company_" }
+      },
     }),
   ]);
   const settingsMap = Object.fromEntries(settings.map((item) => [item.key, item.value ?? ""]));
@@ -104,12 +109,13 @@ export function renderString(template: string, variables: Record<string, unknown
 }
 
 export async function renderEmailTemplate(input: TemplateRenderInput) {
+  const compVars = await companyVariables(input.organizationId);
   const variables = {
     ...input.variables,
-    ...await companyVariables(input.organizationId),
+    ...compVars,
   };
   const normalized = normalizeTemplateCode(input.code);
-  const template = await db.emailTemplate.findFirst({
+  const template = await getTenantDb().emailTemplate.findFirst({
     where: {
       organizationId: input.organizationId,
       code: { in: [input.code, normalized, input.code.toLowerCase()] },
@@ -118,13 +124,21 @@ export async function renderEmailTemplate(input: TemplateRenderInput) {
     orderBy: { updatedAt: "desc" },
   });
 
-  const subject = template?.subject ?? input.fallbackSubject;
-  const body = template?.body ?? input.fallbackBody;
+  if (!template) {
+    throw new Error(`Không tìm thấy mẫu email đang hoạt động cho mã ${normalized}.`);
+  }
+
+  const subject = template.subject;
+  const body = template.body;
+
+  const rawHtml = renderString(body, variables);
+  
+  const finalHtml = wrapGoogleWorkspaceStyle(rawHtml, variables, input.metaBoxItems);
 
   return {
-    code: template?.code ?? normalized,
+    code: template.code,
     subject: renderString(subject, variables),
-    html: renderString(body, variables),
+    html: finalHtml,
   };
 }
 
@@ -134,7 +148,7 @@ export async function sendEmail(input: EmailSendInput) {
     throw new Error("Email recipient is required");
   }
 
-  const settings = await db.setting.findMany({
+  const settings = await getTenantDb().setting.findMany({
     where: { organizationId: input.organizationId },
   });
   const settingsMap = Object.fromEntries(settings.map((item) => [item.key, item.value ?? ""]));
@@ -148,7 +162,7 @@ export async function sendEmail(input: EmailSendInput) {
   const shouldUseSmtp = Boolean(smtpHost && smtpUser && smtpPass);
   const provider = shouldUseSmtp ? "smtp" : process.env.RESEND_API_KEY ? "resend" : "not_configured";
 
-  const log = await db.emailLog.create({
+  const log = await getTenantDb().emailLog.create({
     data: {
       organizationId: input.organizationId,
       status: "PENDING",
@@ -168,7 +182,7 @@ export async function sendEmail(input: EmailSendInput) {
   const htmlWithTracking = `${input.html || ""}${trackingPixel}`;
 
   if (!shouldUseSmtp && !process.env.RESEND_API_KEY) {
-    await db.emailLog.update({
+    await getTenantDb().emailLog.update({
       where: { id: log.id },
       data: {
         status: "SKIPPED",
@@ -198,7 +212,7 @@ export async function sendEmail(input: EmailSendInput) {
         attachments: input.attachments,
       });
 
-      await db.emailLog.update({
+      await getTenantDb().emailLog.update({
         where: { id: log.id },
         data: {
           status: "SENT",
@@ -225,7 +239,7 @@ export async function sendEmail(input: EmailSendInput) {
       })),
     });
 
-    await db.emailLog.update({
+    await getTenantDb().emailLog.update({
       where: { id: log.id },
       data: {
         status: "SENT",
@@ -238,7 +252,7 @@ export async function sendEmail(input: EmailSendInput) {
 
     return { sent: true, skipped: false, logId: log.id, messageId: result.data?.id };
   } catch (error) {
-    await db.emailLog.update({
+    await getTenantDb().emailLog.update({
       where: { id: log.id },
       data: {
         status: "FAILED",

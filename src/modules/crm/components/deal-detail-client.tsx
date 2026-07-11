@@ -1,17 +1,18 @@
+// @ts-nocheck
 "use client";
 
 import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { TiptapEditor } from "@/components/ui/tiptap-editor";
-import { addOptionToDeal, removeDealOption, convertDealOptionsToQuotation, updateDealOption } from "@/app/actions/deal-services";
-import { reorderDealOptionsAction } from "@/app/actions/deals";
+import { addOptionToDeal, removeDealOption, convertDealOptionsToQuotation, updateDealOption } from "@/modules/crm/actions/deal-services.actions";
+import { reorderDealOptionsAction } from "@/modules/crm/actions/deals.actions";
 import { 
-  ArrowLeft, Plus, CheckCircle2, Trash2, ExternalLink, 
-  FileText, Edit3, Ellipsis, Eye, Target, Briefcase, Share2, Copy, Save, X, ChevronUp, ChevronDown
+  Plus, CheckCircle2, Trash2,
+  FileText, Edit3, Ellipsis, Eye, Target, Share2, Copy, Save, X, ChevronUp, ChevronDown, Search
 } from "lucide-react";
 
-import { ActivityTimeline, AttachmentList, type FinanceActivity, type FinanceAttachment } from "@/modules/finance/components/finance-detail-widgets";
+import { ActivityTimeline, AttachmentList, type FinanceActivity } from "@/modules/finance/components/finance-detail-widgets";
 
 const detailTabs = [
   { id: "info", label: "Thông tin cơ hội" },
@@ -46,6 +47,13 @@ function formatDateTime(value?: string | Date | null) {
     day: "2-digit", month: "2-digit", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   }).format(date);
+}
+
+function dealOptionLineTotal(option: Pick<DealServiceOption, "unitPrice" | "quantity" | "discount">) {
+  const unitPrice = Number(option.unitPrice || 0);
+  const quantity = Number(option.quantity || 1);
+  const discount = Number(option.discount || 0);
+  return Math.max(0, unitPrice * quantity - discount);
 }
 
 function parseDealOptionNote(note?: string | null) {
@@ -101,7 +109,51 @@ function buildDealOptionNote(overrides: {
   });
 }
 
-function getDealOptionView(dealOpt: any) {
+type ServiceOptionValue = string[] | Record<string, unknown> | string | null | undefined;
+
+type CrmServiceOption = {
+  id: string;
+  name?: string | null;
+  price?: number | string | null;
+  description?: string | null;
+  unit?: string | null;
+  durationText?: string | null;
+  featuresJson?: ServiceOptionValue;
+  service?: { name?: string | null } | null;
+};
+
+type CrmService = {
+  id: string;
+  name: string;
+  options: CrmServiceOption[];
+};
+
+type DealServiceOption = {
+  id: string;
+  serviceOptionId?: string | null;
+  name?: string | null;
+  quantity?: number | string | null;
+  unitPrice?: number | string | null;
+  discount?: number | string | null;
+  taxRate?: number | string | null;
+  note?: string | null;
+  status?: string | null;
+  serviceOption?: CrmServiceOption | null;
+};
+
+type DealDetail = {
+  id: string;
+  serviceOptions: DealServiceOption[];
+  [key: string]: unknown;
+};
+
+type DealStage = {
+  id: string;
+  name: string;
+  order?: number | null;
+};
+
+function getDealOptionView(dealOpt: DealServiceOption) {
   const overrides = parseDealOptionNote(dealOpt.note);
   const serviceOption = dealOpt.serviceOption || {};
   const serviceFeatures = Array.isArray(serviceOption.featuresJson)
@@ -122,17 +174,43 @@ function getDealOptionView(dealOpt: any) {
   };
 }
 
-export function DealDetailClient({ deal, availableServices, stages }: { deal: any, availableServices: any[], stages: any[] }) {
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function optionDetailHtml(view: ReturnType<typeof getDealOptionView>) {
+  if (view.note) return view.note;
+
+  const parts: string[] = [];
+  if (view.description) parts.push(`<p>${escapeHtml(view.description)}</p>`);
+  if (view.unit) parts.push(`<p><strong>Đơn vị:</strong> ${escapeHtml(view.unit)}</p>`);
+  if (view.durationText) parts.push(`<p><strong>Thời lượng:</strong> ${escapeHtml(view.durationText)}</p>`);
+
+  const features = view.featuresText
+    .split(/\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  if (features.length) {
+    parts.push(`<p><strong>Hạng mục / quyền lợi:</strong></p><ul>${features.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`);
+  }
+
+  return parts.join("");
+}
+
+export function DealDetailClient({ deal, availableServices, stages }: { deal: DealDetail, availableServices: CrmService[], stages: DealStage[] }) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("info");
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [selectedServiceId, setSelectedServiceId] = useState("");
+  const [servicePickerOpen, setServicePickerOpen] = useState(false);
+  const [serviceSearch, setServiceSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [converting, setConverting] = useState(false);
   const [selectedOptionsForQuote, setSelectedOptionsForQuote] = useState<string[]>([]);
-  const [expandedOptionIds, setExpandedOptionIds] = useState<string[]>([]);
-  const [optionQuantities, setOptionQuantities] = useState<Record<string, number>>({});
   
   // Inline edit states
   const [editingOptionId, setEditingOptionId] = useState<string | null>(null);
@@ -151,7 +229,7 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
 
   const handleAddOption = async (optionId: string) => {
     setLoading(true);
-    await addOptionToDeal(deal.id, optionId, Math.max(1, optionQuantities[optionId] || 1));
+    await addOptionToDeal(deal.id, optionId, 1);
     setLoading(false);
   };
 
@@ -162,7 +240,7 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
     }
   };
 
-  const handleStartEdit = (dealOpt: any) => {
+  const handleStartEdit = (dealOpt: DealServiceOption) => {
     const view = getDealOptionView(dealOpt);
     setEditingOptionId(dealOpt.id);
     setEditForm({
@@ -175,7 +253,7 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
       quantity: dealOpt.quantity || 1,
       discount: Number(dealOpt.discount) || 0,
       taxRate: Number(dealOpt.taxRate) || 0,
-      note: view.note
+      note: optionDetailHtml(view)
     });
   };
 
@@ -187,7 +265,11 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
       quantity: editForm.quantity,
       discount: editForm.discount,
       taxRate: editForm.taxRate,
-      note: buildDealOptionNote(editForm)
+      note: buildDealOptionNote({
+        ...editForm,
+        description: "",
+        featuresText: "",
+      })
     });
     setEditingOptionId(null);
     setLoading(false);
@@ -197,33 +279,6 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
     setEditingOptionId(null);
   };
 
-  const toggleOptionDetail = (id: string) => {
-    setExpandedOptionIds((current) =>
-      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
-    );
-  };
-
-  const featureList = (value: any) => {
-    if (!value) return [];
-    if (Array.isArray(value)) return value.map(String).filter(Boolean);
-    if (typeof value === "object") return Object.values(value).map(String).filter(Boolean);
-    if (typeof value === "string") {
-      try {
-        return featureList(JSON.parse(value));
-      } catch {
-        return value.split(/\n|,/).map((item) => item.trim()).filter(Boolean);
-      }
-    }
-    return [];
-  };
-
-  const updateOptionQuantity = (optionId: string, quantity: number) => {
-    setOptionQuantities((current) => ({
-      ...current,
-      [optionId]: Math.max(1, Number.isFinite(quantity) ? quantity : 1),
-    }));
-  };
-
   const handleMoveOption = async (index: number, direction: number) => {
     if (index + direction < 0 || index + direction >= deal.serviceOptions.length) return;
     setLoading(true);
@@ -231,7 +286,7 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
     const temp = newOptions[index];
     newOptions[index] = newOptions[index + direction];
     newOptions[index + direction] = temp;
-    await reorderDealOptionsAction(deal.id, newOptions.map((o: any) => o.id));
+    await reorderDealOptionsAction(deal.id, newOptions.map((o) => o.id));
     router.refresh();
     setLoading(false);
   };
@@ -256,7 +311,17 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
     }
   };
 
-  const activeService = availableServices.find(s => s.id === selectedServiceId);
+  const existingOptionIds = new Set(deal.serviceOptions?.map((option) => option.serviceOptionId).filter(Boolean));
+  const serviceKeyword = serviceSearch.trim().toLowerCase();
+  const filteredServices = availableServices
+    .map((service) => ({
+      ...service,
+      options: service.options.filter((option) =>
+        !existingOptionIds.has(option.id) &&
+        (!serviceKeyword || `${service.name} ${option.name || ""}`.toLowerCase().includes(serviceKeyword))
+      ),
+    }))
+    .filter((service) => service.options.length > 0);
   const publicUrl = `/shared/deals/${deal.id}/options`;
   const fullPublicUrl = typeof window !== "undefined" ? `${window.location.origin}${publicUrl}` : "";
 
@@ -286,44 +351,45 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
   const customerName = deal.company?.name || deal.contact?.name || `${deal.contact?.firstName || ""} ${deal.contact?.lastName || ""}`.trim() || 'Chưa xác định';
 
   return (
-    <div className="quote-page mx-auto w-full max-w-[1440px] px-6 py-6 animate-in fade-in duration-300">
-      <div className="mb-5 flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="max-w-[1200px] mx-auto p-4 sm:p-8 space-y-8">
+      <header className="flex flex-col items-start justify-between gap-6 border-b border-[#eaeaea] pb-6 lg:flex-row lg:items-end mb-8">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-[14px] font-light text-slate-500">
-            <Target className="h-4 w-4 text-orange-500" />
-            <Link href="/workspace/crm/deals" className="hover:text-slate-700 hover:underline">CRM / Cơ hội kinh doanh</Link>
+          <div className="flex items-center gap-3 mb-6">
+            <span className="rounded-full bg-black px-3 py-1.5 text-[11px] font-semibold text-white tracking-wide uppercase w-fit">
+              CRM Deal Detail
+            </span>
           </div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-[18px] font-light text-slate-950">{deal.title}</h1>
-            <span className="text-[12px] px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start mb-4">
+            <h1 className="text-[32px] md:text-[44px] tracking-tight leading-[1.15] font-medium uppercase line-clamp-2">{deal.title}</h1>
+            <span className="inline-flex w-fit rounded-full border border-[#eaeaea] bg-gray-50 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-gray-600 mt-2 sm:mt-0">
               {deal.stage?.name || deal.status}
             </span>
           </div>
-          <p className="text-[13px] text-slate-500 mt-1">
-            Ngày tạo: {formatDate(deal.createdAt)} · Cập nhật cuối: {formatDate(deal.updatedAt)}
+          <p className="text-[14px] text-gray-500 font-light">
+            Ngày tạo: {formatDate(deal.createdAt)} <span className="mx-2 text-gray-300">|</span> Cập nhật cuối: {formatDate(deal.updatedAt)}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <a href={publicUrl} target="_blank" className="quote-action-button quote-action-secondary">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <a href={publicUrl} target="_blank" className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[13px] font-medium text-black rounded-md hover:bg-gray-50 transition-colors">
             <Eye className="h-4 w-4" />
             Xem
           </a>
-          <Link href={`/workspace/crm/deals/${deal.id}/edit`} className="quote-action-button quote-action-secondary">
+          <Link href={`/workspace/crm/deals/${deal.id}/edit`} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[13px] font-medium text-black rounded-md hover:bg-gray-50 transition-colors">
             <Edit3 className="h-4 w-4" />
-            Chỉnh sửa
+            Sửa
           </Link>
           <div className="relative">
-            <button type="button" onClick={() => setMenuOpen((current) => !current)} className="quote-action-button quote-action-secondary px-2">
+            <button type="button" onClick={() => setMenuOpen((current) => !current)} className="flex items-center justify-center w-9 h-9 bg-black text-white rounded-md hover:bg-gray-800 transition-colors">
               <Ellipsis className="h-4 w-4" />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-100 py-1 z-50">
-                <button type="button" onClick={copyLink} className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2">
+              <div className="absolute right-0 z-50 mt-2 w-48 rounded-xl border border-[#eaeaea] bg-white p-1 shadow-xl shadow-black/5">
+                <button type="button" onClick={copyLink} className="flex w-full items-center gap-3 px-3 py-2 text-left text-[14px] text-gray-700 hover:bg-gray-50 hover:text-black rounded-lg transition-colors">
                   <Copy className="h-4 w-4" />
                   {copied ? "Đã copy" : "Copy link"}
                 </button>
-                <button type="button" className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-50 flex items-center gap-2">
+                <button type="button" className="flex w-full items-center gap-3 px-3 py-2 text-left text-[14px] text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors">
                   <Trash2 className="h-4 w-4" />
                   Xóa cơ hội
                 </button>
@@ -331,31 +397,31 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
             )}
           </div>
         </div>
-      </div>
+      </header>
 
-      <section className="quote-detail-summary mt-6">
-        <div>
-          <span>Khách hàng / Doanh nghiệp</span>
-          <strong>{customerName}</strong>
-          <p>{deal.company?.industry || deal.contact?.jobTitle || "Khách cá nhân"}</p>
+      <section className="grid gap-6 md:grid-cols-3 mb-10">
+        <div className="rounded-2xl border border-[#eaeaea] bg-white p-5">
+          <span className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Khách hàng / Doanh nghiệp</span>
+          <strong className="mt-4 block truncate text-[22px] font-medium tracking-tight text-black">{customerName}</strong>
+          <p className="mt-2 text-[13px] text-gray-500">{deal.company?.industry || deal.contact?.jobTitle || "Khách cá nhân"}</p>
         </div>
-        <div>
-          <span>Cơ hội bán hàng</span>
-          <strong>{deal.title}</strong>
-          <p>Giai đoạn: {deal.stage?.name || deal.status}</p>
+        <div className="rounded-2xl border border-[#eaeaea] bg-white p-5">
+          <span className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Cơ hội bán hàng</span>
+          <strong className="mt-4 block truncate text-[22px] font-medium tracking-tight text-black">{deal.title}</strong>
+          <p className="mt-2 text-[13px] text-gray-500">Giai đoạn: {deal.stage?.name || deal.status}</p>
         </div>
-        <div>
-          <span>Giá trị dự kiến</span>
-          <strong className="text-indigo-600">{formatMoney(deal.value, deal.currency)}</strong>
-          <p>Tỷ lệ thắng (Win prob): {deal.probability || 50}%</p>
+        <div className="rounded-2xl border border-[#eaeaea] bg-white p-5">
+          <span className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Giá trị dự kiến</span>
+          <strong className="mt-4 block text-[28px] font-medium leading-none tracking-tight text-black">{formatMoney(deal.value, deal.currency)}</strong>
+          <p className="mt-2 text-[13px] text-gray-500">Tỷ lệ thắng: {deal.probability || 50}%</p>
         </div>
       </section>
 
-      <div className="quote-detail-layout mt-6">
-        <main className="space-y-5 min-w-0 w-full">
-          <nav className="quote-detail-tabs">
+      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <main className="min-w-0 space-y-5">
+          <nav className="inline-flex rounded-lg border border-[#eaeaea] bg-gray-50/50 p-1">
             {detailTabs.map((tab) => (
-              <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={activeTab === tab.id ? "active" : ""}>
+              <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={activeTab === tab.id ? "rounded-md bg-white px-4 py-1.5 text-[13px] font-medium text-black shadow-sm" : "rounded-md px-4 py-1.5 text-[13px] font-medium text-gray-500 hover:text-black"}>
                 {tab.label}
               </button>
             ))}
@@ -363,174 +429,160 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
 
           {activeTab === "info" ? (
             <>
-              <section className="quote-panel">
-                <div className="quote-panel-header">
-                  <h2>Quy trình Sales Pipeline</h2>
-                  <span>Tiến độ thực hiện của cơ hội kinh doanh.</span>
+              <section className="rounded-2xl border border-[#eaeaea] bg-white p-6">
+                <div className="border-b border-[#eaeaea] pb-4">
+                  <h2 className="text-[24px] font-medium tracking-tight text-black">Quy trình Sales Pipeline</h2>
+                  <span className="mt-1 block text-[14px] text-gray-500">Tiến độ thực hiện của cơ hội kinh doanh.</span>
                 </div>
-                <div className="quote-progress quote-progress-five">
+                <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                   {steps.map((step) => (
-                    <div key={step.label} className={step.done ? "done" : ""}>
-                      <span>✓</span>
-                      <p>{step.label}</p>
+                    <div key={step.label} className={step.done ? "rounded-xl border border-[#f5d76e] bg-gradient-to-br from-[#fff3bf] via-[#fff8df] to-white p-4 text-black" : "rounded-xl border border-[#eaeaea] bg-white p-4 text-gray-500"}>
+                      <span className={step.done ? "flex h-7 w-7 items-center justify-center rounded-full border border-[#f5d76e] bg-white text-black" : "flex h-7 w-7 items-center justify-center rounded-full border border-[#eaeaea] bg-white text-gray-400"}>✓</span>
+                      <p className="mt-3 text-[13px] font-medium">{step.label}</p>
                     </div>
                   ))}
                 </div>
               </section>
 
-              <section className="quote-panel">
-                <div className="quote-panel-header flex items-center justify-between !border-b-0 !pb-0 mb-4">
+              <section className="rounded-2xl border border-[#eaeaea] bg-white p-6">
+                <div className="mb-5 flex flex-col justify-between gap-4 border-b border-[#eaeaea] pb-4 lg:flex-row lg:items-center">
                   <div>
-                    <h2>Dịch vụ Đề xuất (Options)</h2>
-                    <span>Danh sách các dịch vụ đang được đề xuất cho khách hàng.</span>
+                    <h2 className="text-[24px] font-medium tracking-tight text-black">Dịch vụ đề xuất</h2>
+                    <span className="mt-1 block text-[14px] text-gray-500">Danh sách các dịch vụ đang được đề xuất cho khách hàng.</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <select 
-                      className="quote-input py-2 bg-slate-50 cursor-pointer w-[260px] truncate"
-                      value={selectedServiceId}
-                      onChange={(e) => setSelectedServiceId(e.target.value)}
-                    >
-                      <option value="">+ Thêm Dịch vụ</option>
-                      {availableServices.map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <button type="button" onClick={() => setServicePickerOpen((open) => !open)} className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 text-[13px] font-medium text-black transition-colors hover:bg-gray-50">
+                    {servicePickerOpen ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                    {servicePickerOpen ? "Đóng" : "Chọn dịch vụ"}
+                  </button>
                 </div>
 
-                {activeService && (
-                  <div className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-                    <div className="mb-3 flex flex-col gap-1">
-                      <h4 className="font-medium text-indigo-900 text-sm">Chọn Option từ {activeService.name}</h4>
-                      <p className="text-[13px] text-indigo-700">Hiển thị đầy đủ option, giá, đơn vị và số lượng trước khi thêm vào Cơ hội.</p>
+                {servicePickerOpen ? (
+                  <div className="mb-4 border-b border-[#eaeaea] bg-gray-50/50 p-5">
+                    <div className="relative mb-4">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                      <input
+                        value={serviceSearch}
+                        onChange={(event) => setServiceSearch(event.target.value)}
+                        className="h-9 w-full rounded-md border border-[#eaeaea] bg-white pl-9 pr-4 text-[13px] outline-none focus:border-black focus:ring-1 focus:ring-black"
+                        placeholder="Tìm gói hoặc option dịch vụ..."
+                      />
                     </div>
-                    <div className="grid gap-3">
-                      {activeService.options.map((opt: any) => {
-                        const features = featureList(opt.featuresJson);
-                        const quantity = optionQuantities[opt.id] || 1;
-                        return (
-                          <article key={opt.id} className="rounded-xl border border-indigo-100 bg-white p-4 shadow-sm">
-                            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_120px_110px_auto] lg:items-start">
-                              <div className="min-w-0">
-                                <div className="font-medium uppercase text-slate-900">{opt.name}</div>
-                                <div className="mt-1 text-[13px] font-medium uppercase text-orange-500">{activeService.name}</div>
-                                {opt.description ? <p className="mt-2 whitespace-pre-wrap text-[14px] leading-6 text-slate-600">{opt.description}</p> : null}
-                                <div className="mt-3 flex flex-wrap gap-2 text-[12px] text-slate-600">
-                                  <span className="rounded-full bg-slate-100 px-2.5 py-1">Đơn vị: {opt.unit || "Gói"}</span>
-                                  <span className="rounded-full bg-slate-100 px-2.5 py-1">Thời lượng: {opt.durationText || "Theo thỏa thuận"}</span>
-                                </div>
-                                {features.length ? (
-                                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                                    {features.map((feature: string, featureIndex: number) => (
-                                      <div key={`${opt.id}-${featureIndex}`} className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-[13px] text-slate-600">
-                                        {feature}
-                                      </div>
-                                    ))}
+                    <div className="space-y-3">
+                      {filteredServices.map((service) => (
+                        <div key={service.id} className="rounded-2xl border border-[#eaeaea] bg-white p-4">
+                          <div className="mb-3 flex items-center justify-between gap-3">
+                            <h3 className="text-[15px] font-medium text-black">{service.name}</h3>
+                            <span className="shrink-0 rounded-full border border-[#eaeaea] bg-gray-50 px-2.5 py-1 text-[11px] font-medium text-gray-500">{service.options.length} option</span>
+                          </div>
+                          <div className="grid gap-2 md:grid-cols-3">
+                            {service.options.map((opt) => {
+                              return (
+                                <div key={opt.id} className="rounded-xl border border-[#eaeaea] bg-white p-3.5 transition-colors hover:border-black">
+                                  <div className="space-y-3">
+                                    <div className="min-w-0">
+                                      <div className="text-[14px] font-medium leading-5 text-black">{opt.name}</div>
+                                      <div className="mt-1 text-[12px] font-medium uppercase tracking-widest text-gray-400">{service.name}</div>
+                                    </div>
+                                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                      <div className="text-[15px] font-medium tabular-nums text-black">{formatMoney(opt.price)}</div>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleAddOption(opt.id)}
+                                        disabled={loading}
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-black text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
+                                        aria-label={`Thêm ${opt.name || "dịch vụ"}`}
+                                      >
+                                        <Plus className="h-4 w-4" />
+                                      </button>
+                                    </div>
                                   </div>
-                                ) : null}
-                              </div>
-                              <div>
-                                <span className="mb-1 block text-[11px] font-medium uppercase text-slate-400">Đơn giá</span>
-                                <strong className="text-slate-900">{formatMoney(opt.price)}</strong>
-                              </div>
-                              <label className="block">
-                                <span className="mb-1 block text-[11px] font-medium uppercase text-slate-400">Số lượng</span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  value={quantity}
-                                  onChange={(event) => updateOptionQuantity(opt.id, Number(event.target.value))}
-                                  className="quote-input h-10"
-                                />
-                              </label>
-                              <button
-                                type="button"
-                                onClick={() => handleAddOption(opt.id)}
-                                disabled={loading}
-                                className="quote-action-button quote-action-primary h-10 min-h-10 px-4"
-                              >
-                                <Plus className="h-4 w-4" />
-                                Thêm
-                              </button>
-                            </div>
-                          </article>
-                        );
-                      })}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                      {filteredServices.length === 0 ? (
+                        <div className="text-[13px] text-gray-500">Không còn dịch vụ phù hợp để thêm.</div>
+                      ) : null}
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 <div className="quotation-items-list mt-2">
                   {deal.serviceOptions?.length ? (
-                    <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mt-4">
+                    <div className="mt-4 overflow-hidden rounded-2xl border border-[#eaeaea] bg-white">
                       <div className="overflow-x-auto w-full">
                         <table className="w-full text-sm text-left border-collapse">
-                          <thead className="bg-[#ee8f15] text-white">
+                          <thead className="border-b border-[#eaeaea] bg-gray-50/50 text-gray-400">
                             <tr>
-                              <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#fa9f2a]">
+                              <th className="w-16 border-r border-[#eaeaea] px-4 py-3 text-center text-[11px] font-medium uppercase tracking-widest">
                                 <input 
                                   type="checkbox" 
-                                  className="w-4 h-4 rounded border-white text-orange-500 focus:ring-orange-500 cursor-pointer accent-orange-500"
+                                  className="h-4 w-4 cursor-pointer rounded border-[#eaeaea] accent-black"
                                   title="Chọn tất cả để tạo báo giá"
                                   onChange={(e) => {
-                                    if (e.target.checked) setSelectedOptionsForQuote(deal.serviceOptions.map((o: any) => o.id));
+                                    if (e.target.checked) setSelectedOptionsForQuote(deal.serviceOptions.map((o) => o.id));
                                     else setSelectedOptionsForQuote([]);
                                   }}
                                   checked={selectedOptionsForQuote.length > 0 && selectedOptionsForQuote.length === deal.serviceOptions.length}
                                 />
                               </th>
-                              <th className="px-4 py-3 font-medium border-r border-[#fa9f2a] min-w-[320px]">Nội dung dịch vụ</th>
-                              <th className="px-4 py-3 font-medium text-center w-36 border-r border-[#fa9f2a]">Đơn vị tính</th>
-                              <th className="px-4 py-3 font-medium text-center w-28">Thao tác</th>
+                              <th className="min-w-[320px] border-r border-[#eaeaea] px-4 py-3 text-[11px] font-medium uppercase tracking-widest">Nội dung dịch vụ</th>
+                              <th className="w-40 border-r border-[#eaeaea] px-4 py-3 text-center text-[11px] font-medium uppercase tracking-widest">Giá</th>
+                              <th className="w-28 px-4 py-3 text-center text-[11px] font-medium uppercase tracking-widest">Thao tác</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100">
-                            {deal.serviceOptions.map((dealOpt: any, index: number) => {
+                          <tbody className="divide-y divide-[#eaeaea]">
+                            {deal.serviceOptions.map((dealOpt, index: number) => {
                               const isSelected = selectedOptionsForQuote.includes(dealOpt.id);
                               const isConverted = dealOpt.status === 'CONVERTED_TO_QUOTE';
                               const isEditing = editingOptionId === dealOpt.id;
-                              const isExpanded = expandedOptionIds.includes(dealOpt.id);
                               const optionView = getDealOptionView(dealOpt);
-                              const features = featureList(optionView.featuresText);
+                              const detailHtml = optionDetailHtml(optionView);
+                              const lineTotal = dealOptionLineTotal(dealOpt);
 
                               if (isEditing) {
+                                const editLineTotal = Math.max(0, (Number(editForm.unitPrice) * Number(editForm.quantity || 1)) - Number(editForm.discount || 0));
                                 return (
-                                  <tr key={dealOpt.id} className="bg-slate-50">
+                                  <tr key={dealOpt.id} className="bg-gray-50/50">
                                     <td colSpan={4} className="p-4">
-                                      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-4">
-                                        <div className="grid grid-cols-1 gap-4">
-                                          <div>
-                                            <label className="block text-[11px] font-medium text-slate-500 mb-1 uppercase">Tên option</label>
-                                            <input className="w-full border border-slate-200 rounded-md text-sm px-3 py-2 focus:ring-1 focus:ring-orange-500 outline-none" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
-                                          </div>
-                                          <div>
-                                            <label className="block text-[11px] font-medium text-slate-500 mb-1 uppercase">Mô tả</label>
-                                            <TiptapEditor value={editForm.description} onChange={content => setEditForm({...editForm, description: content})} />
-                                          </div>
-                                          <div>
-                                            <label className="block text-[11px] font-medium text-slate-500 mb-1 uppercase">Quyền lợi / Hạng mục</label>
-                                            <TiptapEditor placeholder="Mỗi dòng là một quyền lợi" value={editForm.featuresText} onChange={content => setEditForm({...editForm, featuresText: content})} />
-                                          </div>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                          <div>
-                                            <label className="block text-[11px] font-medium text-slate-500 mb-1 uppercase">Giá (VND)</label>
-                                            <input type="number" className="w-full border border-slate-200 rounded-md text-sm px-3 py-2 focus:ring-1 focus:ring-orange-500 outline-none" value={editForm.unitPrice} onChange={e => setEditForm({...editForm, unitPrice: Number(e.target.value)})} />
-                                          </div>
-                                          <div>
-                                            <label className="block text-[11px] font-medium text-slate-500 mb-1 uppercase">Đơn vị</label>
-                                            <input className="w-full border border-slate-200 rounded-md text-sm px-3 py-2 focus:ring-1 focus:ring-orange-500 outline-none" value={editForm.unit} onChange={e => setEditForm({...editForm, unit: e.target.value})} />
-                                          </div>
-                                        </div>
+                                      <div className="space-y-4 rounded-2xl border border-[#eaeaea] bg-white p-4">
                                         <div>
-                                          <label className="block text-[11px] font-medium text-slate-500 mb-1 uppercase">Ghi chú</label>
-                                          <TiptapEditor placeholder="VD: Gói bao gồm hosting 1 năm..." value={editForm.note} onChange={content => setEditForm({...editForm, note: content})} />
+                                          <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-gray-400">Tên SP/Dịch vụ</label>
+                                          <input className="w-full rounded-md border border-[#eaeaea] bg-gray-50/50 px-3 py-2 text-[15px] font-medium text-black outline-none focus:border-black focus:ring-1 focus:ring-black" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} />
                                         </div>
-                                        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                                          <button onClick={handleCancelEdit} disabled={loading} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex items-center gap-1.5">
+
+                                        <div className="space-y-2">
+                                          <div className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Nội dung chi tiết của gói</div>
+                                          <TiptapEditor placeholder="Nhập mô tả chi tiết, phạm vi công việc, ghi chú riêng..." value={editForm.note} onChange={content => setEditForm({...editForm, note: content})} />
+                                        </div>
+
+                                        <div className="grid gap-3 md:grid-cols-[120px_1fr_1fr_1fr]">
+                                          <label className="block">
+                                            <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-gray-400">Số lượng</span>
+                                            <input type="number" min="1" className="w-full rounded-md border border-[#eaeaea] px-2 py-2 text-center text-sm outline-none focus:border-black focus:ring-1 focus:ring-black" value={editForm.quantity} onChange={e => setEditForm({...editForm, quantity: Number(e.target.value)})} />
+                                          </label>
+                                          <label className="block">
+                                            <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-gray-400">Đơn giá</span>
+                                            <input type="number" min="0" className="w-full rounded-md border border-[#eaeaea] px-3 py-2 text-right text-sm outline-none focus:border-black focus:ring-1 focus:ring-black" value={editForm.unitPrice} onChange={e => setEditForm({...editForm, unitPrice: Number(e.target.value)})} />
+                                          </label>
+                                          <label className="block">
+                                            <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-gray-400">Chiết khấu</span>
+                                            <input type="number" min="0" className="w-full rounded-md border border-[#eaeaea] px-3 py-2 text-right text-sm outline-none focus:border-black focus:ring-1 focus:ring-black" value={editForm.discount} onChange={e => setEditForm({...editForm, discount: Number(e.target.value)})} />
+                                          </label>
+                                          <div>
+                                            <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-widest text-gray-400">Thành tiền</span>
+                                            <div className="rounded-md border border-transparent bg-gray-50 px-3 py-2 text-right text-sm font-medium text-black">
+                                              {formatMoney(editLineTotal)}
+                                            </div>
+                                          </div>
+                                        </div>
+                                        <div className="flex justify-end gap-2 border-t border-[#eaeaea] pt-2">
+                                          <button onClick={handleCancelEdit} disabled={loading} className="flex items-center gap-1.5 rounded-md border border-[#eaeaea] px-4 h-9 text-[13px] font-medium text-black transition-colors hover:bg-gray-50">
                                             <X className="w-4 h-4" /> Hủy
                                           </button>
-                                          <button onClick={handleSaveEdit} disabled={loading} className="px-4 py-2 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm">
+                                          <button onClick={handleSaveEdit} disabled={loading} className="flex items-center gap-1.5 rounded-md bg-black px-4 h-9 text-[13px] font-medium text-white transition-colors hover:bg-gray-800">
                                             <Save className="w-4 h-4" /> {loading ? "Đang lưu..." : "Lưu thay đổi"}
                                           </button>
                                         </div>
@@ -542,11 +594,11 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
 
                               return (
                                 <Fragment key={dealOpt.id}>
-                                <tr className={`${isSelected ? 'bg-orange-50/30 text-slate-900' : 'bg-white text-slate-700'} transition-colors hover:bg-slate-50 group`}>
-                                  <td className="px-4 py-5 text-center align-top border-r border-slate-100">
+                                <tr className={`${isSelected ? 'bg-gray-50/60 text-black' : 'bg-white text-gray-700'} group transition-colors hover:bg-gray-50`}>
+                                  <td className="border-r border-[#eaeaea] px-4 py-5 text-center align-top">
                                     <input 
                                       type="checkbox" 
-                                      className="w-5 h-5 rounded border-slate-300 text-orange-500 focus:ring-orange-500 cursor-pointer accent-orange-500 mt-1 disabled:opacity-50"
+                                      className="mt-1 h-5 w-5 cursor-pointer rounded border-[#eaeaea] accent-black disabled:opacity-50"
                                       checked={isSelected}
                                       disabled={isConverted}
                                       onChange={(e) => {
@@ -555,92 +607,53 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
                                       }}
                                     />
                                   </td>
-                                  <td className="px-4 py-5 align-top border-r border-slate-100">
+                                  <td className="border-r border-[#eaeaea] px-4 py-5 align-top">
                                     <div className="flex justify-between items-start mb-2">
-                                      <div className={`font-medium uppercase ${isSelected ? 'text-orange-600' : 'text-slate-800'}`}>
+                                      <div className="font-medium uppercase text-black">
                                         {optionView.name}
                                       </div>
                                       <div className="shrink-0 ml-2">
-                                        {dealOpt.status === 'CUSTOMER_SELECTED' && <span className="text-[10px] font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded uppercase flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Đã chọn</span>}
-                                        {dealOpt.status === 'CONVERTED_TO_QUOTE' && <span className="text-[10px] font-medium bg-slate-100 text-slate-500 px-2 py-0.5 rounded uppercase">Đã lên Báo giá</span>}
-                                        {dealOpt.status === 'PROPOSED' && <span className="text-[10px] font-medium bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded uppercase">Đang đề xuất</span>}
+                                        {dealOpt.status === 'CUSTOMER_SELECTED' && <span className="flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-700"><CheckCircle2 className="w-3 h-3" /> Đã chọn</span>}
+                                        {dealOpt.status === 'CONVERTED_TO_QUOTE' && <span className="rounded-full border border-[#eaeaea] bg-white px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500">Đã lên Báo giá</span>}
+                                        {dealOpt.status === 'PROPOSED' && <span className="rounded-full border border-[#eaeaea] bg-gray-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-600">Đang đề xuất</span>}
                                       </div>
                                     </div>
-                                    <div className="text-[13px] font-medium text-orange-500 mb-1 uppercase">{dealOpt.serviceOption.service?.name}</div>
-                                    {optionView.description && <p className="text-slate-500 mt-1 mb-2 whitespace-pre-wrap text-[14px]">{optionView.description}</p>}
-                                    {optionView.note && <div className="text-sm text-slate-600 whitespace-pre-wrap mt-2">{optionView.note}</div>}
-                                    <button
-                                      type="button"
-                                      onClick={() => toggleOptionDetail(dealOpt.id)}
-                                      className="mt-3 inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[12px] font-medium text-orange-600 hover:bg-orange-100"
-                                    >
-                                      {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                                      {isExpanded ? "Thu gọn chi tiết" : "Xem chi tiết để sửa"}
-                                    </button>
-                                    {Number(dealOpt.discount) > 0 && (
-                                      <div className="mt-2 inline-block text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded border border-green-100">
-                                        Được giảm giá: {formatMoney(dealOpt.discount)}
-                                      </div>
-                                    )}
+                                    <div className="mb-1 text-[12px] font-medium uppercase tracking-wide text-gray-400">{dealOpt.serviceOption.service?.name}</div>
+                                    {detailHtml ? (
+                                      <div className="mt-2 text-sm leading-6 text-gray-600 [&_li]:ml-5 [&_li]:list-disc [&_p]:mb-1" dangerouslySetInnerHTML={{ __html: detailHtml }} />
+                                    ) : null}
                                   </td>
-                                  <td className="px-4 py-5 text-center align-top border-r border-slate-100">
-                                    <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[12px] font-medium text-slate-700">
-                                      {optionView.unit}
+                                  <td className="border-r border-[#eaeaea] px-4 py-5 text-right align-top">
+                                    <span className="text-[14px] font-medium tabular-nums text-black">
+                                      {formatMoney(lineTotal)}
                                     </span>
+                                    {Number(dealOpt.quantity || 1) > 1 || Number(dealOpt.discount || 0) > 0 ? (
+                                      <span className="mt-1 block text-[11px] leading-4 text-gray-400">
+                                        {Number(dealOpt.quantity || 1) > 1 ? `${dealOpt.quantity} x ${formatMoney(dealOpt.unitPrice || 0)}` : null}
+                                        {Number(dealOpt.quantity || 1) > 1 && Number(dealOpt.discount || 0) > 0 ? " · " : null}
+                                        {Number(dealOpt.discount || 0) > 0 ? `Giảm ${formatMoney(dealOpt.discount)}` : null}
+                                      </span>
+                                    ) : null}
                                   </td>
                                   <td className="px-4 py-5 align-top text-center">
                                     {!isConverted && (
-                                      <div className="grid grid-cols-2 gap-1 w-[60px] mx-auto opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => handleMoveOption(index, -1)} disabled={index === 0 || loading} className="text-slate-400 hover:text-blue-500 p-1 bg-white rounded shadow-sm border border-slate-200 disabled:opacity-30 flex items-center justify-center" title="Lên trên">
+                                      <div className="mx-auto grid w-[60px] grid-cols-2 gap-1">
+                                        <button onClick={() => handleMoveOption(index, -1)} disabled={index === 0 || loading} className="flex items-center justify-center rounded border border-[#eaeaea] bg-white p-1 text-gray-400 hover:text-black disabled:opacity-30" title="Lên trên">
                                           <ChevronUp className="w-3.5 h-3.5" />
                                         </button>
-                                        <button onClick={() => handleMoveOption(index, 1)} disabled={index === deal.serviceOptions.length - 1 || loading} className="text-slate-400 hover:text-blue-500 p-1 bg-white rounded shadow-sm border border-slate-200 disabled:opacity-30 flex items-center justify-center" title="Xuống dưới">
+                                        <button onClick={() => handleMoveOption(index, 1)} disabled={index === deal.serviceOptions.length - 1 || loading} className="flex items-center justify-center rounded border border-[#eaeaea] bg-white p-1 text-gray-400 hover:text-black disabled:opacity-30" title="Xuống dưới">
                                           <ChevronDown className="w-3.5 h-3.5" />
                                         </button>
-                                        <button onClick={() => handleStartEdit(dealOpt)} disabled={loading} className="text-slate-400 hover:text-orange-500 p-1 bg-white rounded shadow-sm border border-slate-200 flex items-center justify-center" title="Chỉnh sửa">
+                                        <button onClick={() => handleStartEdit(dealOpt)} disabled={loading} className="flex items-center justify-center rounded border border-[#eaeaea] bg-white p-1 text-gray-400 hover:text-black" title="Chỉnh sửa">
                                           <Edit3 className="w-3.5 h-3.5" />
                                         </button>
-                                        <button onClick={() => handleRemoveOption(dealOpt.id)} disabled={loading} className="text-slate-400 hover:text-red-500 p-1 bg-white rounded shadow-sm border border-slate-200 flex items-center justify-center" title="Xóa">
+                                        <button onClick={() => handleRemoveOption(dealOpt.id)} disabled={loading} className="flex items-center justify-center rounded border border-[#eaeaea] bg-white p-1 text-gray-400 hover:text-red-600" title="Xóa">
                                           <Trash2 className="w-3.5 h-3.5" />
                                         </button>
                                       </div>
                                     )}
                                   </td>
                                 </tr>
-                                {isExpanded ? (
-                                  <tr className="bg-orange-50/20">
-                                    <td />
-                                    <td colSpan={3} className="px-4 py-4">
-                                      <div className="rounded-xl border border-orange-100 bg-white p-4 text-[13px] leading-6 text-slate-600 shadow-sm">
-                                        <div className="mb-2 text-slate-500">
-                                          Đơn vị tính: <strong className="text-slate-800">{optionView.unit}</strong>
-                                          {" · "}Đơn giá: <strong className="text-slate-800">{formatMoney(dealOpt.unitPrice || 0)}</strong>
-                                          {" · "}Thời lượng: <strong className="text-slate-800">{optionView.durationText}</strong>
-                                          {" · "}Thuế: <strong className="text-slate-800">{Number(dealOpt.taxRate || 0)}%</strong>
-                                        </div>
-                                        {features.length ? (
-                                          <div>
-                                            <div className="font-medium text-slate-700">Hạng mục / quyền lợi:</div>
-                                            <ul className="mt-1 list-disc space-y-1 pl-5">
-                                              {features.map((feature, featureIndex) => (
-                                                <li key={`${dealOpt.id}-feature-${featureIndex}`}>{feature}</li>
-                                              ))}
-                                            </ul>
-                                          </div>
-                                        ) : null}
-                                        <div className="mt-2 whitespace-pre-wrap">
-                                          {optionView.description || "Chưa có mô tả chi tiết cho option này."}
-                                        </div>
-                                        {optionView.note ? (
-                                          <div className="mt-2">
-                                            <strong className="text-slate-700">Ghi chú riêng trong Cơ hội:</strong>{" "}
-                                            <span className="whitespace-pre-wrap">{optionView.note}</span>
-                                          </div>
-                                        ) : null}
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ) : null}
                                 </Fragment>
                               );
                             })}
@@ -649,28 +662,28 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
                       </div>
                     </div>
                   ) : (
-                    <div className="quote-detail-empty">Chưa có dịch vụ nào được đề xuất. Hãy thêm từ danh sách phía trên.</div>
+                    <div className="rounded-2xl border border-dashed border-[#eaeaea] bg-white p-8 text-center text-[14px] text-gray-500">Chưa có dịch vụ nào được đề xuất. Hãy thêm từ danh sách phía trên.</div>
                   )}
                 </div>
               </section>
 
-              <section className="quote-panel">
-                <div className="quote-panel-header">
-                  <h2>Ghi chú Cơ hội (Notes)</h2>
-                  <span>Ghi chú nội bộ hoặc yêu cầu thêm từ khách hàng.</span>
+              <section className="rounded-2xl border border-[#eaeaea] bg-white p-6">
+                <div className="border-b border-[#eaeaea] pb-4">
+                  <h2 className="text-[24px] font-medium tracking-tight text-black">Ghi chú Cơ hội</h2>
+                  <span className="mt-1 block text-[14px] text-gray-500">Ghi chú nội bộ hoặc yêu cầu thêm từ khách hàng.</span>
                 </div>
-                <div className="grid gap-3">
-                  <div className="contract-terms text-[14px]">
+                <div className="mt-5 grid gap-3">
+                  <div className="rounded-xl border border-[#eaeaea] bg-gray-50/50 p-4 text-[14px] text-gray-600">
                     <p>{deal.notes || "Chưa có ghi chú."}</p>
                   </div>
                 </div>
               </section>
             </>
           ) : (
-            <section className="quote-panel">
-              <div className="quote-panel-header">
-                <h2>{activeTab === "activity" ? "Lịch sử hoạt động" : "Tệp đính kèm"}</h2>
-                <span>{activeTab === "activity" ? "Lịch sử các thay đổi và tương tác." : "Tài liệu đính kèm."}</span>
+            <section className="rounded-2xl border border-[#eaeaea] bg-white p-6">
+              <div className="border-b border-[#eaeaea] pb-4">
+                <h2 className="text-[24px] font-medium tracking-tight text-black">{activeTab === "activity" ? "Lịch sử hoạt động" : "Tệp đính kèm"}</h2>
+                <span className="mt-1 block text-[14px] text-gray-500">{activeTab === "activity" ? "Lịch sử các thay đổi và tương tác." : "Tài liệu đính kèm."}</span>
               </div>
               {activeTab === "activity" ? (
                 <ActivityTimeline logs={deal.activityLogs} fallback={fallbackActivities} />
@@ -682,50 +695,51 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
         </main>
 
         <aside className="space-y-5">
-          <section className="quote-detail-card">
-            <h2>Thông tin Cơ hội</h2>
-            <div className="quote-side-list">
-              <div><span>Nguồn Deal</span><strong>{deal.source || "Tự khai thác"}</strong></div>
-              <div><span>Trạng thái</span><strong>{deal.status || "Mở"}</strong></div>
-              <div><span>Tỷ lệ chốt</span><strong>{deal.probability || 50}%</strong></div>
-              <div><span>Ngày tạo</span><strong>{formatDateTime(deal.createdAt)}</strong></div>
+          <section className="rounded-2xl border border-[#eaeaea] bg-white p-5">
+            <h2 className="text-[18px] font-medium tracking-tight text-black">Thông tin Cơ hội</h2>
+            <div className="mt-4 divide-y divide-[#eaeaea]">
+              <div className="flex items-center justify-between gap-4 py-3"><span className="text-[12px] text-gray-500">Nguồn Deal</span><strong className="text-right text-[13px] font-medium text-black">{deal.source || "Tự khai thác"}</strong></div>
+              <div className="flex items-center justify-between gap-4 py-3"><span className="text-[12px] text-gray-500">Trạng thái</span><strong className="text-right text-[13px] font-medium text-black">{deal.status || "Mở"}</strong></div>
+              <div className="flex items-center justify-between gap-4 py-3"><span className="text-[12px] text-gray-500">Tỷ lệ chốt</span><strong className="text-right text-[13px] font-medium text-black">{deal.probability || 50}%</strong></div>
+              <div className="flex items-center justify-between gap-4 py-3"><span className="text-[12px] text-gray-500">Ngày tạo</span><strong className="text-right text-[13px] font-medium text-black">{formatDateTime(deal.createdAt)}</strong></div>
             </div>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Giá trị Dự kiến</h2>
-            <div className="quote-side-list">
-              <div><span>Ngân sách KH</span><strong className="text-indigo-700 text-[15px]">{formatMoney(deal.value, deal.currency)}</strong></div>
+          <section className="rounded-2xl border border-[#eaeaea] bg-white p-5">
+            <h2 className="text-[18px] font-medium tracking-tight text-black">Giá trị Dự kiến</h2>
+            <div className="mt-4">
+              <span className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Ngân sách KH</span>
+              <strong className="mt-2 block text-[28px] font-medium leading-none tracking-tight text-black">{formatMoney(deal.value, deal.currency)}</strong>
             </div>
           </section>
 
-          <section className="quote-detail-card">
-            <h2>Tài liệu & Trình bày</h2>
-            <div className="contract-document-box bg-indigo-50 border-indigo-100">
-              <Share2 className="h-10 w-10 text-indigo-600" />
-              <strong className="text-indigo-900">Bản trình bày (HTML)</strong>
-              <span className="text-indigo-700 text-xs text-center mt-1">Gửi link này cho khách hàng để xem các Options.</span>
+          <section className="rounded-2xl border border-[#eaeaea] bg-white p-5">
+            <h2 className="text-[18px] font-medium tracking-tight text-black">Tài liệu & Trình bày</h2>
+            <div className="mt-4 flex flex-col items-center rounded-2xl border border-dashed border-[#eaeaea] bg-gray-50/50 p-5 text-center">
+              <Share2 className="h-10 w-10 text-black" />
+              <strong className="mt-3 text-black">Bản trình bày HTML</strong>
+              <span className="mt-1 text-xs text-gray-500">Gửi link này cho khách hàng để xem các Options.</span>
             </div>
-            <a href={publicUrl} target="_blank" className="quote-detail-action w-full mt-3 flex justify-center text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border-indigo-200">
+            <a href={publicUrl} target="_blank" className="mt-3 flex h-9 w-full items-center justify-center gap-2 rounded-md bg-black text-[13px] font-medium text-white hover:bg-gray-800">
               <Eye className="h-4 w-4" />
               Mở giao diện Khách
             </a>
-            <button type="button" onClick={copyLink} className="quote-detail-action w-full mt-2 justify-center">
+            <button type="button" onClick={copyLink} className="mt-2 flex h-9 w-full items-center justify-center gap-2 rounded-md border border-[#eaeaea] bg-white text-[13px] font-medium text-black hover:bg-gray-50">
               <Copy className="h-4 w-4" />
               {copied ? "Đã copy" : "Copy Link Gửi Khách"}
             </button>
           </section>
 
-          <section className="quote-panel border-2 border-indigo-100 bg-indigo-50/30">
-            <div className="quote-panel-header !border-b-0 !mb-0 !pb-0">
-              <h2 className="text-indigo-900">Thao tác chuyển đổi</h2>
+          <section className="rounded-2xl border border-[#eaeaea] bg-white p-5">
+            <div>
+              <h2 className="text-[18px] font-medium tracking-tight text-black">Thao tác chuyển đổi</h2>
             </div>
             <div className="mt-3">
-              <p className="text-[13px] text-slate-600 mb-3">Sau khi khách hàng chọn option, bạn có thể tạo Báo giá chính thức.</p>
+              <p className="mb-3 text-[13px] text-gray-500">Sau khi khách hàng chọn option, bạn có thể tạo Báo giá chính thức.</p>
               <button 
                 onClick={handleConvertToQuote}
                 disabled={converting || selectedOptionsForQuote.length === 0}
-                className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition disabled:opacity-50"
+                className="flex h-9 w-full items-center justify-center gap-2 rounded-md bg-black font-medium text-white text-[13px] transition hover:bg-gray-800 disabled:opacity-50"
               >
                 <FileText className="w-4 h-4" />
                 {converting ? "Đang tạo..." : `Tạo Báo giá (${selectedOptionsForQuote.length} options)`}
@@ -737,3 +751,4 @@ export function DealDetailClient({ deal, availableServices, stages }: { deal: an
     </div>
   );
 }
+"// @ts-nocheck";

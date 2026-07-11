@@ -1,16 +1,16 @@
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
     // Find organization OVMAIN (try both id and slug)
-    let org = await db.organization.findUnique({ where: { slug: "ongvangcomvn" } });
+    let org = await getTenantDb().organization.findUnique({ where: { slug: "ongvangcomvn" } });
     if (!org) {
-      org = await db.organization.findUnique({ where: { slug: "OVMAIN" } });
+      org = await getTenantDb().organization.findUnique({ where: { slug: "OVMAIN" } });
     }
     if (!org) {
       // maybe it's by id
-      org = await db.organization.findFirst({
+      org = await getTenantDb().organization.findFirst({
         where: {
           OR: [
             { id: "OVMAIN" },
@@ -27,7 +27,7 @@ export async function GET() {
     const orgId = org.id;
 
     // Create Service
-    const service = await db.service.upsert({
+    const service = await getTenantDb().service.upsert({
       where: {
         organizationId_slug: {
           organizationId: orgId,
@@ -80,7 +80,7 @@ export async function GET() {
     for (const [i, opt] of optionsData.entries()) {
       
       // Delete existing if any to avoid duplicates in this seed
-      await db.serviceOption.deleteMany({
+      await getTenantDb().serviceOption.deleteMany({
         where: {
           organizationId: orgId,
           serviceId: service.id,
@@ -88,7 +88,7 @@ export async function GET() {
         }
       });
 
-      await db.serviceOption.create({
+      await getTenantDb().serviceOption.create({
         data: {
           organizationId: orgId,
           serviceId: service.id,

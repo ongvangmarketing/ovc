@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Bell, LogOut, Building2 } from "lucide-react";
 
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 type PortalTopbarProps = {
   user: {
@@ -17,7 +17,7 @@ type PortalTopbarProps = {
 };
 
 export async function PortalTopbar({ user, roleLabel, parentLabel, homeHref, accent }: PortalTopbarProps) {
-  const unread = await db.notification.count({ where: { userId: user.id, read: false } });
+  const unread = await getTenantDb().notification.count({ where: { userId: user.id, read: false } });
   const initials = (user.name || user.email || "OV")
     .split(/\s+/)
     .filter(Boolean)

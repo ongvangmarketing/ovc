@@ -1,5 +1,5 @@
 import React from "react";
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import LeadFormSubmit from "./LeadFormSubmit";
 
 interface LeadFormBlockProps {
@@ -22,12 +22,12 @@ export default async function LeadFormBlock({
   let form;
   try {
     if (formId === "first") {
-      form = await db.leadForm.findFirst({
+      form = await getTenantDb().leadForm.findFirst({
         where: { organizationId: orgId, status: "ACTIVE" },
         include: { fields: { orderBy: { order: "asc" } } },
       });
     } else {
-      form = await db.leadForm.findFirst({
+      form = await getTenantDb().leadForm.findFirst({
         where: { id: formId, organizationId: orgId },
         include: { fields: { orderBy: { order: "asc" } } },
       });

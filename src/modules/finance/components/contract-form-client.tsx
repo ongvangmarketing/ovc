@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileText, FileUp, Plus, Search, Trash2, X } from "lucide-react";
 
-import { createContract, createInvoiceFromInstallment, updateContract } from "@/app/actions/finance-crud";
-import { getContacts, getCompanies, getContactAssignees, getDeals } from "@/app/actions/crm";
+import {  createContract, createInvoiceFromInstallment, updateContract  } from "@/modules/finance/actions/finance.actions";
+import { getContacts, getCompanies, getContactAssignees, getDeals } from "@/modules/crm/actions/crm.actions";
 import { normalizePaymentChannelKeys, paymentChannelOptions, type PaymentChannelKey } from "@/lib/finance/payment-channels";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
@@ -149,7 +149,7 @@ function formatFileSize(size: number) {
 function Field({ label, children, className }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1.5 block text-[14px] font-light text-slate-600">{label}</span>
+      <span className="mb-1.5 block text-[15px] font-light text-slate-600">{label}</span>
       {children}
     </label>
   );
@@ -163,8 +163,8 @@ function SignatureToggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex h-[46px] mt-[30px] cursor-pointer items-center justify-between rounded-lg border-transparent bg-gray-50/50 px-4 hover:bg-gray-100 transition-colors" aria-label="Ký số">
-      <span className="text-[13px] font-medium text-black">{checked ? "Bật ký số" : "Tắt ký số"}</span>
+    <label className="flex h-[46px] mt-[30px] cursor-pointer items-center justify-between rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 hover:bg-gray-100 transition-colors" aria-label="Ký số">
+      <span className="text-[15px] font-medium text-black">{checked ? "Bật ký số" : "Tắt ký số"}</span>
       <div className={cn("relative h-5 w-9 rounded-full transition-colors", checked ? "bg-black" : "bg-gray-200")}>
         <div className={cn("absolute top-[2px] left-[2px] h-4 w-4 rounded-full bg-white transition-transform", checked && "translate-x-4")} />
       </div>
@@ -226,7 +226,7 @@ function ComboSelect<T extends { id: string }>({
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
-          className="w-full rounded-lg border-transparent bg-gray-50/50 pl-10 pr-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
+          className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 pl-10 pr-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none"
           placeholder={placeholder}
           type="search"
         />
@@ -241,7 +241,7 @@ function ComboSelect<T extends { id: string }>({
               setOpen(false);
             }}
             onClick={(event) => event.preventDefault()}
-            className="absolute right-2 top-[21px] z-50 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-xs font-semibold text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="absolute right-2 top-[21px] z-50 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-[15px] font-semibold text-slate-400 hover:bg-slate-100 hover:text-slate-700"
             aria-label="Xóa lựa chọn"
           >
             x
@@ -258,7 +258,7 @@ function ComboSelect<T extends { id: string }>({
                   onSearchChange("");
                   setOpen(false);
                 }}
-                className={cn("cursor-pointer px-4 py-2 text-[14px] text-gray-700 hover:bg-gray-100", !value && "bg-orange-50 text-orange-700")}
+                className={cn("cursor-pointer px-4 py-2 text-[15px] text-gray-700 hover:bg-gray-100", !value && "bg-orange-50 text-orange-700")}
               >
                 {emptyTitle || "Không chọn"}
               </button>
@@ -273,7 +273,7 @@ function ComboSelect<T extends { id: string }>({
                   onSearchChange(getTitle(option));
                   setOpen(false);
                 }}
-                className={cn("cursor-pointer px-4 py-2 text-[14px] text-gray-700 hover:bg-gray-100", option.id === value && "bg-orange-50 text-orange-700")}
+                className={cn("cursor-pointer px-4 py-2 text-[15px] text-gray-700 hover:bg-gray-100", option.id === value && "bg-orange-50 text-orange-700")}
               >
                 <span>{getTitle(option)}</span>
                 {getSubtitle ? <small>{getSubtitle(option)}</small> : null}
@@ -546,53 +546,53 @@ export function ContractFormClient({ mode, initialData }: { mode: ContractMode; 
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 md:py-12">
+    <div className="mx-auto max-w-[1200px] px-6 py-6">
       <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-gray-400">
+          <div className="mb-2 flex items-center gap-2 text-[15px] font-medium uppercase tracking-widest text-gray-400">
             Tài chính / Hợp đồng
           </div>
           <h1 className="text-[48px] md:text-[56px] font-medium tracking-tighter text-black leading-none">{mode === "create" ? "Tạo hợp đồng" : `Hợp đồng ${initialData?.number || ""}`}</h1>
         </div>
         <div className="flex w-full flex-wrap items-center gap-3 lg:w-auto">
-          <button type="button" onClick={() => router.back()} className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-gray-50">Quay lại</button>
-          <button type="button" onClick={() => handleSave("DRAFT")} disabled={saveMutation.isPending} className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[14px] font-medium text-black transition-colors hover:bg-gray-50">
+          <button type="button" onClick={() => router.back()} className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[15px] font-medium text-black transition-colors hover:bg-gray-50">Quay lại</button>
+          <button type="button" onClick={() => handleSave("DRAFT")} disabled={saveMutation.isPending} className="rounded-full border border-[#eaeaea] bg-white px-6 py-2.5 text-[15px] font-medium text-black transition-colors hover:bg-gray-50">
             {saveMutation.isPending ? "Đang lưu..." : "Lưu nháp"}
           </button>
-          <button type="button" onClick={() => handleSave()} disabled={saveMutation.isPending} className="rounded-full bg-black px-6 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-gray-800">
+          <button type="button" onClick={() => handleSave()} disabled={saveMutation.isPending} className="rounded-full bg-black px-6 py-2.5 text-[15px] font-medium text-white transition-colors hover:bg-gray-800">
             {saveMutation.isPending ? "Đang lưu..." : "Lưu thay đổi"}
           </button>
         </div>
       </div>
 
-      {saveError ? <div className="mb-4 rounded-[8px] border border-red-200 bg-red-50 px-4 py-3 text-[14px] font-light text-red-700">Lưu hợp đồng thất bại: {saveError}</div> : null}
+      {saveError ? <div className="mb-4 rounded-[8px] border border-red-200 bg-red-50 px-4 py-3 text-[15px] font-light text-red-700">Lưu hợp đồng thất bại: {saveError}</div> : null}
 
       <form className="flex flex-col gap-8 lg:grid lg:grid-cols-12 lg:items-start lg:gap-10" onSubmit={(event) => event.preventDefault()}>
-        <section className="rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:sticky lg:top-8 lg:col-span-4 lg:col-start-9 lg:row-span-12 lg:row-start-1">
+        <section className="rounded-[24px] border border-[#eaeaea] bg-white p-5 md:p-8 lg:sticky lg:top-8 lg:col-span-4 lg:col-start-9 lg:row-span-12 lg:row-start-1">
           <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
-            <h2 className="text-[24px] font-medium tracking-tight text-black">Thông tin chung</h2>
+            <h2 className="text-[22px] font-medium tracking-tight text-black md:text-[24px]">Thông tin chung</h2>
           </div>
           <div className="flex flex-col gap-6">
             <Field label="Số hợp đồng">
-              <input value={number} onChange={(event) => setNumber(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" placeholder="Tự sinh nếu bỏ trống" />
+              <input value={number} onChange={(event) => setNumber(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" placeholder="Tự sinh nếu bỏ trống" />
             </Field>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Hiệu lực từ">
-                <input type="date" value={validFrom} onChange={(event) => setValidFrom(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
+                <input type="date" value={validFrom} onChange={(event) => setValidFrom(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
               </Field>
               <Field label="Hiệu lực đến">
-                <input type="date" value={validUntil} onChange={(event) => setValidUntil(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
+                <input type="date" value={validUntil} onChange={(event) => setValidUntil(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
               </Field>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Trạng thái">
-                <select value={status} onChange={(event) => setStatus(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
+                <select value={status} onChange={(event) => setStatus(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
                   {statusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                 </select>
               </Field>
               <Field label="Loại tiền">
-                <select value={currency} onChange={(event) => setCurrency(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
+                <select value={currency} onChange={(event) => setCurrency(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
                   <option value="VND">VND</option>
                   <option value="USD">USD</option>
                 </select>
@@ -647,7 +647,7 @@ export function ContractFormClient({ mode, initialData }: { mode: ContractMode; 
         />
 
 
-        <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+        <section className="mb-8 rounded-[24px] border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
           <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
             <h2 className="text-[24px] font-medium tracking-tight text-black">Kênh thanh toán</h2>
           </div>
@@ -661,18 +661,18 @@ export function ContractFormClient({ mode, initialData }: { mode: ContractMode; 
                   onChange={() => togglePaymentChannel(channel.key)}
                 />
                 <span className="flex flex-col">
-                  <strong className="text-[14px] font-medium text-black">{channel.optionLabel}</strong>
-                  <small className="text-[13px] text-gray-500">{channel.accountName} · {channel.bankName}</small>
+                  <strong className="text-[15px] font-medium text-black">{channel.optionLabel}</strong>
+                  <small className="text-[15px] text-gray-500">{channel.accountName} · {channel.bankName}</small>
                 </span>
               </label>
             ))}
           </div>
         </section>
 
-        <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
-          <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
-            <h2 className="text-[24px] font-medium tracking-tight text-black">Nội dung công việc</h2>
-            <button type="button" onClick={addItem} className="inline-flex items-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[14px] font-medium text-black transition-colors hover:bg-gray-50"><Plus className="h-4 w-4" />Thêm dòng</button>
+        <section className="mb-8 rounded-[24px] border border-[#eaeaea] bg-white p-5 md:p-8 lg:col-span-8 lg:col-start-1">
+          <div className="mb-8 flex flex-col gap-4 border-b border-[#eaeaea] pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-[22px] font-medium tracking-tight text-black md:text-[24px]">Nội dung công việc</h2>
+            <button type="button" onClick={addItem} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[15px] font-medium text-black transition-colors hover:bg-gray-50 sm:min-h-0"><Plus className="h-4 w-4" />Thêm dòng</button>
           </div>
           <div className="space-y-0">
             {items.map((item, index) => (
@@ -682,17 +682,17 @@ export function ContractFormClient({ mode, initialData }: { mode: ContractMode; 
                     rows={3}
                     value={item.name}
                     onChange={(event) => updateItem(index, "name", event.target.value)}
-                    className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none min-h-[92px] resize-y"
+                    className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none min-h-[92px] resize-y"
                     placeholder="Nhập mô tả chi tiết, phạm vi công việc, ghi chú riêng cho hạng mục..."
                   />
                 </Field>
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-[1fr_1fr_1fr_1fr_1.5fr_auto] md:items-end">
-                  <Field label="Đơn vị"><input value={item.unit || ""} onChange={(event) => updateItem(index, "unit", event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" placeholder="" /></Field>
-                  <Field label="Số lượng"><input type="number" value={item.quantity} min={0} onChange={(event) => updateItem(index, "quantity", event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
-                  <Field label="Đơn giá"><input type="number" value={item.unitPrice} min={0} onChange={(event) => updateItem(index, "unitPrice", event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
-                  <Field label="Thuế %"><input type="number" value={item.tax} min={0} onChange={(event) => updateItem(index, "tax", event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
-                  <Field label="Thành tiền"><input value={formatCurrency(item.total)} readOnly className="w-full rounded-lg border-transparent bg-gray-100/50 px-4 py-3 text-[14px] font-medium text-gray-500 transition-colors placeholder:text-gray-300 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
-                  <button type="button" onClick={() => removeItem(index)} className="inline-flex h-[46px] w-[46px] items-center justify-center rounded-lg border-transparent bg-gray-50/50 text-gray-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Xóa dòng"><Trash2 className="h-4 w-4" /></button>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-[1fr_1fr_1fr_1fr_1.5fr_auto] md:items-end">
+                  <Field label="Đơn vị"><input value={item.unit || ""} onChange={(event) => updateItem(index, "unit", event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" placeholder="" /></Field>
+                  <Field label="Số lượng"><input type="number" value={item.quantity} min={0} onChange={(event) => updateItem(index, "quantity", event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                  <Field label="Đơn giá"><input type="number" value={item.unitPrice} min={0} onChange={(event) => updateItem(index, "unitPrice", event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                  <Field label="Thuế %"><input type="number" value={item.tax} min={0} onChange={(event) => updateItem(index, "tax", event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                  <Field label="Thành tiền"><input value={formatCurrency(item.total)} readOnly className="w-full rounded-lg border border-[#eaeaea] bg-gray-100/50 px-4 py-3 text-[15px] font-medium text-gray-500 transition-colors placeholder:text-gray-300 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                  <button type="button" onClick={() => removeItem(index)} className="inline-flex h-[46px] w-full items-center justify-center rounded-lg border border-[#eaeaea] bg-gray-50/50 text-gray-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600 sm:w-[46px]" title="Xóa dòng"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>
             ))}
@@ -701,15 +701,15 @@ export function ContractFormClient({ mode, initialData }: { mode: ContractMode; 
             <div className="grid gap-8 md:grid-cols-2">
               <div className="flex flex-col gap-4">
                 <Field label="Loại chiết khấu">
-                  <select value={discountType} onChange={(event) => setDiscountType(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
+                  <select value={discountType} onChange={(event) => setDiscountType(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none">
                     <option value="fixed">VND</option>
                     <option value="percent">%</option>
                   </select>
                 </Field>
                 <Field label="Chiết khấu">
-                  <input type="number" min={0} value={discount} onChange={(event) => setDiscount(numberValue(event.target.value))} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
+                  <input type="number" min={0} value={discount} onChange={(event) => setDiscount(numberValue(event.target.value))} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
                 </Field>
-                <div className="flex items-center justify-between border-t border-[#eaeaea] pt-4 text-sm text-gray-500">
+                <div className="flex items-center justify-between border-t border-[#eaeaea] pt-4 text-[15px] text-gray-500">
                   <span>Tổng chiết khấu</span>
                   <strong>-{formatCurrency(totalDiscount)}</strong>
                 </div>
@@ -717,10 +717,10 @@ export function ContractFormClient({ mode, initialData }: { mode: ContractMode; 
 
               <div className="flex flex-col gap-4">
                 <Field label="Tạm tính">
-                  <input type="number" min={0} value={subtotal} onChange={(event) => setSubtotalOverride(numberValue(event.target.value))} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
+                  <input type="number" min={0} value={subtotal} onChange={(event) => setSubtotalOverride(numberValue(event.target.value))} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
                 </Field>
                 <Field label="Tổng thuế">
-                  <input type="number" min={0} value={totalTax} onChange={(event) => setTotalTaxOverride(numberValue(event.target.value))} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
+                  <input type="number" min={0} value={totalTax} onChange={(event) => setTotalTaxOverride(numberValue(event.target.value))} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" />
                 </Field>
                 <div className="flex items-center justify-between border-t border-[#eaeaea] pt-4 text-[16px] font-medium tracking-tight text-black">
                   <span>Tổng đợt thanh toán</span>
@@ -735,31 +735,31 @@ export function ContractFormClient({ mode, initialData }: { mode: ContractMode; 
           </div>
         </section>
 
-        <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+        <section className="mb-8 rounded-[24px] border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
           <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
             <h2 className="text-[24px] font-medium tracking-tight text-black">Kế hoạch thanh toán</h2>
-            <button type="button" onClick={addInstallment} className="inline-flex items-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[14px] font-medium text-black transition-colors hover:bg-gray-50"><Plus className="h-4 w-4" />Thêm đợt</button>
+            <button type="button" onClick={addInstallment} className="inline-flex items-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[15px] font-medium text-black transition-colors hover:bg-gray-50"><Plus className="h-4 w-4" />Thêm đợt</button>
           </div>
           <div className="space-y-0">
             {installments.map((inst, index) => (
               <div key={`${inst.id || "new"}-${index}`} className="grid gap-4 md:grid-cols-[2fr_1.5fr_1.5fr_auto] items-end border-b border-[#eaeaea] py-5 last:border-0">
-                <Field label="Tên đợt"><input value={inst.name} onChange={(event) => updateInstallment(index, "name", event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
-                <Field label="Số tiền"><input type="number" value={inst.amount} min={0} onChange={(event) => updateInstallment(index, "amount", event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
-                <Field label="Hạn thanh toán"><input type="date" value={inst.dueDate} onChange={(event) => updateInstallment(index, "dueDate", event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                <Field label="Tên đợt"><input value={inst.name} onChange={(event) => updateInstallment(index, "name", event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                <Field label="Số tiền"><input type="number" value={inst.amount} min={0} onChange={(event) => updateInstallment(index, "amount", event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
+                <Field label="Hạn thanh toán"><input type="date" value={inst.dueDate} onChange={(event) => updateInstallment(index, "dueDate", event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none" /></Field>
                 <div className="flex items-center gap-2 h-[46px]">
                   {mode === "edit" && inst.id && !inst.invoiceId ? (
-                    <button type="button" onClick={() => createInvoiceMutation.mutate(inst.id!)} className="inline-flex items-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[14px] font-medium text-black transition-colors hover:bg-gray-50">Tạo hóa đơn</button>
+                    <button type="button" onClick={() => createInvoiceMutation.mutate(inst.id!)} className="inline-flex items-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[15px] font-medium text-black transition-colors hover:bg-gray-50">Tạo hóa đơn</button>
                   ) : null}
-                  {inst.invoiceId ? <Link href={`/workspace/finance/invoices/${inst.invoiceId}`} className="inline-flex items-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[14px] font-medium text-black transition-colors hover:bg-gray-50">{inst.invoice?.number || "Xem hóa đơn"}</Link> : null}
-                  {!inst.invoiceId ? <button type="button" onClick={() => removeInstallment(index)} className="inline-flex h-[46px] w-[46px] items-center justify-center rounded-lg border-transparent bg-gray-50/50 text-gray-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Xóa đợt"><Trash2 className="h-4 w-4" /></button> : null}
+                  {inst.invoiceId ? <Link href={`/workspace/finance/invoices/${inst.invoiceId}`} className="inline-flex items-center gap-2 rounded-md border border-[#eaeaea] bg-white px-4 py-2 text-[15px] font-medium text-black transition-colors hover:bg-gray-50">{inst.invoice?.number || "Xem hóa đơn"}</Link> : null}
+                  {!inst.invoiceId ? <button type="button" onClick={() => removeInstallment(index)} className="inline-flex h-[46px] w-[46px] items-center justify-center rounded-lg border border-[#eaeaea] bg-gray-50/50 text-gray-400 transition-colors hover:border-red-200 hover:bg-red-50 hover:text-red-600" title="Xóa đợt"><Trash2 className="h-4 w-4" /></button> : null}
                 </div>
               </div>
             ))}
-            {!installments.length ? <div className="flex h-full min-h-[120px] items-center justify-center rounded-xl border border-dashed border-gray-200 text-[13px] text-gray-400">Chưa có kế hoạch thanh toán.</div> : null}
+            {!installments.length ? <div className="flex h-full min-h-[120px] items-center justify-center rounded-xl border border-dashed border-gray-200 text-[15px] text-gray-400">Chưa có kế hoạch thanh toán.</div> : null}
           </div>
         </section>
 
-        <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+        <section className="mb-8 rounded-[24px] border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
           <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
             <h2 className="text-[24px] font-medium tracking-tight text-black">Tệp đính kèm</h2>
           </div>
@@ -769,8 +769,8 @@ export function ContractFormClient({ mode, initialData }: { mode: ContractMode; 
               <span className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-white text-gray-400 shadow-sm border border-[#eaeaea]">
                 <FileUp className="h-5 w-5" />
               </span>
-              <strong className="text-[14px] font-medium text-black">Chọn file hoặc kéo thả vào đây</strong>
-              <small className="mt-1 text-[12px] text-gray-500">PDF, DOCX, XLSX, PNG, JPG. Dữ liệu upload sẽ nối backend file ở bước tiếp theo.</small>
+              <strong className="text-[15px] font-medium text-black">Chọn file hoặc kéo thả vào đây</strong>
+              <small className="mt-1 text-[15px] text-gray-500">PDF, DOCX, XLSX, PNG, JPG. Dữ liệu upload sẽ nối backend file ở bước tiếp theo.</small>
             </label>
 
             <div className="flex flex-col gap-3">
@@ -781,8 +781,8 @@ export function ContractFormClient({ mode, initialData }: { mode: ContractMode; 
                       <FileText className="h-5 w-5" />
                     </div>
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <strong className="truncate text-[13px] font-medium text-black">{file.name}</strong>
-                      <span className="text-[11px] text-gray-500">{formatFileSize(file.size)}</span>
+                      <strong className="truncate text-[15px] font-medium text-black">{file.name}</strong>
+                      <span className="text-[15px] text-gray-500">{formatFileSize(file.size)}</span>
                     </div>
                     <button type="button" onClick={() => removeAttachment(index)} title="Gỡ file" className="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-red-50 hover:text-red-600 transition-colors">
                       <X className="h-4 w-4" />
@@ -790,7 +790,7 @@ export function ContractFormClient({ mode, initialData }: { mode: ContractMode; 
                   </div>
                 ))
               ) : (
-                <div className="flex h-full min-h-[120px] items-center justify-center rounded-xl border border-dashed border-gray-200 text-[13px] text-gray-400">
+                <div className="flex h-full min-h-[120px] items-center justify-center rounded-xl border border-dashed border-gray-200 text-[15px] text-gray-400">
                   Chưa có tệp nào được chọn.
                 </div>
               )}
@@ -798,24 +798,24 @@ export function ContractFormClient({ mode, initialData }: { mode: ContractMode; 
           </div>
         </section>
 
-        <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+        <section className="mb-8 rounded-[24px] border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
           <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
             <h2 className="text-[24px] font-medium tracking-tight text-black">Ghi chú</h2>
           </div>
           <div className="grid gap-4">
             <Field label="Ghi chú nội bộ / gửi khách">
-              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none min-h-32 resize-y" placeholder="Ghi chú hợp đồng..." />
+              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none min-h-32 resize-y" placeholder="Ghi chú hợp đồng..." />
             </Field>
           </div>
         </section>
 
-        <section className="mb-8 rounded-2xl border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
+        <section className="mb-8 rounded-[24px] border border-[#eaeaea] bg-white p-6 md:p-8 lg:col-span-8 lg:col-start-1">
           <div className="mb-8 flex items-center justify-between border-b border-[#eaeaea] pb-4">
             <h2 className="text-[24px] font-medium tracking-tight text-black">Điều khoản hợp đồng</h2>
           </div>
           <div className="contract-terms-editor">
             <Field label="Điều khoản / Nội dung thêm">
-              <textarea value={terms} onChange={(event) => setTerms(event.target.value)} className="w-full rounded-lg border-transparent bg-gray-50/50 px-4 py-3 text-[14px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none min-h-[360px] leading-7 resize-y" placeholder="Điều khoản thanh toán, hiệu lực, phạm vi triển khai..." />
+              <textarea value={terms} onChange={(event) => setTerms(event.target.value)} className="w-full rounded-lg border border-[#eaeaea] bg-gray-50/50 px-4 py-3 text-[15px] text-black transition-colors placeholder:text-gray-300 hover:bg-gray-100 focus:border-[#eaeaea] focus:bg-white focus:ring-1 focus:ring-[#eaeaea] focus:outline-none min-h-[360px] leading-7 resize-y" placeholder="Điều khoản thanh toán, hiệu lực, phạm vi triển khai..." />
             </Field>
           </div>
         </section>

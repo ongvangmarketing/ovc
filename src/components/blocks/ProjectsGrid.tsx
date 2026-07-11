@@ -1,5 +1,5 @@
 import React from "react";
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 const FONT = `<style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');</style>`;
 
@@ -81,7 +81,7 @@ export default async function ProjectsGrid({
 }: ProjectsGridProps) {
   if (!orgId) return null;
 
-  const rawProjects = await db.project.findMany({
+  const rawProjects = await getTenantDb().project.findMany({
     where: {
       organizationId: orgId,
       isArchived: false,

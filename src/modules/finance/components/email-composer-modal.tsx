@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
-import type { FinanceEmailSendPayload } from "@/app/actions/finance-crud";
+import type { FinanceEmailSendPayload } from "@/modules/finance/types/finance.types";
 
 export type FinanceEmailDraft = {
   to: string;

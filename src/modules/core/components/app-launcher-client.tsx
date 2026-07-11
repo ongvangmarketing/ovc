@@ -23,7 +23,6 @@ import { CSS } from "@dnd-kit/utilities";
 import { Eye, EyeOff, GripVertical, LayoutDashboard, Pencil, RotateCcw, Save, X } from "lucide-react";
 import { toast } from "sonner";
 import { useDroppable } from "@dnd-kit/core";
-import { toast } from "sonner";
 import { moduleDefinitions } from "@/lib/modules/registry";
 import { cn } from "@/lib/utils/cn";
 import { saveAppLauncherPreferencesAction } from "../actions/app-launcher.actions";

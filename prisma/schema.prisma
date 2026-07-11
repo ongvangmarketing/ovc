@@ -22,6 +22,7 @@ enum UserRole {
   CUSTOMER
   INSTRUCTOR
   STUDENT
+  AGENT
 }
 
 enum MemberRole {
@@ -322,6 +323,7 @@ enum PlatformModuleCategory {
   EDUCATION
   MARKETING
   WEBSITE
+  TRAVELING
   AUTOMATION
   AI
   SUPPORT
@@ -432,6 +434,31 @@ model User {
 
   // Files
   uploadedFiles File[]
+
+  // Travel Module (Tours, Vehicles, Tickets, Hotels)
+  agentHotels      Hotel[]        @relation("AgentHotels")
+  customerBookings HotelBooking[] @relation("CustomerBookings")
+
+  agentTours           Tour[]        @relation("AgentTours")
+  customerTourBookings TourBooking[] @relation("CustomerTourBookings")
+
+  agentVehicles           Vehicle[]        @relation("AgentVehicles")
+  customerVehicleBookings VehicleBooking[] @relation("CustomerVehicleBookings")
+
+  agentTickets           TicketEvent[]   @relation("AgentTickets")
+  customerTicketBookings TicketBooking[] @relation("CustomerTicketBookings")
+
+  // Core Auth
+  departments        CoreUserDepartment[]
+  teams              CoreUserTeam[]
+  coreRoles          CoreUserRole[]
+  resourceAccess     ResourceAccess[]
+  coreAuditLogs      CoreAuditLog[]
+  mailAccountMembers MailAccountMember[]
+  storageFiles       StorageFile[]
+
+  ownedZaloAccounts ZaloAccount[]           @relation("UserZaloAccounts")
+  zaloPermissions   ZaloAccountPermission[] @relation("UserZaloPermissions")
 
   @@map("users")
 }
@@ -553,20 +580,28 @@ model Organization {
   potentialStudents PotentialStudent[]
 
   // Marketing
-  campaigns            Campaign[]
-  socialConnections    SocialProviderConnection[]
-  socialAssets         SocialProviderAsset[]
-  socialCampaigns      SocialCampaign[]
-  socialAdSets         SocialAdSet[]
-  socialAds            SocialAd[]
-  socialPosts          SocialPost[]
-  contentPlans         ContentPlan[]
-  brands               Brand[]
-  taxonomies           Taxonomy[]
-  aiPrompts            AIPrompt[]
-  socialInsights       SocialInsight[]
-  socialSyncLogs       SocialMarketingSyncLog[]
-  socialReportSettings SocialMarketingReportSetting?
+  campaigns             Campaign[]
+  socialConnections     SocialProviderConnection[]
+  socialAssets          SocialProviderAsset[]
+  socialCampaigns       SocialCampaign[]
+  socialAdSets          SocialAdSet[]
+  socialAds             SocialAd[]
+  socialPosts           SocialPost[]
+  contentPlans          ContentPlan[]
+  brands                Brand[]
+  taxonomies            Taxonomy[]
+  aiPrompts             AIPrompt[]
+  aiProviderConnections AIProviderConnection[]
+  aiModelConfigs        AIModelConfig[]
+  aiAgents              AIAgent[]
+  aiManagedPrompts      AIManagedPrompt[]
+  aiPromptVersions      AIManagedPromptVersion[]
+  aiUsageRecords        AIUsageRecord[]
+  aiRequestLogs         AIRequestLog[]
+  aiSettings            AIOrganizationSettings?
+  socialInsights        SocialInsight[]
+  socialSyncLogs        SocialMarketingSyncLog[]
+  socialReportSettings  SocialMarketingReportSetting?
 
   // CMS
   pages      Page[]
@@ -585,21 +620,50 @@ model Organization {
   profile      OrganizationProfile?
   brand        OrganizationBrand?
   locale       OrganizationLocale?
-  modules      OrganizationModule[]
-  workflows    OrganizationWorkflow[]
+
+  // Zalo Integration
+  zaloAccounts ZaloAccount[] @relation("OrganizationZaloAccounts")
+
+  modules                OrganizationModule[]
+  workflows              OrganizationWorkflow[]
+  automationWorkflows    Workflow[]
+  workflowVersions       WorkflowVersion[]
+  workflowTriggers       WorkflowTrigger[]
+  workflowExecutions     WorkflowExecution[]
+  workflowExecutionLogs  WorkflowExecutionLog[]
+  platformEventOutbox    PlatformEventOutbox[]
+  platformEventInbox     PlatformEventInbox[]
+  hotels                 Hotel[]
+  tours                  Tour[]
+  vehicles               Vehicle[]
+  ticketEvents           TicketEvent[]
+  automationReminders    AutomationReminder[]
+  automationReminderLogs ReminderLog[]
+
+  // Core Auth
+  coreDepartments    Department[]
+  coreTeams          Team[]
+  coreRoles          Role[]
+  coreResourceAccess ResourceAccess[]
+  coreAuditLogs      CoreAuditLog[]
+  mailAccounts       MailAccount[]
+  storageConnections StorageConnection[]
+  storagePolicies    StoragePolicy[]
+  storageFiles       StorageFile[]
 
   @@map("organizations")
 }
 
 model OrganizationMember {
-  id             String     @id @default(cuid())
-  organizationId String
-  userId         String
-  role           MemberRole @default(MEMBER)
-  permissions    String[]   @default([])
-  joinedAt       DateTime   @default(now())
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id                  String     @id @default(cuid())
+  organizationId      String
+  userId              String
+  role                MemberRole @default(MEMBER)
+  permissions         String[]   @default([])
+  launcherPreferences Json?
+  joinedAt            DateTime   @default(now())
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -708,6 +772,247 @@ model OrganizationWorkflow {
   @@unique([organizationId, moduleKey, workflowKey])
   @@index([organizationId])
   @@map("organization_workflows")
+}
+
+// Workflow Automation Engine. This is intentionally separate from the legacy
+// OrganizationWorkflow model, which stores per-module configuration.
+model Workflow {
+  id                    String    @id @default(cuid())
+  organizationId        String
+  name                  String
+  description           String?
+  status                String    @default("DRAFT")
+  currentDraftVersionId String?
+  publishedVersionId    String?
+  createdById           String
+  updatedById           String
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  deletedAt             DateTime?
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  versions     WorkflowVersion[]   @relation("WorkflowVersions")
+  triggers     WorkflowTrigger[]
+  executions   WorkflowExecution[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, updatedAt])
+  @@map("automation_workflows")
+}
+
+model WorkflowVersion {
+  id                 String    @id @default(cuid())
+  organizationId     String
+  workflowId         String
+  version            Int
+  state              String    @default("DRAFT")
+  graphSchemaVersion Int       @default(1)
+  graph              Json
+  inputSchema        Json?
+  checksum           String
+  validationErrors   Json?
+  publishedById      String?
+  publishedAt        DateTime?
+  createdAt          DateTime  @default(now())
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflow     Workflow            @relation("WorkflowVersions", fields: [workflowId], references: [id], onDelete: Cascade)
+  triggers     WorkflowTrigger[]
+  executions   WorkflowExecution[]
+
+  @@unique([organizationId, workflowId, version])
+  @@index([organizationId, workflowId, state])
+  @@map("automation_workflow_versions")
+}
+
+model WorkflowTrigger {
+  id                String    @id @default(cuid())
+  organizationId    String
+  workflowId        String
+  workflowVersionId String
+  triggerType       String
+  triggerKey        String
+  configuration     Json
+  enabled           Boolean   @default(true)
+  nextRunAt         DateTime?
+  webhookSecretHash String?
+  createdAt         DateTime  @default(now())
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflow     Workflow            @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  version      WorkflowVersion     @relation(fields: [workflowVersionId], references: [id], onDelete: Cascade)
+  executions   WorkflowExecution[]
+
+  @@index([organizationId, triggerType, triggerKey, enabled])
+  @@index([triggerType, nextRunAt, enabled])
+  @@map("automation_workflow_triggers")
+}
+
+model WorkflowExecution {
+  id                String    @id @default(cuid())
+  organizationId    String
+  workflowId        String
+  workflowVersionId String
+  triggerId         String?
+  eventId           String?
+  idempotencyKey    String
+  status            String    @default("QUEUED")
+  currentNodeId     String?
+  context           Json
+  error             Json?
+  attempt           Int       @default(0)
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  timeoutAt         DateTime?
+  createdAt         DateTime  @default(now())
+
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflow     Workflow               @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  version      WorkflowVersion        @relation(fields: [workflowVersionId], references: [id], onDelete: Restrict)
+  trigger      WorkflowTrigger?       @relation(fields: [triggerId], references: [id], onDelete: SetNull)
+  logs         WorkflowExecutionLog[]
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, workflowId, createdAt])
+  @@index([organizationId, status, createdAt])
+  @@map("automation_workflow_executions")
+}
+
+model WorkflowExecutionLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  executionId    String
+  nodeId         String?
+  nodeType       String
+  level          String   @default("INFO")
+  status         String
+  attempt        Int      @default(0)
+  input          Json?
+  output         Json?
+  errorCode      String?
+  errorMessage   String?
+  durationMs     Int?
+  createdAt      DateTime @default(now())
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  execution    WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, executionId, createdAt])
+  @@map("automation_workflow_execution_logs")
+}
+
+model AutomationReminder {
+  id             String  @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  category       String // PAYMENT, CONTRACT, TASK...
+  status         String // ACTIVE, PAUSED, DRAFT
+
+  triggerSource String // Module nguồn: INVOICE, LEAD...
+  triggerEvent  String? // Sự kiện: CREATED, UPDATED...
+
+  timingType     String // BEFORE, AFTER, ON_TIME
+  timingValue    Int? // Số lượng (VD: 3)
+  timingUnit     String? // Đơn vị (DAYS, HOURS, MINUTES)
+  referenceField String // Trường tham chiếu (VD: dueDate)
+
+  repeatConfig  Json? // Cấu hình lặp lại
+  stopCondition Json? // Điều kiện dừng
+
+  recipients     Json // Danh sách người nhận
+  channels       String[] // Kênh gửi
+  templateConfig Json // Nội dung động
+
+  actions Json? // Các hành động sau khi gửi
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  logs         ReminderLog[]
+
+  @@index([organizationId, status])
+  @@index([triggerSource])
+  @@map("automation_reminders")
+}
+
+model ReminderLog {
+  id             String @id @default(cuid())
+  organizationId String
+  reminderId     String
+  targetEntityId String // ID của đối tượng (Hóa đơn, Hợp đồng...)
+
+  status       String // SUCCESS, FAILED, SNOOZED, CANCELLED
+  errorMessage String?
+
+  channel       String
+  recipientData Json // Đã gửi cho ai
+
+  sentAt DateTime @default(now())
+
+  organization Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reminder     AutomationReminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, status, sentAt])
+  @@map("automation_reminder_logs")
+}
+
+model PlatformEventOutbox {
+  id             String    @id @default(cuid())
+  organizationId String
+  eventName      String
+  eventVersion   Int       @default(1)
+  sourceModule   String
+  aggregateType  String?
+  aggregateId    String?
+  payload        Json
+  metadata       Json
+  occurredAt     DateTime  @default(now())
+  status         String    @default("PENDING")
+  attempts       Int       @default(0)
+  availableAt    DateTime  @default(now())
+  publishedAt    DateTime?
+  lastError      String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([status, availableAt])
+  @@index([organizationId, eventName, occurredAt])
+  @@map("platform_event_outbox")
+}
+
+model PlatformEventInbox {
+  id             String    @id @default(cuid())
+  organizationId String
+  consumer       String
+  eventId        String
+  status         String    @default("RECEIVED")
+  receivedAt     DateTime  @default(now())
+  processedAt    DateTime?
+  lastError      String?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([consumer, eventId])
+  @@index([organizationId, status, receivedAt])
+  @@map("platform_event_inbox")
+}
+
+model CustomDashboard {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  layout         Json // Lưu trữ tọa độ, kích thước (x, y, w, h) của react-grid-layout
+  widgets        Json // Lưu trữ chi tiết cấu hình (type, data filters, colors)
+  isPublic       Boolean  @default(false) // Khi true: ai có link đều xem được
+  publicToken    String?  @unique // Token ngẫn đồng nhất để tạo link công khai
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@map("custom_dashboards")
 }
 
 model PlatformModule {
@@ -1364,14 +1669,15 @@ model Contact {
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  assignee     User?             @relation("ContactAssignee", fields: [assigneeId], references: [id])
-  company      Company?          @relation(fields: [companyId], references: [id])
-  deals        Deal[]
-  activities   ContactActivity[]
-  invoices     Invoice[]
-  quotations   Quotation[]
-  contracts    Contract[]
+  organization  Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assignee      User?             @relation("ContactAssignee", fields: [assigneeId], references: [id])
+  company       Company?          @relation(fields: [companyId], references: [id])
+  deals         Deal[]
+  activities    ContactActivity[]
+  invoices      Invoice[]
+  quotations    Quotation[]
+  contracts     Contract[]
+  hotelBookings HotelBooking[]
 
   @@index([organizationId])
   @@index([email])
@@ -1381,27 +1687,27 @@ model Contact {
 }
 
 model Company {
-  id             String   @id @default(cuid())
-  organizationId String
-  name           String
-  website        String?
-  email          String?
-  phone          String?
-  taxCode        String?
+  id                  String   @id @default(cuid())
+  organizationId      String
+  name                String
+  website             String?
+  email               String?
+  phone               String?
+  taxCode             String?
   representativeName  String?
   representativeTitle String?
-  industry       String?
-  size           String?
-  revenue        Decimal?
-  country        String   @default("Vietnam")
-  address        String?
-  city           String?
-  description    String?
-  logo           String?
-  tags           String[] @default([])
-  customFields   Json?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  industry            String?
+  size                String?
+  revenue             Decimal?
+  country             String   @default("Vietnam")
+  address             String?
+  city                String?
+  description         String?
+  logo                String?
+  tags                String[] @default([])
+  customFields        Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   contacts     Contact[]
@@ -2038,6 +2344,7 @@ model Invoice {
   quotations          Quotation[]
   contract            Contract?            @relation(fields: [contractId], references: [id])
   signature           DocumentSignature?   @relation("InvoiceSignature", fields: [signatureId], references: [id])
+  hotelBookings       HotelBooking[]
 
   @@unique([organizationId, number])
   @@index([organizationId])
@@ -2876,6 +3183,194 @@ model AIPrompt {
   @@map("ai_prompts")
 }
 
+model AIProviderConnection {
+  id                 String    @id @default(cuid())
+  organizationId     String
+  providerKey        String
+  displayName        String
+  encryptedApiKey    Json?
+  baseUrl            String?
+  region             String?
+  status             String    @default("DISCONNECTED")
+  isDefault          Boolean   @default(false)
+  rateLimitPerMinute Int?
+  monthlyQuota       Int?
+  lastTestedAt       DateTime?
+  lastError          String?
+  createdById        String
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  models       AIModelConfig[]
+  agents       AIAgent[]
+
+  @@unique([organizationId, providerKey])
+  @@index([organizationId, status])
+  @@map("ai_provider_connections")
+}
+
+model AIModelConfig {
+  id             String   @id @default(cuid())
+  organizationId String
+  providerId     String
+  modelId        String
+  displayName    String
+  capabilities   String[] @default([])
+  purposes       String[] @default([])
+  contextWindow  Int?
+  inputCost      Decimal? @db.Decimal(18, 8)
+  outputCost     Decimal? @db.Decimal(18, 8)
+  enabled        Boolean  @default(true)
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider     AIProviderConnection @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  agents       AIAgent[]
+
+  @@unique([organizationId, providerId, modelId])
+  @@index([organizationId, enabled])
+  @@map("ai_model_configs")
+}
+
+model AIAgent {
+  id              String   @id @default(cuid())
+  organizationId  String
+  name            String
+  description     String?
+  avatar          String?
+  systemPrompt    String   @db.Text
+  providerId      String?
+  modelConfigId   String?
+  temperature     Float    @default(0.7)
+  maxTokens       Int      @default(2048)
+  allowedTools    String[] @default([])
+  allowedModules  String[] @default([])
+  dataPermissions Json?
+  status          String   @default("DRAFT")
+  createdById     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider     AIProviderConnection? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  model        AIModelConfig?        @relation(fields: [modelConfigId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status])
+  @@map("ai_agents")
+}
+
+model AIManagedPrompt {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  category       String?
+  variables      Json?
+  status         String   @default("DRAFT")
+  currentVersion Int      @default(1)
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  versions     AIManagedPromptVersion[]
+
+  @@index([organizationId, category, status])
+  @@map("ai_managed_prompts")
+}
+
+model AIManagedPromptVersion {
+  id             String   @id @default(cuid())
+  organizationId String
+  promptId       String
+  version        Int
+  content        String   @db.Text
+  changeNote     String?
+  createdById    String
+  createdAt      DateTime @default(now())
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  prompt       AIManagedPrompt @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, promptId, version])
+  @@map("ai_managed_prompt_versions")
+}
+
+model AIUsageRecord {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  moduleKey      String
+  agentId        String?
+  providerKey    String
+  modelId        String
+  purpose        String
+  inputTokens    Int      @default(0)
+  outputTokens   Int      @default(0)
+  estimatedCost  Decimal  @default(0) @db.Decimal(18, 8)
+  durationMs     Int?
+  status         String
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, moduleKey, createdAt])
+  @@index([organizationId, userId, createdAt])
+  @@map("ai_usage_records")
+}
+
+model AIRequestLog {
+  id              String    @id @default(cuid())
+  organizationId  String
+  requestId       String    @unique
+  userId          String?
+  moduleKey       String
+  agentId         String?
+  providerKey     String
+  modelId         String
+  promptPreview   String?
+  responsePreview String?
+  status          String
+  errorCode       String?
+  errorMessage    String?
+  startedAt       DateTime  @default(now())
+  finishedAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, startedAt])
+  @@index([organizationId, status, startedAt])
+  @@map("ai_request_logs")
+}
+
+model AIOrganizationSettings {
+  id                 String   @id @default(cuid())
+  organizationId     String   @unique
+  defaultProviderKey String?
+  defaultChatModel   String?
+  defaultVisionModel String?
+  defaultEmbedModel  String?
+  language           String   @default("vi")
+  temperature        Float    @default(0.7)
+  maxTokens          Int      @default(2048)
+  timeoutSeconds     Int      @default(60)
+  maxRetries         Int      @default(2)
+  streamingEnabled   Boolean  @default(true)
+  cacheEnabled       Boolean  @default(false)
+  monthlyTokenLimit  Int?
+  monthlyCostLimit   Decimal? @db.Decimal(18, 4)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("ai_organization_settings")
+}
+
 model ContentPerformanceReport {
   id         String   @id @default(cuid())
   contentId  String
@@ -2890,4 +3385,933 @@ model ContentPerformanceReport {
 
   @@index([contentId])
   @@map("content_performance_reports")
+}
+
+// ==============================================================================
+// HOTEL BOOKING MODULE (Part of Traveling)
+// ==============================================================================
+
+model Hotel {
+  id           String   @id @default(cuid())
+  name         String
+  slug         String?  @unique
+  description  String?  @db.Text
+  address      String?
+  city         String?
+  country      String?
+  starRating   Int      @default(3)
+  logo         String?
+  images       String[] @default([])
+  amenities    String[] @default([])
+  checkInTime  String?  @default("14:00")
+  checkOutTime String?  @default("12:00")
+  contactEmail String?
+  contactPhone String?
+  policies     String?  @db.Text
+  isActive     Boolean  @default(true)
+
+  // Relations
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  agentId String?
+  agent   User?   @relation("AgentHotels", fields: [agentId], references: [id])
+
+  roomTypes RoomType[]
+  bookings  HotelBooking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([agentId])
+}
+
+model RoomType {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  capacity    Int      @default(2)
+  basePrice   Float    @default(0)
+  amenities   String[] @default([])
+  images      String[] @default([])
+  roomSize    Int?
+  bedType     String?
+  view        String?
+  maxAdults   Int      @default(2)
+  maxChildren Int      @default(0)
+  smoking     Boolean  @default(false)
+  features    Json?
+
+  // Relations
+  hotelId String
+  hotel   Hotel  @relation(fields: [hotelId], references: [id], onDelete: Cascade)
+
+  bookings  HotelBooking[]
+  inventory RoomInventory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hotelId])
+}
+
+model RoomInventory {
+  id                String   @id @default(cuid())
+  date              DateTime @db.Date
+  allotment         Int      @default(0)
+  availableRooms    Int      @default(0)
+  price             Float    @default(0)
+  isClosed          Boolean  @default(false)
+  minStay           Int      @default(1)
+  maxStay           Int?
+  closedToArrival   Boolean  @default(false)
+  closedToDeparture Boolean  @default(false)
+  note              String?  @db.Text
+
+  roomTypeId String
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([roomTypeId, date])
+  @@index([date])
+  @@index([roomTypeId])
+}
+
+model HotelBooking {
+  id             String             @id @default(cuid())
+  bookingCode    String             @unique
+  checkIn        DateTime
+  checkOut       DateTime
+  totalAmount    Float
+  status         HotelBookingStatus @default(PENDING)
+  guestName      String
+  guestEmail     String?
+  guestPhone     String?
+  specialRequest String?            @db.Text
+
+  // Relations
+  hotelId String
+  hotel   Hotel  @relation(fields: [hotelId], references: [id])
+
+  roomTypeId String
+  roomType   RoomType @relation(fields: [roomTypeId], references: [id])
+
+  customerId String?
+  customer   User?   @relation("CustomerBookings", fields: [customerId], references: [id])
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+
+  invoiceId String?
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([hotelId])
+  @@index([roomTypeId])
+  @@index([customerId])
+  @@index([contactId])
+  @@index([invoiceId])
+}
+
+enum HotelBookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+// ==============================================================================
+// TRAVELING EXTENSIONS (Tour, Vehicle, Ticket)
+// ==============================================================================
+
+model Tour {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?  @db.Text
+  durationDays   Int      @default(1)
+  basePrice      Float // Giá người lớn cơ bản
+  baseChildPrice Float    @default(0) // Giá trẻ em cơ bản
+  destinations   String[] @default([])
+  images         String[] @default([])
+  isActive       Boolean  @default(true)
+
+  // New fields for Pricing & Details
+  included   String[] @default([])
+  excluded   String[] @default([])
+  surcharges Json?
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  agentId String?
+  agent   User?   @relation("AgentTours", fields: [agentId], references: [id])
+
+  inventories TourInventory[]
+  bookings    TourBooking[]
+  itineraries TourItinerary[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([agentId])
+}
+
+model TourItinerary {
+  id          String @id @default(cuid())
+  tourId      String
+  dayNumber   Int
+  title       String
+  description String @db.Text
+
+  // Dịch vụ bao gồm trong ngày
+  meals     Json? // {"breakfast": true, "lunch": false, "dinner": true}
+  hotelName String?
+  location  String? // Điểm đến cụ thể hoặc tọa độ
+  transport String? // Thời gian hoặc phương tiện di chuyển
+
+  images String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@unique([tourId, dayNumber])
+  @@index([tourId])
+}
+
+model TourInventory {
+  id     String   @id @default(cuid())
+  tourId String
+  date   DateTime @db.Date // Ngày khởi hành
+
+  allotment   Int @default(20) // Số chỗ mở bán
+  bookedCount Int @default(0) // Số chỗ đã có khách đặt
+
+  adultPrice Float? // Giá NL tùy chỉnh (Nếu null lấy basePrice)
+  childPrice Float? // Giá TE tùy chỉnh (Nếu null lấy baseChildPrice)
+  isClosed   Boolean @default(false) // Đóng/Khóa ngày này không cho đặt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@unique([tourId, date])
+  @@index([tourId])
+}
+
+model TourBooking {
+  id            String   @id @default(cuid())
+  bookingCode   String   @unique
+  departureDate DateTime
+  totalAmount   Float
+  status        String   @default("PENDING") // PENDING, CONFIRMED, CANCELLED, COMPLETED
+
+  guestName  String
+  guestEmail String?
+  guestPhone String?
+  paxCount   Int     @default(1)
+
+  tourId String
+  tour   Tour   @relation(fields: [tourId], references: [id])
+
+  customerId String?
+  customer   User?   @relation("CustomerTourBookings", fields: [customerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tourId])
+  @@index([customerId])
+}
+
+model Vehicle {
+  id           String   @id @default(cuid())
+  name         String
+  type         String // CAR, MOTORBIKE, VAN
+  seats        Int      @default(4)
+  pricePerDay  Float    @default(0)
+  licensePlate String?
+  images       String[] @default([])
+  isActive     Boolean  @default(true)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  agentId String?
+  agent   User?   @relation("AgentVehicles", fields: [agentId], references: [id])
+
+  bookings VehicleBooking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([agentId])
+}
+
+model VehicleBooking {
+  id          String   @id @default(cuid())
+  bookingCode String   @unique
+  pickupDate  DateTime
+  returnDate  DateTime
+  totalAmount Float
+  status      String   @default("PENDING")
+
+  guestName  String
+  guestEmail String?
+  guestPhone String?
+
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+
+  customerId String?
+  customer   User?   @relation("CustomerVehicleBookings", fields: [customerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vehicleId])
+  @@index([customerId])
+}
+
+model TicketEvent {
+  id          String    @id @default(cuid())
+  name        String
+  type        String // FLIGHT, TRAIN, BUS, EVENT
+  description String?   @db.Text
+  eventDate   DateTime?
+  location    String?
+  basePrice   Float     @default(0)
+  images      String[]  @default([])
+  isActive    Boolean   @default(true)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  agentId String?
+  agent   User?   @relation("AgentTickets", fields: [agentId], references: [id])
+
+  bookings TicketBooking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([agentId])
+}
+
+model TicketBooking {
+  id          String @id @default(cuid())
+  bookingCode String @unique
+  totalAmount Float
+  status      String @default("PENDING")
+
+  guestName   String
+  guestEmail  String?
+  guestPhone  String?
+  ticketCount Int     @default(1)
+
+  ticketEventId String
+  ticketEvent   TicketEvent @relation(fields: [ticketEventId], references: [id])
+
+  customerId String?
+  customer   User?   @relation("CustomerTicketBookings", fields: [customerId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ticketEventId])
+  @@index([customerId])
+}
+
+// ============================================================
+// CORE ROLE & PERMISSION CENTER
+// ============================================================
+
+enum DataScope {
+  SELF
+  TEAM
+  DEPARTMENT
+  BRANCH
+  ASSIGNED
+  ORGANIZATION
+}
+
+model Department {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  code           String?
+  description    String?
+  parentId       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent         Department?          @relation("DepartmentHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children       Department[]         @relation("DepartmentHierarchy")
+  teams          Team[]
+  users          CoreUserDepartment[]
+  resourceAccess ResourceAccess[]
+
+  zaloPermissions ZaloAccountPermission[] @relation("DepartmentZaloPermissions")
+
+  @@index([organizationId])
+  @@map("core_departments")
+}
+
+model Team {
+  id             String   @id @default(cuid())
+  organizationId String
+  departmentId   String?
+  name           String
+  code           String?
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  department     Department?      @relation(fields: [departmentId], references: [id])
+  users          CoreUserTeam[]
+  resourceAccess ResourceAccess[]
+
+  @@index([organizationId])
+  @@index([departmentId])
+  @@map("core_teams")
+}
+
+model Role {
+  id             String    @id @default(cuid())
+  organizationId String
+  name           String
+  code           String
+  description    String?
+  status         String    @default("ACTIVE")
+  priority       Int       @default(0)
+  dataScope      DataScope @default(ORGANIZATION)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  parentId       String?
+
+  organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users          CoreUserRole[]
+  permissions    CoreRolePermission[]
+  resourceAccess ResourceAccess[]
+
+  parent   Role?  @relation("RoleInheritance", fields: [parentId], references: [id])
+  children Role[] @relation("RoleInheritance")
+
+  @@index([organizationId])
+  @@map("core_roles")
+}
+
+model Permission {
+  id          String  @id @default(cuid())
+  action      String  @unique
+  group       String
+  description String?
+
+  roles CoreRolePermission[]
+
+  @@map("core_permissions")
+}
+
+model CoreRolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("core_role_permissions")
+}
+
+model CoreUserDepartment {
+  userId       String
+  departmentId String
+  isManager    Boolean @default(false)
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, departmentId])
+  @@map("core_user_departments")
+}
+
+model CoreUserTeam {
+  userId   String
+  teamId   String
+  isLeader Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([userId, teamId])
+  @@map("core_user_teams")
+}
+
+model CoreUserRole {
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("core_user_roles")
+}
+
+model ResourceAccess {
+  id             String @id @default(cuid())
+  organizationId String
+  resourceType   String
+  resourceId     String
+
+  userId       String?
+  roleId       String?
+  teamId       String?
+  departmentId String?
+
+  permissionLevel String
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id])
+  role         Role?        @relation(fields: [roleId], references: [id])
+  team         Team?        @relation(fields: [teamId], references: [id])
+  department   Department?  @relation(fields: [departmentId], references: [id])
+
+  @@index([organizationId, resourceType, resourceId])
+  @@map("core_resource_access")
+}
+
+model CoreAuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  actorId        String
+  action         String
+  targetType     String
+  targetId       String
+  oldValue       Json?
+  newValue       Json?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor        User         @relation(fields: [actorId], references: [id])
+
+  @@index([organizationId])
+  @@map("core_audit_logs")
+}
+
+// ============================================================
+// CORE MAIL MANAGEMENT
+// ============================================================
+
+enum MailAccountStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+  SYNCING
+}
+
+enum MailPermissionLevel {
+  VIEW
+  READ
+  SEND
+  REPLY
+  FORWARD
+  DELETE
+  MANAGE
+}
+
+model MailAccount {
+  id             String @id @default(cuid())
+  organizationId String
+
+  // Thông tin hiển thị & Chữ ký
+  emailAddress String
+  displayName  String?
+  replyTo      String?
+  alias        String?
+  signature    String? @db.Text
+
+  // IMAP (Nhận)
+  imapHost     String
+  imapPort     Int     @default(993)
+  imapUsername String
+  imapPassword String
+  imapSsl      Boolean @default(true)
+
+  // SMTP (Gửi)
+  smtpHost     String
+  smtpPort     Int     @default(465)
+  smtpUsername String
+  smtpPassword String
+  smtpSsl      Boolean @default(true)
+
+  syncInterval Int               @default(5) // minutes
+  status       MailAccountStatus @default(ACTIVE)
+  lastSyncAt   DateTime?
+  errorMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      MailAccountMember[]
+  threads      MailThread[]
+  messages     MailMessage[]
+
+  isSystem Boolean @default(false)
+
+  @@unique([organizationId, emailAddress])
+  @@map("core_mail_accounts")
+}
+
+model MailAccountMember {
+  id            String  @id @default(cuid())
+  mailAccountId String
+  userId        String?
+  roleId        String?
+  departmentId  String?
+
+  permissions MailPermissionLevel[]
+
+  createdAt DateTime @default(now())
+
+  account MailAccount @relation(fields: [mailAccountId], references: [id], onDelete: Cascade)
+  user    User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("core_mail_account_members")
+}
+
+model MailThread {
+  id             String   @id @default(cuid())
+  organizationId String
+  mailAccountId  String
+  subject        String
+  snippet        String?  @db.Text
+  lastMessageAt  DateTime
+  messageCount   Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  account  MailAccount   @relation(fields: [mailAccountId], references: [id], onDelete: Cascade)
+  messages MailMessage[]
+
+  @@map("core_mail_threads")
+}
+
+model MailMessage {
+  id             String  @id @default(cuid())
+  organizationId String
+  mailAccountId  String
+  threadId       String?
+
+  messageId String
+  folder    String
+
+  fromName  String?
+  fromEmail String
+  to        String[]
+  cc        String[]
+  bcc       String[]
+
+  subject  String
+  bodyHtml String? @db.Text
+  bodyText String? @db.Text
+
+  isRead         Boolean @default(false)
+  isStarred      Boolean @default(false)
+  hasAttachments Boolean @default(false)
+
+  receivedAt DateTime
+  createdAt  DateTime @default(now())
+
+  account     MailAccount      @relation(fields: [mailAccountId], references: [id], onDelete: Cascade)
+  thread      MailThread?      @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  attachments MailAttachment[]
+
+  @@index([mailAccountId, folder])
+  @@map("core_mail_messages")
+}
+
+model MailAttachment {
+  id        String @id @default(cuid())
+  messageId String
+  fileName  String
+  mimeType  String
+  size      Int
+  fileUrl   String
+
+  createdAt DateTime @default(now())
+
+  message MailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("core_mail_attachments")
+}
+
+// ============================================================
+// CORE STORAGE CENTER
+// ============================================================
+
+enum StorageProviderType {
+  LOCAL
+  GOOGLE_DRIVE
+  GOOGLE_SHARED_DRIVE
+  ONEDRIVE
+  SHAREPOINT
+  DROPBOX
+  S3
+  R2
+  MINIO
+  NAS
+  FTP
+  SFTP
+}
+
+enum StorageConnectionStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
+}
+
+model StorageConnection {
+  id             String                  @id @default(cuid())
+  organizationId String
+  name           String
+  provider       StorageProviderType
+  description    String?
+  status         StorageConnectionStatus @default(ACTIVE)
+  credentials    Json // Encrypted credentials
+  rootFolder     String? // Root path/folder ID
+  region         String? // for S3/R2
+  capacityBytes  BigInt? // Optional total capacity limit
+  usedBytes      BigInt                  @default(0)
+  errorMessage   String?
+  isDefault      Boolean                 @default(false)
+
+  policies StoragePolicy[]
+  files    StorageFile[]
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("core_storage_connections")
+}
+
+model StoragePolicy {
+  id             String  @id @default(cuid())
+  organizationId String
+  connectionId   String
+  name           String
+  fileCategory   String // e.g. MAIL_ATTACHMENT, INVOICE, HR_DOC
+  folderMapping  String? // e.g. /Mail/Attachments
+  isActive       Boolean @default(true)
+
+  connection   StorageConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, fileCategory])
+  @@map("core_storage_policies")
+}
+
+model StorageFile {
+  id             String @id @default(cuid())
+  organizationId String
+  connectionId   String
+
+  providerId      String // ID given by the provider (e.g. Google Drive File ID)
+  name            String
+  path            String // Virtual or physical path
+  mimeType        String
+  sizeBytes       BigInt
+  hash            String? // For duplicate detection
+  category        String? // Links to StoragePolicy
+  module          String? // e.g. 'MAIL', 'CRM'
+  relatedRecordId String? // ID of the related record (e.g. invoice id)
+
+  uploadedById String?
+
+  isArchived Boolean @default(false)
+  isDeleted  Boolean @default(false)
+
+  connection   StorageConnection @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  uploadedBy   User?             @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, module, relatedRecordId])
+  @@index([hash])
+  @@map("core_storage_files")
+}
+
+model StorageAuditLog {
+  id             String  @id @default(cuid())
+  organizationId String
+  userId         String?
+  action         String // UPLOAD, DOWNLOAD, DELETE, MOVE, SHARE, etc.
+  fileId         String?
+  connectionId   String?
+  details        Json? // Metadata about the action
+
+  createdAt DateTime @default(now())
+
+  @@map("core_storage_audit_logs")
+}
+
+// ============================================================
+// BUSINESS CHAT
+// ============================================================
+
+enum ChatType {
+  DIRECT
+  GROUP
+  ENTITY
+}
+
+enum ParticipantRole {
+  ADMIN
+  MEMBER
+}
+
+enum MessageType {
+  TEXT
+  FILE
+  SYSTEM
+  OVC_CARD
+}
+
+model ChatConversation {
+  id             String   @id @default(cuid())
+  organizationId String
+  type           ChatType
+  name           String?
+  description    String?
+  avatarUrl      String?
+  entityType     String?
+  entityId       String?
+  zaloAccountId  String? // Nếu cuộc hội thoại này thuộc về 1 Zalo Account cụ thể
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  participants ChatParticipant[]
+  messages     ChatMessage[]
+  zaloAccount  ZaloAccount?      @relation(fields: [zaloAccountId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@map("chat_conversations")
+}
+
+model ChatParticipant {
+  id             String          @id @default(cuid())
+  organizationId String
+  conversationId String
+  userId         String
+  role           ParticipantRole
+  lastReadAt     DateTime?
+  joinedAt       DateTime        @default(now())
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("chat_participants")
+}
+
+model ChatMessage {
+  id             String      @id @default(cuid())
+  organizationId String
+  conversationId String
+  senderId       String
+  content        String?     @db.Text
+  type           MessageType
+  metadata       Json?
+  replyToId      String?
+  isEdited       Boolean     @default(false)
+  isDeleted      Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([conversationId])
+  @@index([senderId])
+  @@map("chat_messages")
+}
+
+// ============================================================
+// ZALO INTEGRATION
+// ============================================================
+
+model ZaloAccount {
+  id             String  @id @default(cuid())
+  organizationId String
+  name           String
+  avatar         String?
+  phone          String?
+  zaloId         String // Zalo User ID (uid)
+
+  // Credentials for reconnecting
+  cookie    String?
+  imei      String?
+  secretKey String?
+  userAgent String?
+
+  // Scopes & Roles
+  isMaster Boolean @default(false)
+
+  // If not master, who owns this?
+  ownerId String?
+  owner   User?   @relation("UserZaloAccounts", fields: [ownerId], references: [id])
+
+  status String @default("DISCONNECTED")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  organization Organization @relation("OrganizationZaloAccounts", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  permissions       ZaloAccountPermission[]
+  chatConversations ChatConversation[]
+
+  @@unique([organizationId, zaloId])
+  @@index([organizationId])
+  @@map("zalo_accounts")
+}
+
+model ZaloAccountPermission {
+  id            String      @id @default(cuid())
+  zaloAccountId String
+  zaloAccount   ZaloAccount @relation(fields: [zaloAccountId], references: [id], onDelete: Cascade)
+
+  // Can be granted to a user
+  userId String?
+  user   User?   @relation("UserZaloPermissions", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Or granted to a department
+  departmentId String?
+  department   Department? @relation("DepartmentZaloPermissions", fields: [departmentId], references: [id], onDelete: Cascade)
+
+  @@map("zalo_account_permissions")
 }

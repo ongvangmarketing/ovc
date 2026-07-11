@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import { requireInstructorPortal, requireStudentPortal } from "@/lib/auth/rbac";
 
 const currency = new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND", maximumFractionDigits: 0 });
@@ -27,7 +27,7 @@ export async function getStudentLearningPortalData() {
   const userId = session.user.id;
 
   const [enrollments, schedules, submissions] = await Promise.all([
-    db.enrollment.findMany({
+    getTenantDb().enrollment.findMany({
       where: { studentId: userId, course: { organizationId } },
       include: {
         course: {
@@ -41,7 +41,7 @@ export async function getStudentLearningPortalData() {
       },
       orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
     }),
-    db.$queryRaw<
+    getTenantDb().$queryRaw<
       {
         id: string;
         courseId: string;
@@ -70,7 +70,7 @@ export async function getStudentLearningPortalData() {
       ORDER BY ls."startsAt" ASC NULLS LAST, ls."createdAt" DESC
       LIMIT 8
     `),
-    db.assignmentSubmission.findMany({
+    getTenantDb().assignmentSubmission.findMany({
       where: { studentId: userId },
       include: { assignment: true, grader: { select: { name: true } } },
       orderBy: { submittedAt: "desc" },
@@ -156,7 +156,7 @@ export async function getInstructorLearningPortalData() {
   const userId = session.user.id;
 
   const [courses, schedules] = await Promise.all([
-    db.course.findMany({
+    getTenantDb().course.findMany({
       where: { organizationId, instructorId: userId },
       include: {
         classes: { include: { _count: { select: { enrollments: true } } }, orderBy: [{ startDate: "asc" }, { createdAt: "desc" }] },
@@ -166,7 +166,7 @@ export async function getInstructorLearningPortalData() {
       },
       orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
     }),
-    db.$queryRaw<
+    getTenantDb().$queryRaw<
       {
         id: string;
         courseId: string;
@@ -198,7 +198,7 @@ export async function getInstructorLearningPortalData() {
 
   const instructorLessonIds = courses.flatMap((course) => course.sections.flatMap((section) => section.lessons.map((lesson) => lesson.id)));
   const submissions = instructorLessonIds.length
-    ? await db.assignmentSubmission.findMany({
+    ? await getTenantDb().assignmentSubmission.findMany({
         where: {
           assignment: { lessonId: { in: instructorLessonIds } },
           OR: [{ graderId: userId }, { graderId: null }],
@@ -210,7 +210,7 @@ export async function getInstructorLearningPortalData() {
     : [];
 
   const assignments = instructorLessonIds.length
-    ? await db.assignment.findMany({
+    ? await getTenantDb().assignment.findMany({
         where: { lessonId: { in: instructorLessonIds } },
         select: { id: true, lessonId: true, title: true, dueDate: true, maxScore: true },
         orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],

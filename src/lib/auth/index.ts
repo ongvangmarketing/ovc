@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { organization } from "better-auth/plugins";
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import { sendEmail } from "@/lib/email/service";
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -41,7 +41,7 @@ export const auth = betterAuth({
     fallback: appUrl,
     protocol: "auto",
   },
-  database: prismaAdapter(db, {
+  database: prismaAdapter(getTenantDb(), {
     provider: "postgresql",
   }),
   emailAndPassword: {
@@ -49,7 +49,7 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     sendResetPassword: async ({ user, url, token }, request) => {
       // Find the user's first organization to use its email settings
-      const member = await db.organizationMember.findFirst({
+      const member = await getTenantDb().organizationMember.findFirst({
         where: { userId: user.id },
       });
       
@@ -92,8 +92,7 @@ export const auth = betterAuth({
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     updateAge: 60 * 60 * 24, // refresh every day
     cookieCache: {
-      enabled: true,
-      maxAge: 60 * 5, // cache session in cookie for 5 minutes
+      enabled: false,
     },
   },
   user: {
@@ -118,6 +117,10 @@ export const auth = betterAuth({
         required: false,
       },
     },
+  },
+  rateLimit: {
+    window: 60, // 60 seconds
+    max: 1000,  // 1000 requests per minute to avoid proxy blocking
   },
   trustedOrigins: async (request) => {
     const origin = requestOrigin(request);

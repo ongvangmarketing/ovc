@@ -1,10 +1,12 @@
 import "server-only";
+import { getTenantDb } from "@/lib/db";
+import { facebookProvider } from "@/modules/social-marketing/services/providers/facebook/provider";
+import { decryptSocialToken, encryptSocialToken } from "@/modules/social-marketing/services/security/token-crypto";
 
-import { db } from "@/lib/db";
-import { facebookProvider } from "@/modules/social-marketing/providers/facebook/provider";
-import { decryptSocialToken, encryptSocialToken } from "@/modules/social-marketing/security/token-crypto";
 
-export async function saveFacebookConnection(params: {
+export class FacebookConnectionService {
+
+static async saveFacebookConnection(params: {
   organizationId: string;
   code: string;
   redirectUri: string;
@@ -13,7 +15,7 @@ export async function saveFacebookConnection(params: {
   const discovery = await facebookProvider.discoverAssets(grant.accessToken);
   const envelope = encryptSocialToken(grant.accessToken);
 
-  return db.$transaction(async (tx) => {
+  return getTenantDb().$transaction(async (tx) => {
     const connection = await tx.socialProviderConnection.upsert({
       where: {
         organizationId_provider_externalUserId: {
@@ -106,7 +108,7 @@ export async function saveFacebookConnection(params: {
   });
 }
 
-async function upsertFacebookDiscovery(params: {
+static async upsertFacebookDiscovery(params: {
   organizationId: string;
   accessToken: string;
   expiresAt?: Date;
@@ -116,7 +118,7 @@ async function upsertFacebookDiscovery(params: {
   const envelope = encryptSocialToken(params.accessToken);
   const status = discovery.pages.length || discovery.adAccounts.length ? "ACTIVE" : "ATTENTION_REQUIRED";
 
-  return db.$transaction(async (tx) => {
+  return getTenantDb().$transaction(async (tx) => {
     const connection = await tx.socialProviderConnection.upsert({
       where: {
         organizationId_provider_externalUserId: {
@@ -231,7 +233,7 @@ async function upsertFacebookDiscovery(params: {
   });
 }
 
-export async function saveFacebookTokenConnection(params: {
+static async saveFacebookTokenConnection(params: {
   organizationId: string;
   accessToken: string;
 }) {
@@ -240,15 +242,15 @@ export async function saveFacebookTokenConnection(params: {
     throw new Error("Access token không hợp lệ.");
   }
 
-  return upsertFacebookDiscovery({
+  return FacebookConnectionService.upsertFacebookDiscovery({
     organizationId: params.organizationId,
     accessToken: token,
     source: "manual_token",
   });
 }
 
-export async function getFacebookAccessToken(organizationId: string, connectionId: string) {
-  const connection = await db.socialProviderConnection.findFirst({
+static async getFacebookAccessToken(organizationId: string, connectionId: string) {
+  const connection = await getTenantDb().socialProviderConnection.findFirst({
     where: { id: connectionId, organizationId, provider: "FACEBOOK", status: "ACTIVE", deletedAt: null },
     select: { tokenCiphertext: true, tokenIv: true, tokenAuthTag: true, tokenKeyVersion: true },
   });
@@ -261,10 +263,13 @@ export async function getFacebookAccessToken(organizationId: string, connectionI
   });
 }
 
-export async function disconnectFacebook(organizationId: string, connectionId: string) {
-  const updated = await db.socialProviderConnection.updateMany({
+static async disconnectFacebook(organizationId: string, connectionId: string) {
+  const updated = await getTenantDb().socialProviderConnection.updateMany({
     where: { id: connectionId, organizationId, provider: "FACEBOOK" },
     data: { status: "DISCONNECTED", deletedAt: new Date(), tokenExpiresAt: new Date() },
   });
   if (!updated.count) throw new Error("Kết nối Facebook không thuộc tổ chức hiện tại.");
+}
+
+
 }

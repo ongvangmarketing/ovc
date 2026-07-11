@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import { Prisma } from "@prisma/client";
 import { randomBytes } from "crypto";
 
@@ -22,7 +22,7 @@ export class QuotationService {
     const prefix = `BG-${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, '0')}`;
     
     // Count existing to generate next number (Simple sequence)
-    const count = await db.quotation.count({
+    const count = await getTenantDb().quotation.count({
       where: {
         organizationId: data.organizationId,
         number: { startsWith: prefix }
@@ -31,7 +31,7 @@ export class QuotationService {
     
     const number = `${prefix}-${(count + 1).toString().padStart(3, '0')}`;
 
-    return db.quotation.create({
+    return getTenantDb().quotation.create({
       data: {
         organizationId: data.organizationId,
         number,
@@ -53,11 +53,11 @@ export class QuotationService {
    * Tính toán lại tổng tiền của Báo giá
    */
   static async recalculateQuotation(quotationId: string) {
-    const items = await db.quotationItem.findMany({
+    const items = await getTenantDb().quotationItem.findMany({
       where: { quotationId }
     });
 
-    const quotation = await db.quotation.findUnique({
+    const quotation = await getTenantDb().quotation.findUnique({
       where: { id: quotationId }
     });
 
@@ -85,7 +85,7 @@ export class QuotationService {
       total = total.add(taxAmount);
     }
 
-    return db.quotation.update({
+    return getTenantDb().quotation.update({
       where: { id: quotationId },
       data: {
         subtotal,
@@ -107,7 +107,7 @@ export class QuotationService {
     const unitPrice = new Prisma.Decimal(data.unitPrice);
     const total = quantity.mul(unitPrice);
 
-    await db.quotationItem.create({
+    await getTenantDb().quotationItem.create({
       data: {
         quotationId,
         name: data.name,
@@ -125,7 +125,7 @@ export class QuotationService {
    * Cập nhật hạng mục
    */
   static async removeItem(itemId: string) {
-    const item = await db.quotationItem.delete({
+    const item = await getTenantDb().quotationItem.delete({
       where: { id: itemId }
     });
     return this.recalculateQuotation(item.quotationId);
@@ -135,7 +135,7 @@ export class QuotationService {
    * Gửi Báo giá cho khách hàng
    */
   static async sendQuotation(quotationId: string) {
-    return db.quotation.update({
+    return getTenantDb().quotation.update({
       where: { id: quotationId },
       data: { 
         status: "SENT",

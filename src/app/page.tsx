@@ -2,17 +2,17 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { getWorkspaceDashboard } from "@/app/actions/dashboard";
+import { getWorkspaceDashboard } from "@/actions/dashboard";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { LoginForm } from "@/components/auth/login-form";
 import { ServerOrganizationSwitcher } from "@/components/layouts/server-organization-switcher";
 import { auth } from "@/lib/auth";
 import { requireAuth } from "@/lib/auth/require-auth";
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import { getOrganizationEntitlements } from "@/lib/modules/entitlements";
 
-import { DashboardContainer, WorkspaceDashboard } from "./workspace/dashboard/dashboard-client";
-import { WorkspaceShellClient } from "./workspace/workspace-shell-client";
+import { DashboardContainer, WorkspaceDashboard } from "@/app/(workspace)/workspace/dashboard/dashboard-client";
+import { WorkspaceShellClient } from "@/app/(workspace)/workspace/workspace-shell-client";
 
 export async function generateMetadata(): Promise<Metadata> {
   const session = await auth.api.getSession({
@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
     };
   }
 
-  const organization = await db.organization.findUnique({
+  const organization = await getTenantDb().organization.findUnique({
     where: { id: session.session.activeOrganizationId },
     include: { settings: true },
   });
@@ -88,7 +88,11 @@ function rangeFromPeriod(period: "7d" | "30d" | "3m" | "6m" | "12m") {
   return { from, to };
 }
 
-export default async function AppEntryPage({ searchParams }: PageProps<"/">) {
+type AppEntryPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function AppEntryPage({ searchParams }: AppEntryPageProps) {
   const query = await searchParams;
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -125,7 +129,7 @@ export default async function AppEntryPage({ searchParams }: PageProps<"/">) {
   const [entitlements, dashboard, organization] = await Promise.all([
     getOrganizationEntitlements(workspaceSession.organizationId),
     getWorkspaceDashboard(range),
-    db.organization.findUnique({
+    getTenantDb().organization.findUnique({
       where: { id: workspaceSession.organizationId },
       include: { settings: true },
     }),

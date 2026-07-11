@@ -10,7 +10,7 @@ import {
   createWorkspaceDomain,
   removeWorkspaceDomain,
   type WorkspaceDomainConfig,
-} from "@/app/actions/settings";
+} from "@/actions/settings";
 import { SelectBox } from "@/components/ui/select-box";
 
 const targetOptions = [
@@ -109,122 +109,134 @@ export function DomainSettingsClient({
   }
 
   return (
-    <div className="quote-page mx-auto max-w-[1440px] px-6 py-6">
-      <div className="mb-5 flex flex-col gap-3 border-b border-slate-200 pb-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <div className="mb-2 flex items-center gap-2 text-[14px] font-light text-slate-500">
-            <Globe2 className="h-4 w-4 text-orange-500" />
-            Cài đặt / Tên miền
+    <div className="p-8 md:p-12 h-full bg-white font-sans">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-12">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <span className="rounded-full bg-black px-3 py-1.5 text-[11px] font-semibold text-white tracking-wide uppercase">
+                Tên miền & DNS
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="flex items-center gap-2 rounded-full border border-[#eaeaea] bg-white px-4 py-1.5 text-[13px] font-medium text-black transition hover:bg-gray-50"
+            >
+              Quay lại
+            </button>
           </div>
-          <h1 className="text-[14px] font-light text-slate-950">Tên miền công ty</h1>
+          <h1 className="text-[32px] md:text-[44px] tracking-tight leading-[1.15] font-medium">
+            <span className="text-black">Quản lý tên miền,</span>{" "}
+            <span className="text-gray-400">thiết lập DNS & SSL.</span>
+          </h1>
+          <p className="text-[15px] text-gray-500 leading-relaxed mt-5 max-w-2xl">
+            Kết nối tên miền riêng cho website marketing, trang đào tạo, ứng dụng workspace và portal khách hàng.
+          </p>
         </div>
 
-        <button type="button" onClick={() => router.back()} className="quote-action-button quote-action-secondary">
-          Quay lại
-        </button>
-      </div>
+        <div className="space-y-8">
+          <section className="rounded-2xl border border-[#eaeaea] bg-white overflow-hidden">
+            <div className="p-8">
+              <h3 className="text-[20px] font-medium tracking-tight text-black mb-1">Thêm tên miền</h3>
+              <p className="text-[14px] text-gray-500 mb-6">Mỗi tên miền được gắn riêng với workspace hiện tại.</p>
 
-      <div className="space-y-5">
-        <section className="quote-panel">
-          <div className="quote-panel-header">
-            <h2>Thêm tên miền</h2>
-            <span>Mỗi tên miền được gắn riêng với workspace hiện tại.</span>
-          </div>
-
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
-            {enableSubdomainBuilder ? (
-              <label className="block">
-                <span className="mb-1.5 block text-[15px] font-light text-slate-700">Tên miền phụ hệ thống</span>
-                <div className="flex rounded-lg border border-slate-200 overflow-hidden">
-                  <input
-                    value={subdomain}
-                    onChange={(event) => setSubdomain(event.target.value)}
-                    className="flex-1 border-0 p-3 text-sm outline-none"
-                    placeholder="ten-cong-ty"
-                  />
-                  <span className="inline-flex items-center px-3 bg-slate-100 text-sm text-slate-500">{subdomainSuffix}</span>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">Tên miền phụ miễn phí được tạo tự động.</p>
-              </label>
-            ) : (
-              <label className="block">
-                <span className="mb-1.5 block text-[15px] font-light text-slate-700">Tên miền</span>
-                <input
-                  value={domain}
-                  onChange={(event) => setDomain(event.target.value)}
-                  className="quote-input"
-                  placeholder="ongvang.com.vn"
-                />
-              </label>
-            )}
-            <label className="block">
-              <span className="mb-1.5 block text-[15px] font-light text-slate-700">Dùng cho</span>
-              <SelectBox
-                ariaLabel="Dùng tên miền cho"
-                value={target}
-                onChange={(value) => setTarget(value as WorkspaceDomainConfig["target"])}
-                options={[...targetOptions]}
-                className="h-[42px] w-full rounded-lg border-slate-200 text-[15px] font-light"
-              />
-            </label>
-            <div className="flex items-end">
-              <button
-                type="button"
-                onClick={addDomain}
-                disabled={isAdding || (!domain.trim() && !subdomain.trim())}
-                className="quote-action-button quote-action-primary w-full"
-              >
-                {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Thêm
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <section className="quote-panel">
-          <div className="quote-panel-header">
-            <h2>Domain đã cấu hình</h2>
-            <span>TXT dùng để xác minh workspace, A record dùng để trỏ domain về app.</span>
-          </div>
-
-          <div>
-            {domains.length ? (
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
-                <table className="w-full min-w-[980px] border-collapse bg-white text-left">
-                  <thead className="bg-slate-50 text-[12px] font-semibold uppercase tracking-wide text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3">Tên miền</th>
-                      <th className="px-4 py-3">Dùng cho</th>
-                      <th className="px-4 py-3">Trạng thái</th>
-                      <th className="px-4 py-3">SSL</th>
-                      <th className="px-4 py-3">Kiểm tra</th>
-                      <th className="px-4 py-3 text-right">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200">
-                    {domains.map((item) => (
-                      <DomainRows
-                        key={item.id}
-                        item={item}
-                        busy={busyId === item.id}
-                        expanded={expandedId === item.id}
-                        onToggleDetails={() => setExpandedId((current) => current === item.id ? null : item.id)}
-                        onCheck={() => checkDomain(item)}
-                        onActivate={() => activateDomain(item)}
-                        onRemove={() => removeDomain(item)}
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_auto]">
+                {enableSubdomainBuilder ? (
+                  <label className="block">
+                    <span className="mb-2 block text-[13px] font-medium text-black">Tên miền phụ hệ thống</span>
+                    <div className="flex rounded-md border border-[#eaeaea] overflow-hidden focus-within:border-black transition-colors">
+                      <input
+                        value={subdomain}
+                        onChange={(event) => setSubdomain(event.target.value)}
+                        className="flex-1 border-0 p-3 text-[14px] outline-none"
+                        placeholder="ten-cong-ty"
                       />
-                    ))}
-                  </tbody>
-                </table>
+                      <span className="inline-flex items-center px-3 bg-gray-50 border-l border-[#eaeaea] text-[14px] text-gray-500">{subdomainSuffix}</span>
+                    </div>
+                    <p className="text-[12px] text-gray-500 mt-2">Tên miền phụ miễn phí được tạo tự động.</p>
+                  </label>
+                ) : (
+                  <label className="block">
+                    <span className="mb-2 block text-[13px] font-medium text-black">Tên miền</span>
+                    <input
+                      value={domain}
+                      onChange={(event) => setDomain(event.target.value)}
+                      className="w-full rounded-md border border-[#eaeaea] px-3 py-3 text-[14px] focus:border-black focus:outline-none transition-colors"
+                      placeholder="ongvang.com.vn"
+                    />
+                  </label>
+                )}
+                <label className="block">
+                  <span className="mb-2 block text-[13px] font-medium text-black">Dùng cho</span>
+                  <SelectBox
+                    ariaLabel="Dùng tên miền cho"
+                    value={target}
+                    onChange={(value) => setTarget(value as WorkspaceDomainConfig["target"])}
+                    options={[...targetOptions]}
+                    className="h-[46px] w-full rounded-md border-[#eaeaea] text-[14px]"
+                  />
+                </label>
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={addDomain}
+                    disabled={isAdding || (!domain.trim() && !subdomain.trim())}
+                    className="flex h-[46px] w-full items-center justify-center gap-2 rounded-md bg-black px-6 text-[14px] font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
+                  >
+                    {isAdding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    Thêm
+                  </button>
+                </div>
               </div>
-            ) : null}
-            {!domains.length ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm font-light text-slate-500">
-                Chưa có tên miền nào. Thêm domain marketing, đào tạo hoặc workspace để bắt đầu.
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-[#eaeaea] bg-white overflow-hidden">
+            <div className="p-8">
+              <h3 className="text-[20px] font-medium tracking-tight text-black mb-1">Tên miền đã cấu hình</h3>
+              <p className="text-[14px] text-gray-500 mb-6">TXT dùng để xác minh workspace, A record dùng để trỏ domain về app.</p>
+
+              <div>
+                {domains.length ? (
+                  <div className="overflow-x-auto rounded-lg border border-[#eaeaea]">
+                    <table className="w-full min-w-[980px] border-collapse bg-white text-left">
+                      <thead className="bg-gray-50 text-[12px] font-medium text-gray-500 border-b border-[#eaeaea]">
+                        <tr>
+                          <th className="px-4 py-3 font-medium">Tên miền</th>
+                          <th className="px-4 py-3 font-medium">Dùng cho</th>
+                          <th className="px-4 py-3 font-medium">Trạng thái</th>
+                          <th className="px-4 py-3 font-medium">SSL</th>
+                          <th className="px-4 py-3 font-medium">Kiểm tra</th>
+                          <th className="px-4 py-3 font-medium text-right">Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#eaeaea]">
+                        {domains.map((item) => (
+                          <DomainRows
+                            key={item.id}
+                            item={item}
+                            busy={busyId === item.id}
+                            expanded={expandedId === item.id}
+                            onToggleDetails={() => setExpandedId((current) => current === item.id ? null : item.id)}
+                            onCheck={() => checkDomain(item)}
+                            onActivate={() => activateDomain(item)}
+                            onRemove={() => removeDomain(item)}
+                          />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+                {!domains.length ? (
+                  <div className="rounded-lg border border-dashed border-[#eaeaea] bg-gray-50 p-8 text-center text-[14px] text-gray-500">
+                    Chưa có tên miền nào. Thêm tên miền để bắt đầu.
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
-        </section>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   );
@@ -269,20 +281,20 @@ function DomainRows({
         </td>
         <td className="px-4 py-3">
           <div className="flex flex-wrap justify-end gap-2">
-            <button type="button" onClick={onToggleDetails} className="quote-action-button quote-action-secondary h-9 px-3">
-              <Copy className="h-4 w-4" />
+            <button type="button" onClick={onToggleDetails} className="flex items-center gap-1.5 rounded-md border border-[#eaeaea] bg-white px-3 h-8 text-[13px] font-medium text-black transition hover:bg-gray-50">
+              <Copy className="h-3.5 w-3.5" />
               DNS
             </button>
-            <button type="button" onClick={onCheck} disabled={busy} className="quote-action-button quote-action-secondary h-9 px-3">
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            <button type="button" onClick={onCheck} disabled={busy} className="flex items-center gap-1.5 rounded-md border border-[#eaeaea] bg-white px-3 h-8 text-[13px] font-medium text-black transition hover:bg-gray-50 disabled:opacity-50">
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
               Kiểm tra
             </button>
-            <button type="button" onClick={onActivate} disabled={busy || !["dns_verified", "ssl_pending", "active"].includes(item.status)} className="quote-action-button quote-action-primary h-9 px-3">
-              <ShieldCheck className="h-4 w-4" />
+            <button type="button" onClick={onActivate} disabled={busy || !["dns_verified", "ssl_pending", "active"].includes(item.status)} className="flex items-center gap-1.5 rounded-md bg-black px-3 h-8 text-[13px] font-medium text-white transition hover:bg-gray-800 disabled:opacity-50">
+              <ShieldCheck className="h-3.5 w-3.5" />
               Tự cấp SSL
             </button>
-            <button type="button" onClick={onRemove} disabled={busy} className="quote-action-button quote-action-secondary h-9 px-3">
-              <Trash2 className="h-4 w-4" />
+            <button type="button" onClick={onRemove} disabled={busy} className="flex items-center gap-1.5 rounded-md border border-[#eaeaea] bg-white px-3 h-8 text-[13px] font-medium text-red-600 transition hover:bg-red-50 hover:border-red-200 disabled:opacity-50">
+              <Trash2 className="h-3.5 w-3.5" />
               Xóa
             </button>
           </div>

@@ -22,7 +22,7 @@ import {
   XCircle,
 } from "lucide-react";
 
-import {
+import { 
   adminRevokeCustomerSignature,
   adminRevokeSignature,
   adminSignDocument,
@@ -32,7 +32,7 @@ import {
   getDocumentEmailDraft,
   sendDocumentEmail,
   type FinanceEmailSendPayload,
-} from "@/app/actions/finance-crud";
+ } from "@/modules/finance/actions/finance.actions";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { getPaymentChannel, getVietQrUrl, normalizePaymentChannelKeys } from "@/lib/finance/payment-channels";
 import { AdminSignModal } from "./admin-sign-modal";
@@ -68,12 +68,15 @@ type ContractDetailData = {
   files?: FinanceAttachment[];
   previousDocument?: FinanceDocumentLink | null;
   nextDocument?: FinanceDocumentLink | null;
+  project?: { name?: string | null } | null;
   contact?: {
     firstName?: string;
     lastName?: string;
     name?: string;
     email?: string | null;
     phone?: string | null;
+    taxCode?: string | null;
+    address?: string | null;
     company?: { id?: string; name?: string | null; taxCode?: string | null; address?: string | null; phone?: string | null; email?: string | null; } | null;
   } | null;
   deal?: { title?: string | null; name?: string | null; project?: { name?: string | null } | null } | null;
@@ -105,6 +108,14 @@ const statusLabel: Record<string, string> = {
   SIGNED: "Đã ký",
   EXPIRED: "Hết hạn",
   CANCELLED: "Đã hủy",
+};
+
+const statusColor: Record<string, string> = {
+  DRAFT: "bg-gray-50 border-gray-200 text-gray-700",
+  SENT: "bg-white border-[#eaeaea] text-gray-600",
+  SIGNED: "bg-gray-100 border-gray-200 text-black",
+  EXPIRED: "bg-white border-red-200 text-red-600",
+  CANCELLED: "bg-white border-[#eaeaea] text-gray-400",
 };
 
 const detailTabs = [
@@ -417,41 +428,41 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-6 py-10 lg:px-12 bg-white min-h-[calc(100vh-64px)] animate-in fade-in duration-300">
-      <header className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#eaeaea] pb-6">
-        <div className="flex items-center gap-4">
-          <div className="hidden">
-            <FileCheck2 className="h-7 w-7" />
+    <div className="mx-auto w-full max-w-[1200px] px-6 py-6 bg-white min-h-[calc(100vh-64px)] animate-in fade-in duration-300">
+      <header className="mb-10 flex flex-col sm:flex-row sm:items-start justify-between gap-6 border-b border-[#eaeaea] pb-8">
+        <div>
+          <div className="mb-6 flex items-center gap-2 text-[13px] text-gray-400">
+            <Link href="/workspace/finance/contracts" className="hover:text-black transition-colors">Hợp đồng</Link>
+            <span>/</span>
+            <span className="text-black font-medium">{data.number}</span>
           </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-[36px] font-medium tracking-tighter text-black leading-none">{data.number}</h1>
-              <span className={cn("px-2.5 py-1 rounded-full text-[13px] font-medium border", data.status === "DRAFT" ? "bg-gray-50 border-gray-200 text-gray-700" : data.status === "SENT" ? "bg-blue-50 border-blue-200 text-blue-700" : data.status === "ACCEPTED" ? "bg-green-50 border-green-200 text-green-700" : data.status === "REJECTED" ? "bg-red-50 border-red-200 text-red-700" : "bg-purple-50 border-purple-200 text-purple-700")}>{statusLabel[data.status] || data.status}</span>
-            </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="w-fit rounded-full bg-black px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white">
+              Hợp đồng
+            </span>
+            <h1 className="text-[32px] font-medium tracking-tight text-black leading-none">{data.number}</h1>
+            <span className={cn("px-3 py-1 rounded-full text-[12px] font-semibold border", statusColor[data.status] || statusColor.DRAFT)}>
+              {statusLabel[data.status] || data.status}
+            </span>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           {publicUrl ? (
-            <a href={publicUrl} target="_blank" className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors">
-              <Eye className="h-4 w-4" />
-              Xem
+            <a href={publicUrl} target="_blank" className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-[#eaeaea] bg-white px-5 text-[13px] font-medium text-black hover:bg-gray-50 transition-colors">
+              <Eye className="h-4 w-4" /> Xem public
             </a>
           ) : null}
-          <Link href={`/workspace/finance/contracts/${data.id}/edit`} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors">
-            <Edit3 className="h-4 w-4" />
-            Chỉnh sửa
+          <Link href={`/workspace/finance/contracts/${data.id}/edit`} className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-[#eaeaea] bg-white px-5 text-[13px] font-medium text-black hover:bg-gray-50 transition-colors">
+            <Edit3 className="h-4 w-4" /> Sửa
           </Link>
-          <button type="button" onClick={() => setIsDeleteModalOpen(true)} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-red-600 rounded-lg hover:bg-red-50 hover:border-red-200 transition-colors">
-            <Trash2 className="h-4 w-4" />
-            Xóa
-          </button>
+
           <div className="relative">
-            <button type="button" onClick={() => setMenuOpen((current) => !current)} className="flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors">
-              <Ellipsis className="h-4 w-4" />
+            <button type="button" onClick={() => setMenuOpen((current) => !current)} className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-[#eaeaea] bg-white px-5 text-[13px] font-medium text-black hover:bg-gray-50 transition-colors">
+              <Ellipsis className="h-4 w-4" /> Thêm
             </button>
             {menuOpen ? (
-              <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-[#eaeaea] rounded-lg shadow-sm overflow-hidden z-10 flex flex-col py-1">
+              <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-[#eaeaea] rounded-[16px] shadow-lg overflow-hidden z-10 flex flex-col py-1.5">
                 {actionItems.map((item) => (
                   <button
                     key={item.label}
@@ -462,7 +473,7 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
                       setMenuOpen(false);
                       item.onClick();
                     }}
-                    className={`flex items-center gap-3 px-4 py-2.5 text-[14px] font-medium text-gray-700 hover:bg-gray-50 hover:text-black transition-colors text-left w-full ${item.disabled ? "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-gray-700" : ""}`}
+                    className={`flex items-center gap-3 px-4 py-2.5 text-[13px] font-medium text-gray-700 hover:bg-gray-50 hover:text-black transition-colors text-left w-full ${item.disabled ? "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-gray-700" : ""}`}
                   >
                     {item.icon}
                     <span>{item.label}</span>
@@ -471,66 +482,78 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
               </div>
             ) : null}
           </div>
+
+          <button type="button" onClick={() => setIsDeleteModalOpen(true)} className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-red-200 bg-white px-5 text-[13px] font-medium text-red-600 hover:bg-red-50 transition-colors">
+            <Trash2 className="h-4 w-4" /> Xóa
+          </button>
         </div>
       </header>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4 mb-10">
-        <div className="lg:col-span-2">
-          <span className="text-[11px] text-gray-400 font-medium uppercase tracking-widest block mb-4">Khách hàng</span>
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+        <div className="lg:col-span-2 rounded-[24px] border border-[#eaeaea] bg-white p-6 shadow-sm">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Khách hàng</p>
           <strong className="text-[20px] font-medium text-black block leading-tight mb-1">
             {isCompanyCustomer ? customerCompany : (customerPerson || customerEmail || "Chưa có thông tin")}
           </strong>
           {isCompanyCustomer && (
-            <p className="text-[15px] text-gray-500 mb-6">
-              Mã số thuế: {customerTaxCode || "Chưa cập nhật"}
+            <p className="text-[14px] text-gray-500 mb-4">
+              MST: {customerTaxCode || "Chưa cập nhật"}
             </p>
           )}
-          {!isCompanyCustomer && <div className="mb-6" />}
+          {!isCompanyCustomer && <div className="mb-4" />}
 
-          <div className="grid gap-3 max-w-xl">
+          <div className="grid gap-2 mt-4">
             {isCompanyCustomer && customerPerson && (
-              <div className="flex text-[14px]">
-                <span className="text-gray-500 w-32 shrink-0 font-light">Đại diện:</span>
-                <span className="text-gray-900">{customerPerson}</span>
+              <div className="flex text-[14px] gap-4">
+                <span className="text-gray-400 w-28 shrink-0">Đại diện</span>
+                <span className="text-black">{customerPerson}</span>
               </div>
             )}
             {customerAddress && (
-              <div className="flex text-[14px]">
-                <span className="text-gray-500 w-32 shrink-0 font-light">Địa chỉ:</span>
-                <span className="text-gray-900">{customerAddress}</span>
+              <div className="flex text-[14px] gap-4">
+                <span className="text-gray-400 w-28 shrink-0">Địa chỉ</span>
+                <span className="text-black">{customerAddress}</span>
               </div>
             )}
-            <div className="flex flex-col gap-4 text-sm mt-4">
-              <div>
-                <div className="text-slate-500 font-light mb-1">Dự án</div>
-                <div className="text-slate-800">{data.project?.name || data.deal?.title || data.deal?.name || "Không gắn dự án"}</div>
-              </div>
-              <div className="pt-3 border-t border-slate-100">
-                <div className="text-slate-500 font-light mb-1">Người tạo</div>
-                <div className="text-slate-800">{data.creator?.name || "Administrator"}</div>
-              </div>
+            <div className="flex text-[14px] gap-4">
+              <span className="text-gray-400 w-28 shrink-0">Điện thoại</span>
+              <span className="text-black">{customerPhone || "—"}</span>
             </div>
-            <div className="flex text-[14px]">
-              <span className="text-gray-500 w-32 shrink-0 font-light">Điện thoại:</span>
-              <span className="text-gray-900">{customerPhone || "—"}</span>
+            <div className="flex text-[14px] gap-4">
+              <span className="text-gray-400 w-28 shrink-0">Email</span>
+              <span className="text-black">{customerEmail || "—"}</span>
             </div>
-            <div className="flex text-[14px]">
-              <span className="text-gray-500 w-32 shrink-0 font-light">Email:</span>
-              <span className="text-gray-900">{customerEmail || "—"}</span>
+            <div className="flex text-[14px] gap-4 mt-2 pt-2 border-t border-[#eaeaea]">
+              <span className="text-gray-400 w-28 shrink-0">Dự án</span>
+              <span className="text-black">{data.project?.name || data.deal?.title || data.deal?.name || "Không gắn dự án"}</span>
+            </div>
+            <div className="flex text-[14px] gap-4">
+              <span className="text-gray-400 w-28 shrink-0">Người tạo</span>
+              <span className="text-black">{data.creator?.name || "Administrator"}</span>
             </div>
           </div>
         </div>
-        <div className="lg:col-span-1 border-t lg:border-t-0 lg:border-l border-[#eaeaea] pt-6 lg:pt-0 lg:pl-8">
-          <span className="text-[13px] text-gray-500 font-medium uppercase tracking-widest block mb-2">Chứng từ</span>
-          <strong className="text-[20px] font-medium text-black block mb-1">{data.number}</strong>
-          <p className="text-[14px] text-gray-600 mb-1">{data.title}</p>
-          <p className="text-[14px] text-gray-600">Hiệu lực: {formatDate(data.validFrom)} - {formatDate(data.validUntil)}</p>
+        <div className="rounded-[24px] border border-[#eaeaea] bg-white p-6 shadow-sm">
+          <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-4">Thông tin chứng từ</p>
+          <div className="grid gap-3 text-[14px]">
+            <div className="flex justify-between"><span className="text-gray-400">Số hợp đồng</span><span className="font-medium text-black">{data.number}</span></div>
+            <div className="flex justify-between flex-col gap-1 mt-2">
+              <span className="text-gray-400">Tiêu đề</span>
+              <span className="font-medium text-black text-[15px]">{data.title}</span>
+            </div>
+            <div className="flex justify-between mt-2 pt-3 border-t border-[#eaeaea]"><span className="text-gray-400">Hiệu lực từ</span><span className="font-medium text-black">{formatDate(data.validFrom)}</span></div>
+            <div className="flex justify-between"><span className="text-gray-400">Hiệu lực đến</span><span className="font-medium text-black">{formatDate(data.validUntil)}</span></div>
+            <div className="flex justify-between mt-2 pt-3 border-t border-[#eaeaea]">
+              <span className="text-gray-400">Tổng giá trị</span>
+              <span className="font-semibold text-black text-[16px]">{formatMoney(data.total, data.currency)}</span>
+            </div>
+          </div>
         </div>
       </section>
 
-      <div className="flex flex-col lg:flex-row gap-8">
-        <main className="flex-1 space-y-5">
-          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
+      <div className="flex flex-col lg:flex-row gap-6">
+        <main className="flex-1 space-y-6">
+          <section className="bg-white rounded-[24px] shadow-sm border border-[#eaeaea] p-6">
             <div className="quote-progress quote-progress-six">
               {steps.map((step) => (
                 <div key={step.label} className={step.done ? "done" : ""}>
@@ -541,18 +564,20 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
             </div>
           </section>
 
-          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
-            <h2 className="text-[16px] font-medium text-black mb-1">Sản phẩm & dịch vụ</h2>
+          <section className="bg-white rounded-[24px] shadow-sm border border-[#eaeaea] p-6">
+            <div className="mb-4">
+              <h2 className="text-[14px] font-semibold text-black">Sản phẩm & dịch vụ</h2>
+            </div>
             <div className="quotation-items-list mt-2">
               {data.items?.length ? (
                 <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mt-4">
                   <div className="overflow-x-auto w-full">
-                    <table className="w-full text-sm text-left border-collapse">
+                    <table className="w-full text-[15px] text-left border-collapse">
                       <thead className="bg-gray-50/50 text-gray-500 border-b border-[#eaeaea]">
                         <tr>
                           <th className="px-4 py-3 font-medium border-r border-[#eaeaea] min-w-[280px]">Nội dung dịch vụ</th>
                           <th className="px-4 py-3 font-medium text-center w-24 border-r border-[#eaeaea]">Đơn vị</th>
-                          <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#eaeaea]">SL</th>
+                          <th className="px-4 py-3 font-medium text-center w-24 border-r border-[#eaeaea]">Số lượng</th>
                           <th className="px-4 py-3 font-medium text-right w-36 border-r border-[#eaeaea]">Đơn giá (VND)</th>
                           <th className="px-4 py-3 font-medium text-center w-16 border-r border-[#eaeaea]">Thuế</th>
                           <th className="px-4 py-3 font-medium text-right w-40">Thành tiền (VND)</th>
@@ -565,7 +590,7 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
                               <div className="font-medium uppercase text-slate-800 mb-2">
                                 {String(index + 1).padStart(2, '0')} {item.name}
                               </div>
-                              {item.description && <div className="text-slate-500 mt-1 whitespace-pre-wrap text-[14px]" dangerouslySetInnerHTML={{ __html: item.description }} />}
+                              {item.description && <div className="text-slate-500 mt-1 whitespace-pre-wrap text-[15px]" dangerouslySetInnerHTML={{ __html: item.description }} />}
                             </td>
                             <td className="px-4 py-5 text-center align-top border-r border-[#eaeaea]">
                               Lần
@@ -594,8 +619,10 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
             </div>
           </section>
 
-          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
-            <h2 className="text-[16px] font-medium text-black mb-1">Điều khoản</h2>
+          <section className="bg-white rounded-[24px] shadow-sm border border-[#eaeaea] p-6">
+            <div className="mb-4">
+              <h2 className="text-[14px] font-semibold text-black">Điều khoản</h2>
+            </div>
             <div className="contract-terms">{plainDescription(data.terms) || "Chưa có điều khoản."}</div>
           </section>
 
@@ -613,8 +640,10 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
           </nav>
 
           {activeTab === "payments" ? (
-            <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
-              <h2 className="text-[16px] font-medium text-black mb-1">Thanh toán</h2>
+            <section className="bg-white rounded-[24px] shadow-sm border border-[#eaeaea] p-6">
+              <div className="mb-4">
+                <h2 className="text-[14px] font-semibold text-black">Thanh toán</h2>
+              </div>
               <div className="contract-installments">
                 {data.paymentInstallments?.length ? (
                   data.paymentInstallments.map((item, index) => (
@@ -628,12 +657,12 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
                         <p>{item.status}</p>
                       </div>
                       {item.invoiceId ? (
-                        <Link href={`/workspace/finance/invoices/${item.invoiceId}`} className="flex items-center justify-center gap-2 px-4 h-9 bg-black text-white text-[14px] font-medium rounded-lg hover:bg-gray-800 transition-colors w-full">
+                        <Link href={`/workspace/finance/invoices/${item.invoiceId}`} className="flex items-center justify-center gap-2 px-4 h-9 bg-black text-white text-[15px] font-medium rounded-full hover:bg-gray-800 transition-colors w-full">
                           <FileText className="h-4 w-4" />
                           {item.invoice?.number || "Xem hóa đơn"}
                         </Link>
                       ) : (
-                        <button type="button" onClick={() => createInvoiceMutation.mutate(item.id)} className="flex items-center justify-center gap-2 px-4 h-9 bg-black text-white text-[14px] font-medium rounded-lg hover:bg-gray-800 transition-colors w-full">
+                        <button type="button" onClick={() => createInvoiceMutation.mutate(item.id)} className="flex items-center justify-center gap-2 px-4 h-9 bg-black text-white text-[15px] font-medium rounded-full hover:bg-gray-800 transition-colors w-full">
                           <FilePlus2 className="h-4 w-4" />
                           Tạo hóa đơn
                         </button>
@@ -648,8 +677,10 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
           ) : null}
 
           {activeTab === "channels" ? (
-            <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
-              <h2 className="text-[16px] font-medium text-black mb-1">Kênh thanh toán</h2>
+            <section className="bg-white rounded-[24px] shadow-sm border border-[#eaeaea] p-6">
+              <div className="mb-4">
+                <h2 className="text-[14px] font-semibold text-black">Kênh thanh toán</h2>
+              </div>
               <div className="invoice-channel-grid">
                 {channelKeys.map((key) => {
                   const channel = getPaymentChannel(key);
@@ -672,9 +703,9 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
           ) : null}
 
           {["activity", "files"].includes(activeTab) ? (
-            <section className="bg-white rounded-xl border border-[#eaeaea] p-6">
+            <section className="bg-white rounded-[24px] shadow-sm border border-[#eaeaea] p-6">
               <div className="mb-4">
-                <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">{activeTab === "activity" ? "Lịch sử hoạt động" : "Tệp đính kèm"}</h2>
+                <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">{activeTab === "activity" ? "Lịch sử hoạt động" : "Tệp đính kèm"}</h2>
               </div>
               {activeTab === "activity" ? (
                 <ActivityTimeline logs={data.activityLogs} fallback={fallbackActivities} />
@@ -685,7 +716,7 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
           ) : null}
         </main>
 
-        <aside className="w-full lg:w-[340px] shrink-0 space-y-5">
+        <aside className="w-full lg:w-[340px] shrink-0 space-y-6">
           <DocumentNavigator
             basePath="/workspace/finance/contracts"
             currentNumber={data.number}
@@ -693,63 +724,16 @@ export function ContractDetailView({ data }: { data: ContractDetailData }) {
             next={data.nextDocument}
           />
 
-          <section className="bg-white rounded-xl border border-[#eaeaea] p-6">
+          <section className="bg-white rounded-[24px] shadow-sm border border-[#eaeaea] p-6">
             <div className="mb-4">
-              <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Thông tin hợp đồng</h2>
+              <h2 className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">Thanh toán</h2>
             </div>
-            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-[13px] mt-4">
-              <div className="text-slate-500 font-light">Số hợp đồng</div><div className="font-medium text-right text-black">{data.number}</div>
-              <div className="text-slate-500 font-light">Trạng thái</div><div className="font-medium text-right text-black">{statusLabel[data.status] || data.status}</div>
-              <div className="text-slate-500 font-light">Ngày tạo</div><div className="font-medium text-right text-black">{formatDateTime(data.createdAt)}</div>
-              <div className="text-slate-500 font-light">Hiệu lực từ</div><div className="font-medium text-right text-black">{formatDate(data.validFrom)}</div>
-              <div className="text-slate-500 font-light">Hiệu lực đến</div><div className="font-medium text-right text-black">{formatDate(data.validUntil)}</div>
-              <div className="text-slate-500 font-light">Admin ký</div><div className="font-medium text-right text-black">{formatDateTime(data.adminSignedAt)}</div>
-              <div className="text-slate-500 font-light">Khách ký</div><div className="font-medium text-right text-black">{customerSignatureRequired ? formatDateTime(data.signedAt) : "Không cần ký"}</div>
-            </div>
-          </section>
-
-          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
-            <div className="mb-4">
-              <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Giá trị & thanh toán</h2>
-            </div>
-            <div className="grid grid-cols-2 gap-y-4 gap-x-2 text-[13px] mt-4">
-              <div className="text-slate-500 font-light">Tổng giá trị</div><div className="font-medium text-orange-600 text-[14px] text-right">{formatMoney(data.total, data.currency)}</div>
-              <div className="text-slate-500 font-light mt-2">Đã thanh toán</div><div className="font-medium text-right text-black mt-2">{formatMoney(paidAmount, data.currency)}</div>
-              <div className="text-slate-500 font-light mt-2">Còn lại</div><div className="font-medium text-right text-black mt-2">{formatMoney(remainingAmount, data.currency)}</div>
+            <div className="grid gap-y-4 text-[14px]">
+              <div className="flex justify-between"><span className="text-gray-500">Đã thanh toán</span><span className="font-medium text-black">{formatMoney(paidAmount, data.currency)}</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">Còn lại</span><span className="font-medium text-black">{formatMoney(remainingAmount, data.currency)}</span></div>
             </div>
             <div className="contract-payment-bar mt-6"><span style={{ width: `${paidPercent}%` }} /></div>
-            <p className="mt-4 text-[14px] font-light text-slate-500">{paidPercent}% đã thanh toán</p>
-          </section>
-
-          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
-            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Tài liệu hợp đồng</h2>
-            <div className="contract-document-box">
-              <FileCheck2 className="h-10 w-10 text-emerald-600" />
-              <strong>{data.number}</strong>
-              <span>{formatMoney(data.total, data.currency)}</span>
-            </div>
-            <button type="button" onClick={() => data.token && window.open(`/document/${data.token}/pdf`, "_blank")} className="w-full flex items-center justify-center gap-2 px-4 h-9 bg-white border border-[#eaeaea] text-[14px] font-medium text-black rounded-lg hover:bg-gray-50 transition-colors mt-3">
-              <Download className="h-4 w-4" />
-              Tải xuống
-            </button>
-          </section>
-
-          <section className="bg-white rounded-xl border border-[#eaeaea] p-6 mb-6">
-            <h2 className="text-[11px] font-medium uppercase tracking-widest text-gray-400 mb-4">Thao tác</h2>
-            <div className="grid gap-3">
-              {actionItems.map((item) => (
-                <ActionButton
-                  key={item.label}
-                  icon={item.icon}
-                  label={item.label}
-                  onClick={item.onClick}
-                  disabled={item.disabled}
-                  title={item.title}
-                />
-              ))}
-              <ActionButton icon={<Eye className="h-4 w-4" />} label="Xem" href={publicUrl} title={!publicUrl ? "Hợp đồng chưa có public link." : undefined} />
-              <ActionButton icon={<Trash2 className="h-4 w-4" />} label="Xóa" onClick={() => setIsDeleteModalOpen(true)} danger />
-            </div>
+            <p className="mt-4 text-[13px] font-medium text-gray-500">{paidPercent}% đã hoàn thành</p>
           </section>
         </aside>
       </div>

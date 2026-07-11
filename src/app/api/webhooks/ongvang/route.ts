@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 // Webhook payload example:
 // {
@@ -30,14 +30,14 @@ export async function POST(req: Request) {
     }
 
     // Default organization for the webhook (find the first one)
-    const org = await db.organization.findFirst();
+    const org = await getTenantDb().organization.findFirst();
     if (!org) {
       return NextResponse.json({ error: "System not initialized (no organization found)" }, { status: 500 });
     }
 
     // Check if contact already exists by email or phone
     let contactId = "";
-    const existingContact = await db.contact.findFirst({
+    const existingContact = await getTenantDb().contact.findFirst({
       where: {
         organizationId: org.id,
         OR: [
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
       contactId = existingContact.id;
     } else {
       // Create new contact
-      const newContact = await db.contact.create({
+      const newContact = await getTenantDb().contact.create({
         data: {
           organizationId: org.id,
           firstName: data.firstName || "Khách hàng",
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
       contactId = newContact.id;
     }
 
-    const leadStage = await db.dealStage.upsert({
+    const leadStage = await getTenantDb().dealStage.upsert({
       where: {
         id: `${org.id}-lead`,
       },
@@ -82,7 +82,7 @@ export async function POST(req: Request) {
     });
 
     // Create a Deal in the lead stage.
-    await db.deal.create({
+    await getTenantDb().deal.create({
       data: {
         organizationId: org.id,
         title: `Tư vấn: ${data.firstName || ""} ${data.lastName || ""}`.trim(),

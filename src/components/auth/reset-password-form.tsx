@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Layers3, Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
+import { cn } from "@/lib/utils/cn";
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -44,7 +45,7 @@ export function ResetPasswordForm() {
     try {
       const { error } = await authClient.resetPassword({
         newPassword: password,
-        token, // Pass the token from URL
+        token,
       });
 
       if (error) {
@@ -64,48 +65,36 @@ export function ResetPasswordForm() {
   };
 
   return (
-    <div className="w-full max-w-[400px]">
-      {/* Mobile Logo */}
-      <div className="mb-8 flex items-center gap-3 lg:hidden">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 shadow-sm shadow-emerald-500/20">
-          <Layers3 className="h-5 w-5 text-white" />
-        </div>
-        <div>
-          <span className="block text-sm font-semibold text-foreground">Business Workspace</span>
-        </div>
-      </div>
-
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Đặt lại mật khẩu</h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Vui lòng nhập mật khẩu mới cho tài khoản của bạn.
+    <div className="w-full">
+      <div className="mb-10 text-center">
+        <h1 className="text-[28px] font-medium tracking-tight text-black">Đặt lại mật khẩu</h1>
+        <p className="mt-3 text-[14px] text-gray-500">
+          Vui lòng nhập mật khẩu mới
         </p>
       </div>
 
       {success ? (
         <div className="space-y-6">
-          <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-100 text-sm text-emerald-700 animate-fade-in">
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3.5 text-[14px] font-medium text-emerald-800">
             Mật khẩu của bạn đã được cập nhật thành công! Đang chuyển hướng về trang đăng nhập...
           </div>
           <Link
             href="/login"
-            className="flex w-full items-center justify-center h-11 rounded-lg bg-emerald-500 px-4 text-sm font-medium text-white shadow-sm transition-all hover:bg-emerald-600"
+            className="flex h-12 w-full items-center justify-center rounded-xl bg-black text-[14px] font-medium text-white transition-colors hover:bg-gray-900"
           >
             Đăng nhập ngay
           </Link>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Error */}
+        <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive animate-fade-in">
+            <div className="rounded-xl border border-red-100 bg-red-50 p-3.5 text-[14px] font-medium text-red-800">
               {error}
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <label htmlFor="password" className="text-sm font-medium text-foreground">
+          <div className="space-y-2">
+            <label htmlFor="password" className="text-[11px] font-medium uppercase tracking-widest text-gray-500">
               Mật khẩu mới
             </label>
             <div className="relative">
@@ -117,20 +106,25 @@ export function ResetPasswordForm() {
                 placeholder="Nhập mật khẩu mới"
                 required
                 disabled={!token}
-                className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 pr-10 text-sm text-slate-800 shadow-sm shadow-slate-950/[0.02] transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 disabled:bg-slate-50 disabled:text-slate-500"
+                className="h-12 w-full rounded-xl border border-[#eaeaea] bg-transparent px-4 pr-10 text-[14px] text-black outline-none transition-colors placeholder:text-gray-400 focus:border-black disabled:bg-gray-50 disabled:text-gray-400"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
+                tabIndex={-1}
               >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
               </button>
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
+          <div className="space-y-2">
+            <label htmlFor="confirmPassword" className="text-[11px] font-medium uppercase tracking-widest text-gray-500">
               Xác nhận mật khẩu
             </label>
             <div className="relative">
@@ -142,7 +136,7 @@ export function ResetPasswordForm() {
                 placeholder="Nhập lại mật khẩu mới"
                 required
                 disabled={!token}
-                className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 pr-10 text-sm text-slate-800 shadow-sm shadow-slate-950/[0.02] transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10 disabled:bg-slate-50 disabled:text-slate-500"
+                className="h-12 w-full rounded-xl border border-[#eaeaea] bg-transparent px-4 pr-10 text-[14px] text-black outline-none transition-colors placeholder:text-gray-400 focus:border-black disabled:bg-gray-50 disabled:text-gray-400"
               />
             </div>
           </div>
@@ -150,7 +144,10 @@ export function ResetPasswordForm() {
           <button
             type="submit"
             disabled={loading || !token || !password || !confirmPassword}
-            className="group relative flex h-11 w-full items-center justify-center overflow-hidden rounded-lg bg-emerald-500 px-4 text-sm font-medium text-white shadow-sm transition-all hover:bg-emerald-600 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 disabled:pointer-events-none disabled:opacity-50 mt-6"
+            className={cn(
+              "mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-black text-[14px] font-medium text-white transition-colors",
+              (loading || !token || !password || !confirmPassword) ? "cursor-not-allowed opacity-70" : "hover:bg-gray-900"
+            )}
           >
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />

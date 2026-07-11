@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Building2, Save, Upload, X } from "lucide-react";
 
-import { updateCompanySettings } from "@/app/actions/settings";
+import { updateCompanySettings } from "@/actions/settings";
 import { cn } from "@/lib/utils/cn";
 
 type SettingsMap = Record<string, string>;

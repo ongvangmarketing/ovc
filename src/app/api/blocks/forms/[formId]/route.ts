@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +17,7 @@ export async function GET(
   try {
     let form;
     if (formId === "first") {
-      form = await db.leadForm.findFirst({
+      form = await getTenantDb().leadForm.findFirst({
         where: { organizationId: orgId, status: "ACTIVE" },
         include: {
           fields: {
@@ -26,7 +26,7 @@ export async function GET(
         },
       });
     } else {
-      form = await db.leadForm.findFirst({
+      form = await getTenantDb().leadForm.findFirst({
         where: { id: formId, organizationId: orgId },
         include: {
           fields: {

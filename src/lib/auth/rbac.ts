@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 import { ROLE_PERMISSIONS, Permission } from "@/config/permissions";
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
@@ -40,7 +40,7 @@ export async function requireAuth() {
 
   // 3. For non-super-admins: verify the selected org really belongs to the user.
   if (organizationId && !isSuperAdmin) {
-    const member = await db.organizationMember.findFirst({
+    const member = await getTenantDb().organizationMember.findFirst({
       where: { userId: result.user.id, organizationId },
       select: { organizationId: true },
     });
@@ -52,7 +52,7 @@ export async function requireAuth() {
 
   // 4. For non-super-admins: look up their own org membership
   if (!organizationId && !isSuperAdmin) {
-    const member = await db.organizationMember.findFirst({
+    const member = await getTenantDb().organizationMember.findFirst({
       where: { userId: result.user.id },
       orderBy: { createdAt: "asc" }
     });
@@ -63,7 +63,7 @@ export async function requireAuth() {
 
   // 5. For super-admins: default to main org
   if (!organizationId && isSuperAdmin) {
-    const mainOrg = await db.organization.findFirst({ orderBy: { createdAt: "asc" } });
+    const mainOrg = await getTenantDb().organization.findFirst({ orderBy: { createdAt: "asc" } });
     if (mainOrg) organizationId = mainOrg.id;
   }
 

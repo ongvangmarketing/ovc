@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 type FinanceDocumentType = "quotation" | "contract" | "invoice";
 type FinanceNotificationEvent = "viewed" | "signed" | "email_opened";
@@ -49,7 +49,7 @@ export async function notifyFinanceDocumentEvent(input: {
   const action = `finance_document_${input.event}`;
   const dedupeSince = new Date(Date.now() - (input.dedupeMinutes ?? 10) * 60 * 1000);
 
-  const recentActivity = await db.activityLog.findFirst({
+  const recentActivity = await getTenantDb().activityLog.findFirst({
     where: {
       organizationId: input.organizationId,
       entity: input.type,
@@ -64,12 +64,12 @@ export async function notifyFinanceDocumentEvent(input: {
 
   const copy = eventCopy(input.event, label, input.number, input.customerName);
   const link = documentLink(input.type, input.id);
-  const members = await db.organizationMember.findMany({
+  const members = await getTenantDb().organizationMember.findMany({
     where: { organizationId: input.organizationId },
     select: { userId: true },
   });
 
-  await db.activityLog.create({
+  await getTenantDb().activityLog.create({
     data: {
       organizationId: input.organizationId,
       action,
@@ -86,7 +86,7 @@ export async function notifyFinanceDocumentEvent(input: {
   });
 
   if (members.length) {
-    await db.notification.createMany({
+    await getTenantDb().notification.createMany({
       data: members.map((member) => ({
         userId: member.userId,
         type: "MESSAGE",

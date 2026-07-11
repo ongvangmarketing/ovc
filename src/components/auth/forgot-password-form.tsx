@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Layers3, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { authClient } from "@/lib/auth/client";
 import { cn } from "@/lib/utils/cn";
 
@@ -37,49 +37,36 @@ export function ForgotPasswordForm() {
   };
 
   return (
-    <div className="w-full max-w-[400px]">
-      {/* Mobile Logo */}
-      <div className="mb-8 flex items-center gap-3 lg:hidden">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500 shadow-sm shadow-emerald-500/20">
-          <Layers3 className="h-5 w-5 text-white" />
-        </div>
-        <div>
-          <span className="block text-sm font-semibold text-foreground">Business Workspace</span>
-        </div>
-      </div>
-
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Quên mật khẩu</h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Nhập địa chỉ email của bạn, chúng tôi sẽ gửi liên kết khôi phục mật khẩu.
+    <div className="w-full">
+      <div className="mb-10 text-center">
+        <h1 className="text-[28px] font-medium tracking-tight text-black">Quên mật khẩu</h1>
+        <p className="mt-3 text-[14px] text-gray-500">
+          Nhập email của bạn để nhận liên kết khôi phục
         </p>
       </div>
 
       {success ? (
         <div className="space-y-6">
-          <div className="p-4 rounded-lg bg-emerald-50 border border-emerald-100 text-sm text-emerald-700 animate-fade-in">
-            Chúng tôi đã gửi một liên kết khôi phục mật khẩu đến <strong>{email}</strong>. Vui lòng kiểm tra hộp thư đến (hoặc thư rác) của bạn.
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3.5 text-[14px] font-medium text-emerald-800">
+            Chúng tôi đã gửi một liên kết khôi phục mật khẩu đến <strong>{email}</strong>. Vui lòng kiểm tra hộp thư của bạn.
           </div>
           <Link
             href="/login"
-            className="flex w-full items-center justify-center h-11 rounded-lg border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 shadow-sm transition-all hover:bg-slate-50"
+            className="flex h-12 w-full items-center justify-center rounded-xl border border-[#eaeaea] bg-transparent text-[14px] font-medium text-black transition-colors hover:bg-gray-50"
           >
             Quay lại đăng nhập
           </Link>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Error */}
+        <form onSubmit={handleSubmit} className="space-y-6">
           {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive animate-fade-in">
+            <div className="rounded-xl border border-red-100 bg-red-50 p-3.5 text-[14px] font-medium text-red-800">
               {error}
             </div>
           )}
 
-          {/* Email */}
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-foreground">
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-[11px] font-medium uppercase tracking-widest text-gray-500">
               Email
             </label>
             <input
@@ -90,14 +77,17 @@ export function ForgotPasswordForm() {
               placeholder="ban@congty.vn"
               required
               autoComplete="email"
-              className="h-11 w-full rounded-lg border border-slate-200 bg-white px-3.5 text-sm text-slate-800 shadow-sm shadow-slate-950/[0.02] transition-all placeholder:text-slate-400 focus:border-emerald-400 focus:outline-none focus:ring-4 focus:ring-emerald-500/10"
+              className="h-12 w-full rounded-xl border border-[#eaeaea] bg-transparent px-4 text-[14px] text-black outline-none transition-colors placeholder:text-gray-400 focus:border-black"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading || !email}
-            className="group relative flex h-11 w-full items-center justify-center overflow-hidden rounded-lg bg-emerald-500 px-4 text-sm font-medium text-white shadow-sm transition-all hover:bg-emerald-600 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 disabled:pointer-events-none disabled:opacity-50"
+            className={cn(
+              "mt-8 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-black text-[14px] font-medium text-white transition-colors",
+              (loading || !email) ? "cursor-not-allowed opacity-70" : "hover:bg-gray-900"
+            )}
           >
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -106,11 +96,8 @@ export function ForgotPasswordForm() {
             )}
           </button>
 
-          <div className="text-center mt-4">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-slate-500 transition-colors hover:text-emerald-500"
-            >
+          <div className="mt-8 text-center text-[13px] text-gray-500">
+            <Link href="/login" className="transition-colors hover:text-black">
               Quay lại đăng nhập
             </Link>
           </div>

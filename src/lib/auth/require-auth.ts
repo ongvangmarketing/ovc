@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 export async function requireAuth() {
   const hdrs = await headers();
@@ -37,7 +37,7 @@ export async function requireAuth() {
 
   // 3. Fallback: look up user's own org membership (for ADMIN/MANAGER/STAFF/CUSTOMER)
   if (organizationId && !isSuperAdmin) {
-    const member = await db.organizationMember.findFirst({
+    const member = await getTenantDb().organizationMember.findFirst({
       where: { userId: result.user.id, organizationId },
       select: { organizationId: true },
     });
@@ -48,7 +48,7 @@ export async function requireAuth() {
   }
 
   if (!organizationId && !isSuperAdmin) {
-    const member = await db.organizationMember.findFirst({
+    const member = await getTenantDb().organizationMember.findFirst({
       where: { userId: result.user.id },
       include: { organization: { select: { id: true } } },
       orderBy: { createdAt: "asc" }
@@ -60,7 +60,7 @@ export async function requireAuth() {
 
   // 4. Final fallback for SUPER_ADMIN: use main/first org (Ong Vàng Workspace)
   if (!organizationId && isSuperAdmin) {
-    const mainOrg = await db.organization.findFirst({ orderBy: { createdAt: "asc" } });
+    const mainOrg = await getTenantDb().organization.findFirst({ orderBy: { createdAt: "asc" } });
     if (mainOrg) {
       organizationId = mainOrg.id;
     }

@@ -16,14 +16,20 @@ export function OrganizationDashboardClient({ initialProfile, initialBrand, init
   const [activeTab, setActiveTab] = useState("profile");
 
   return (
-    <div className="p-8 h-full bg-slate-50">
+    <div className="p-8 md:p-12 h-full bg-white font-sans">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">
-            Hồ sơ doanh nghiệp
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-6">
+            <span className="rounded-full bg-black px-3 py-1.5 text-[11px] font-semibold text-white tracking-wide uppercase">
+              Hồ sơ doanh nghiệp
+            </span>
+          </div>
+          <h1 className="text-[32px] md:text-[44px] tracking-tight leading-[1.15] font-medium">
+            <span className="text-black">Quản lý hồ sơ,</span>{" "}
+            <span className="text-gray-400">thiết lập nhận diện cốt lõi.</span>
           </h1>
-          <p className="text-slate-500 text-sm mt-1">
-            Quản lý thông tin cốt lõi của tổ chức.
+          <p className="text-[15px] text-gray-500 leading-relaxed mt-5 max-w-2xl">
+            Trung tâm lưu trữ giúp bạn dễ dàng theo dõi, cập nhật thông tin pháp lý, logo và màu sắc chủ đạo của toàn bộ hệ thống OVC.
           </p>
         </div>
 
@@ -33,33 +39,6 @@ export function OrganizationDashboardClient({ initialProfile, initialBrand, init
             initialBrand={initialBrand} 
           />
         )}
-
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
-          <h3 className="font-semibold text-slate-800 mb-4 border-b pb-2">Nhận diện thương hiệu (Brand)</h3>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 rounded-full border border-slate-200 shadow-sm" style={{ backgroundColor: initialBrand?.primaryColor }}></div>
-              <span className="text-sm">Màu chủ đạo (Primary): {initialBrand?.primaryColor}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
-          <h3 className="font-semibold text-slate-800 mb-4 border-b pb-2">Bản quyền (Licenses)</h3>
-          <div className="space-y-4">
-            <h3 className="font-medium text-slate-800 mb-2">Các module đang kích hoạt:</h3>
-            <div className="flex flex-wrap gap-2">
-              {initialModules.map(m => (
-                <span key={m} className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-medium">
-                  {m}
-                </span>
-              ))}
-            </div>
-            {initialModules.length === 0 && (
-              <p className="text-sm text-slate-500 italic">Chưa có module nào được kích hoạt.</p>
-            )}
-          </div>
-        </div>
 
       </div>
     </div>

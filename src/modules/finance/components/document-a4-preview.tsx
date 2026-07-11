@@ -140,7 +140,7 @@ export function DocumentA4Preview({ data, type }: { data: any, type: "quotation"
                         </div>
 
                         {companyTaxCode && (
-                            <div className="company-line">MST: {companyTaxCode}</div>
+                            <div className="company-line">Mã số thuế: {companyTaxCode}</div>
                         )}
                         {companyAddress && (
                             <div className="company-line">{companyAddress}</div>
@@ -220,7 +220,7 @@ export function DocumentA4Preview({ data, type }: { data: any, type: "quotation"
                                     <th style={{ width: "34px" }}>STT</th>
                                     <th>Nội dung dịch vụ</th>
                                     <th style={{ width: "64px" }}>ĐVT</th>
-                                    <th style={{ width: "48px" }}>SL</th>
+                                    <th style={{ width: "72px" }}>Số lượng</th>
                                     <th style={{ width: "112px" }}>Đơn giá (VND)</th>
                                     <th style={{ width: "122px" }}>Thành tiền (VND)</th>
                                 </tr>
@@ -281,8 +281,8 @@ export function DocumentA4Preview({ data, type }: { data: any, type: "quotation"
                                         <img className="vietqr" src={qrUrl} alt={`VietQR ${channel.label}`} />
                                         <div className="payment-info-wrap">
                                             <div className="payment-row-title">{channel.label}</div>
-                                            <div className="payment-info"><span>Chủ TK</span>: <strong>{channel.accountName}</strong></div>
-                                            <div className="payment-info"><span>Số TK</span>: <strong>{channel.accountNumber}</strong></div>
+                                            <div className="payment-info"><span>Chủ tài khoản</span>: <strong>{channel.accountName}</strong></div>
+                                            <div className="payment-info"><span>Số tài khoản</span>: <strong>{channel.accountNumber}</strong></div>
                                             <div className="payment-info"><span>Ngân hàng</span>: {channel.bankName}</div>
                                             <div className="payment-info"><span>Số tiền</span>: <strong>{money(paymentAmount)}</strong></div>
                                             <div className="payment-info"><span>Nội dung</span>: {paymentContent}</div>

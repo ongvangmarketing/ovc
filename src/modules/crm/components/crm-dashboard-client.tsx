@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { 
   Users, Target, Briefcase, CircleDollarSign, 
@@ -13,6 +12,30 @@ import {
   LineChart, Line
 } from "recharts";
 
+type SparklinePoint = {
+  name: string;
+  value: number;
+};
+
+type DealSummary = {
+  id: string;
+  title: string;
+  status: string;
+  value: number | string;
+  currency: string;
+  createdAt: string | Date;
+  expectedClose?: string | Date | null;
+  company?: { name?: string | null } | null;
+  contact?: { firstName?: string | null } | null;
+};
+
+type ActivitySummary = {
+  id: string;
+  type: string;
+  subject?: string | null;
+  createdAt: string | Date;
+};
+
 type DashboardData = {
   totalCustomers: number;
   customerGrowth: number;
@@ -22,9 +45,9 @@ type DashboardData = {
   dealGrowth: number;
   expectedValue: number;
   expectedValueGrowth: number;
-  closingSoonDeals: any[];
-  recentDeals: any[];
-  recentActivities: any[];
+  closingSoonDeals: DealSummary[];
+  recentDeals: DealSummary[];
+  recentActivities: ActivitySummary[];
   quickStats: {
     conversionRate: number;
     thisMonthRevenue: number;
@@ -32,28 +55,27 @@ type DashboardData = {
     avgValue: number;
     avgClosingTime: number;
     chartData: {
-      conversion: any[];
-      revenue: any[];
-      expected: any[];
-      avgValue: any[];
-      closingTime: any[];
+      conversion: SparklinePoint[];
+      revenue: SparklinePoint[];
+      expected: SparklinePoint[];
+      avgValue: SparklinePoint[];
+      closingTime: SparklinePoint[];
     }
   }
 };
 
 export function CRMDashboardClient({ data }: { data: DashboardData }) {
-  const [dealPage, setDealPage] = useState(1);
   const itemsPerPage = 4;
   
   const paginatedDeals = data.recentDeals.slice(0, itemsPerPage);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'OPEN': return 'bg-blue-500';
-      case 'WON': return 'bg-green-500';
+      case 'OPEN': return 'bg-black';
+      case 'WON': return 'bg-emerald-500';
       case 'LOST': return 'bg-red-500';
-      case 'ON_HOLD': return 'bg-amber-500';
-      default: return 'bg-slate-400';
+      case 'ON_HOLD': return 'bg-gray-400';
+      default: return 'bg-gray-300';
     }
   };
 
@@ -68,28 +90,37 @@ export function CRMDashboardClient({ data }: { data: DashboardData }) {
   };
 
   return (
-    <div className="max-w-full space-y-4 overflow-x-hidden px-4 py-5 pb-6 sm:px-6 lg:px-8">
+    <div className="max-w-[1200px] mx-auto p-4 sm:p-8 space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between pb-2">
+      <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between mb-8">
         <div>
-          <h1 className="text-[15px] font-medium text-slate-900 tracking-tight">Bảng Tổng quan CRM</h1>
-          <p className="text-[13px] text-slate-500 mt-0.5">Theo dõi hoạt động kinh doanh và tiến độ các cơ hội.</p>
+          <div className="flex items-center gap-3 mb-6">
+            <span className="rounded-full bg-black px-3 py-1.5 text-[11px] font-semibold text-white tracking-wide uppercase w-fit">
+              CRM Analytics
+            </span>
+          </div>
+          <h1 className="text-[32px] md:text-[44px] tracking-tight leading-[1.15] font-medium">
+            <span className="text-black">Hiệu suất</span>{" "}
+            <span className="text-gray-400">CRM.</span>
+          </h1>
+          <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-gray-500">
+            Theo dõi pipeline, giá trị cơ hội và hoạt động chăm sóc khách hàng trong một giao diện gọn, rõ và tập trung vào dữ liệu.
+          </p>
         </div>
-        <Link href="/workspace/crm/deals/new" className="h-9 px-4 inline-flex items-center justify-center rounded bg-indigo-600 text-[13px] font-medium text-white hover:bg-indigo-700 transition shadow-sm">
-          <span className="mr-1.5 text-[15px] leading-none">+</span> Tạo cơ hội
+        <Link href="/workspace/crm/deals/new" className="inline-flex h-10 items-center justify-center rounded-md bg-black px-5 text-[14px] font-medium text-white transition-colors hover:bg-gray-800">
+          <span className="mr-2 text-[17px] leading-none">+</span> Tạo cơ hội
         </Link>
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <Link href="/workspace/crm/contacts" className="block">
           <StatCard
             title="Tổng Khách hàng"
             value={data.totalCustomers}
             subtitle="Tất cả khách hàng (Customer)"
             growth={data.customerGrowth}
-            icon={<Users className="h-5 w-5 text-blue-500" />}
-            bgColor="bg-blue-50"
+            icon={<Users className="h-4 w-4" />}
           />
         </Link>
         <Link href="/workspace/crm/companies" className="block">
@@ -98,8 +129,7 @@ export function CRMDashboardClient({ data }: { data: DashboardData }) {
             value={data.totalCompanies}
             subtitle="Tất cả đối tác (Company)"
             growth={data.companyGrowth}
-            icon={<Target className="h-5 w-5 text-amber-500" />}
-            bgColor="bg-amber-50"
+            icon={<Target className="h-4 w-4" />}
           />
         </Link>
         <Link href="/workspace/crm/deals" className="block">
@@ -108,8 +138,7 @@ export function CRMDashboardClient({ data }: { data: DashboardData }) {
             value={data.totalOpenDeals}
             subtitle="Pipeline hiện tại"
             growth={data.dealGrowth}
-            icon={<Target className="h-5 w-5 text-purple-500" />}
-            bgColor="bg-purple-50"
+            icon={<Target className="h-4 w-4" />}
           />
         </Link>
         <Link href="/workspace/crm/deals" className="block">
@@ -118,51 +147,50 @@ export function CRMDashboardClient({ data }: { data: DashboardData }) {
             value={`${formatCurrency(data.expectedValue, "VND")}`}
             subtitle="Tổng ngân sách"
             growth={data.expectedValueGrowth}
-            icon={<CircleDollarSign className="h-5 w-5 text-emerald-500" />}
-            bgColor="bg-emerald-50"
+            icon={<CircleDollarSign className="h-4 w-4" />}
           />
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         {/* Left Column (2/3) */}
-        <div className="xl:col-span-2 flex flex-col gap-3">
+        <div className="flex flex-col gap-6 xl:col-span-2">
           
           {/* Closing Soon */}
-          <section className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[220px]">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-              <h2 className="font-medium text-slate-800 flex items-center gap-2 text-[13px]">
-                <Clock className="h-4 w-4 text-orange-500" />
+          <section className="flex min-h-[220px] flex-col overflow-hidden rounded-2xl border border-[#eaeaea] bg-white">
+            <div className="flex items-center justify-between gap-4 border-b border-[#eaeaea] px-5 py-4">
+              <h2 className="flex items-center gap-2 text-[13px] font-medium text-black">
+                <Clock className="h-4 w-4 text-gray-500" />
                 Cơ hội sắp chốt (Closing Soon)
               </h2>
-              <Link href="/workspace/crm/deals" className="text-[12px] text-indigo-600 hover:text-indigo-700 flex items-center gap-1 font-medium bg-indigo-50 px-2 py-1 rounded">
+              <Link href="/workspace/crm/deals" className="inline-flex items-center gap-1 rounded-full border border-[#eaeaea] bg-white px-3 py-1 text-[11px] font-medium text-black transition-colors hover:bg-gray-50">
                 Xem tất cả <ArrowRight className="h-3 w-3" />
               </Link>
             </div>
             <div className="flex-1 flex flex-col">
               {data.closingSoonDeals.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-                  <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-3">
-                    <Inbox className="w-6 h-6 text-slate-400" />
+                  <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-[#eaeaea] bg-white">
+                    <Inbox className="h-6 w-6 text-gray-400" />
                   </div>
-                  <div className="text-[13px] font-medium text-slate-700">Không có cơ hội nào sắp chốt</div>
-                  <div className="text-[12px] text-slate-500 mt-1">Hiện tại chưa có cơ hội nào trong giai đoạn sắp chốt.</div>
+                  <div className="text-[13px] font-medium text-black">Không có cơ hội nào sắp chốt</div>
+                  <div className="mt-1 text-[12px] text-gray-500">Hiện tại chưa có cơ hội nào trong giai đoạn sắp chốt.</div>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-[#eaeaea]">
                   {data.closingSoonDeals.map(deal => (
-                    <div key={deal.id} className="p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-slate-50 transition-colors gap-3">
+                    <div key={deal.id} className="flex flex-col justify-between gap-3 px-5 py-4 transition-colors hover:bg-gray-50 sm:flex-row sm:items-center">
                       <div className="flex-1 min-w-0">
-                        <Link href={`/workspace/crm/deals/${deal.id}`} className="font-medium text-slate-800 hover:text-indigo-600 truncate block text-[13px]">
+                        <Link href={`/workspace/crm/deals/${deal.id}`} className="block truncate text-[13px] font-medium text-black hover:underline">
                           {deal.title}
                         </Link>
-                        <div className="flex items-center gap-2 mt-1 text-[12px] text-slate-500">
+                        <div className="mt-1 flex items-center gap-2 text-[12px] text-gray-500">
                           <span className="truncate">{deal.company?.name || deal.contact?.firstName || 'Khách lẻ'}</span>
                           <span>•</span>
-                          <span className="text-orange-600 font-medium">Chốt: {deal.expectedClose ? new Date(deal.expectedClose).toLocaleDateString('vi-VN') : 'N/A'}</span>
+                          <span className="font-medium text-black">Chốt: {deal.expectedClose ? new Date(deal.expectedClose).toLocaleDateString('vi-VN') : 'N/A'}</span>
                         </div>
                       </div>
-                      <div className="font-medium text-slate-900 text-[13px] shrink-0">
+                      <div className="shrink-0 text-[13px] font-medium text-black">
                         {formatCurrency(Number(deal.value), deal.currency)}
                       </div>
                     </div>
@@ -173,13 +201,13 @@ export function CRMDashboardClient({ data }: { data: DashboardData }) {
           </section>
 
           {/* Recent Deals */}
-          <section className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex-1 flex flex-col min-h-[300px]">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-              <h2 className="font-medium text-slate-800 flex items-center gap-2 text-[13px]">
-                <Briefcase className="h-4 w-4 text-indigo-500" />
-                Cơ hội mới nhất (Recent Deals)
+          <section className="flex min-h-[300px] flex-1 flex-col overflow-hidden rounded-2xl border border-[#eaeaea] bg-white">
+            <div className="flex items-center justify-between gap-3 border-b border-[#eaeaea] px-4 py-3 sm:px-5 sm:py-4">
+              <h2 className="flex items-center gap-2 text-[13px] font-medium text-black">
+                <Briefcase className="h-4 w-4 text-gray-500" />
+                Cơ hội mới
               </h2>
-              <select className="text-[12px] border border-slate-200 rounded px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500 bg-white cursor-pointer">
+              <select className="h-9 cursor-pointer rounded-md border border-[#eaeaea] bg-white px-3 text-[12px] text-black outline-none transition-colors hover:bg-gray-50 focus:border-black focus:ring-1 focus:ring-black">
                 <option>Tất cả cơ hội</option>
                 <option>Đang mở</option>
               </select>
@@ -188,33 +216,31 @@ export function CRMDashboardClient({ data }: { data: DashboardData }) {
             <div className="flex-1 flex flex-col">
               {data.recentDeals.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-                  <div className="text-[13px] text-slate-500">Chưa có cơ hội nào</div>
+                  <div className="text-[13px] text-gray-500">Chưa có cơ hội nào</div>
                 </div>
               ) : (
                 <>
-                  <div className="divide-y divide-slate-100 flex-1">
+                  <div className="flex-1 divide-y divide-[#eaeaea]">
                     {paginatedDeals.map(deal => (
-                      <div key={deal.id} className="p-3 px-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                        <div className="min-w-0 pr-4 flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`w-2 h-2 rounded-full ${getStatusColor(deal.status)}`}></span>
-                            <Link href={`/workspace/crm/deals/${deal.id}`} className="font-medium text-slate-800 hover:text-indigo-600 truncate text-[13px]">
+                      <div key={deal.id} className="grid gap-3 px-4 py-3 transition-colors hover:bg-gray-50 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-5 sm:py-4">
+                        <div className="min-w-0">
+                          <div className="mb-1 flex items-center gap-2">
+                            <span className={`h-2 w-2 shrink-0 rounded-full ${getStatusColor(deal.status)}`}></span>
+                            <Link href={`/workspace/crm/deals/${deal.id}`} className="min-w-0 truncate text-[13px] font-medium text-black hover:underline">
                               {deal.title}
                             </Link>
                           </div>
-                          <div className="text-[11px] text-slate-500 flex items-center gap-1.5 ml-4">
-                            <span>Tạo: {new Date(deal.createdAt).toLocaleDateString('vi-VN')}</span>
+                          <div className="ml-4 flex min-w-0 items-center gap-1.5 text-[11px] text-gray-500">
+                            <span className="shrink-0">{new Date(deal.createdAt).toLocaleDateString('vi-VN')}</span>
                             <span>•</span>
-                            <span className="truncate">{deal.company?.name || deal.contact?.firstName || 'Khách lẻ'}</span>
+                            <span className="min-w-0 truncate">{deal.company?.name || deal.contact?.firstName || 'Khách lẻ'}</span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 shrink-0">
-                          <div className="flex items-center gap-1.5 w-24">
-                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-600`}>
+                        <div className="ml-4 flex items-center justify-between gap-3 sm:ml-0 sm:justify-end">
+                          <span className="rounded-full border border-[#eaeaea] bg-white px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-600">
                               {getStatusLabel(deal.status)}
                             </span>
-                          </div>
-                          <div className="text-right font-medium text-slate-900 text-[13px] w-24">
+                          <div className="shrink-0 text-right text-[13px] font-medium text-black">
                             {formatCurrency(Number(deal.value), deal.currency)}
                           </div>
                         </div>
@@ -223,22 +249,22 @@ export function CRMDashboardClient({ data }: { data: DashboardData }) {
                   </div>
                   
                   {/* Pagination Footer */}
-                  <div className="px-4 py-2 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
-                    <div className="text-[11px] text-slate-500">
-                      Hiển thị 1 đến {paginatedDeals.length} của {data.recentDeals.length} cơ hội
+                  <div className="flex items-center justify-between gap-3 border-t border-[#eaeaea] bg-gray-50/50 px-4 py-3 sm:px-5">
+                    <div className="text-[11px] text-gray-500">
+                      {paginatedDeals.length}/{data.recentDeals.length} cơ hội
                     </div>
                     <div className="flex items-center gap-2">
-                      <select className="text-[11px] border border-slate-200 rounded px-1.5 py-0.5 outline-none bg-white">
+                      <select className="rounded-md border border-[#eaeaea] bg-white px-1.5 py-0.5 text-[11px] outline-none">
                         <option>10 / trang</option>
                       </select>
                       <div className="flex items-center gap-1">
-                        <button className="p-1 rounded text-slate-400 hover:bg-slate-200 disabled:opacity-50" disabled>
+                        <button className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 disabled:opacity-50" disabled>
                           <ChevronLeft className="w-4 h-4" />
                         </button>
-                        <button className="w-6 h-6 rounded bg-indigo-50 text-indigo-600 text-[12px] font-medium flex items-center justify-center border border-indigo-100">
+                        <button className="flex h-6 w-6 items-center justify-center rounded-md border border-black bg-black text-[12px] font-medium text-white">
                           1
                         </button>
-                        <button className="p-1 rounded text-slate-400 hover:bg-slate-200 disabled:opacity-50" disabled>
+                        <button className="rounded p-1 text-gray-400 transition-colors hover:bg-gray-100 disabled:opacity-50" disabled>
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       </div>
@@ -251,41 +277,41 @@ export function CRMDashboardClient({ data }: { data: DashboardData }) {
         </div>
 
         {/* Right Column (1/3) */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-6">
           
           {/* Recent Activities */}
-          <section className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[220px]">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-              <h2 className="font-medium text-slate-800 flex items-center gap-2 text-[13px]">
-                <Activity className="h-4 w-4 text-emerald-500" />
+          <section className="flex h-[220px] flex-col overflow-hidden rounded-2xl border border-[#eaeaea] bg-white">
+            <div className="flex items-center justify-between gap-4 border-b border-[#eaeaea] px-5 py-4">
+              <h2 className="flex items-center gap-2 text-[13px] font-medium text-black">
+                <Activity className="h-4 w-4 text-gray-500" />
                 Hoạt động chăm sóc
               </h2>
-              <Link href="#" className="text-[12px] text-indigo-600 hover:text-indigo-700 flex items-center gap-1 font-medium bg-indigo-50 px-2 py-1 rounded">
+              <Link href="#" className="inline-flex items-center gap-1 rounded-full border border-[#eaeaea] bg-white px-3 py-1 text-[11px] font-medium text-black transition-colors hover:bg-gray-50">
                 Xem tất cả <ChevronRight className="h-3 w-3" />
               </Link>
             </div>
             <div className="flex-1 flex flex-col">
               {data.recentActivities.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-                  <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-3">
-                    <Activity className="w-6 h-6 text-slate-400" />
+                  <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full border border-dashed border-[#eaeaea] bg-white">
+                    <Activity className="h-6 w-6 text-gray-400" />
                   </div>
-                  <div className="text-[13px] font-medium text-slate-700">Chưa có hoạt động nào</div>
-                  <div className="text-[12px] text-slate-500 mt-1">Các hoạt động chăm sóc khách hàng sẽ hiển thị tại đây.</div>
+                  <div className="text-[13px] font-medium text-black">Chưa có hoạt động nào</div>
+                  <div className="mt-1 text-[12px] text-gray-500">Các hoạt động chăm sóc khách hàng sẽ hiển thị tại đây.</div>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100 overflow-y-auto">
+                <div className="divide-y divide-[#eaeaea] overflow-y-auto">
                   {data.recentActivities.map(activity => (
-                    <div key={activity.id} className="p-3 px-4 hover:bg-slate-50 transition-colors">
-                      <div className="flex justify-between items-start mb-1">
-                        <span className="text-[11px] font-medium text-slate-700">
+                    <div key={activity.id} className="px-5 py-3 transition-colors hover:bg-gray-50">
+                      <div className="mb-1 flex items-start justify-between">
+                        <span className="text-[11px] font-medium uppercase tracking-wide text-black">
                           {activity.type}
                         </span>
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-gray-400">
                           {new Date(activity.createdAt).toLocaleDateString('vi-VN')}
                         </span>
                       </div>
-                      <div className="text-[12px] text-slate-600 line-clamp-1">
+                      <div className="line-clamp-1 text-[12px] text-gray-600">
                         {activity.subject || 'Ghi chú cuộc gọi / họp'}
                       </div>
                     </div>
@@ -296,57 +322,52 @@ export function CRMDashboardClient({ data }: { data: DashboardData }) {
           </section>
 
           {/* Quick Overview (Sparklines) */}
-          <section className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex-1">
-            <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="font-medium text-slate-800 text-[13px]">
+          <section className="flex-1 overflow-hidden rounded-2xl border border-[#eaeaea] bg-white">
+            <div className="border-b border-[#eaeaea] bg-gray-50/50 px-5 py-4">
+              <h2 className="text-[13px] font-medium text-black">
                 Tổng quan nhanh
               </h2>
             </div>
-            <div className="p-2 space-y-1">
+            <div className="space-y-1 p-3">
               <QuickStatRow 
-                icon={<Target className="w-4 h-4 text-blue-500" />}
-                iconBg="bg-blue-100"
+                icon={<Target className="h-4 w-4" />}
                 title="Tỷ lệ chuyển đổi"
                 subtitle="Cơ hội → Thành công"
                 value={`${data.quickStats.conversionRate}%`}
                 chartData={data.quickStats.chartData.conversion}
-                chartColor="#3b82f6"
+                chartColor="#000000"
               />
               <QuickStatRow 
-                icon={<CircleDollarSign className="w-4 h-4 text-green-500" />}
-                iconBg="bg-green-100"
+                icon={<CircleDollarSign className="h-4 w-4" />}
                 title="Doanh thu tháng này"
                 subtitle={<GrowthText growth={data.quickStats.revenueGrowth} />}
                 value={formatCurrency(data.quickStats.thisMonthRevenue, "VND")}
                 chartData={data.quickStats.chartData.revenue}
-                chartColor="#22c55e"
+                chartColor="#000000"
               />
               <QuickStatRow 
-                icon={<Briefcase className="w-4 h-4 text-purple-500" />}
-                iconBg="bg-purple-100"
+                icon={<Briefcase className="h-4 w-4" />}
                 title="Doanh thu dự kiến"
                 subtitle={<GrowthText growth={data.expectedValueGrowth} />}
                 value={formatCurrency(data.expectedValue, "VND")}
                 chartData={data.quickStats.chartData.expected}
-                chartColor="#a855f7"
+                chartColor="#000000"
               />
               <QuickStatRow 
-                icon={<CircleDollarSign className="w-4 h-4 text-orange-500" />}
-                iconBg="bg-orange-100"
+                icon={<CircleDollarSign className="h-4 w-4" />}
                 title="Giá trị trung bình"
                 subtitle="Trên mỗi cơ hội"
                 value={formatCurrency(data.quickStats.avgValue, "VND")}
                 chartData={data.quickStats.chartData.avgValue}
-                chartColor="#f97316"
+                chartColor="#000000"
               />
               <QuickStatRow 
-                icon={<Clock className="w-4 h-4 text-blue-500" />}
-                iconBg="bg-blue-100"
+                icon={<Clock className="h-4 w-4" />}
                 title="Thời gian chốt trung bình"
                 subtitle="Từ khi tạo đến khi chốt"
                 value={`${data.quickStats.avgClosingTime} ngày`}
                 chartData={data.quickStats.chartData.closingTime}
-                chartColor="#3b82f6"
+                chartColor="#000000"
               />
             </div>
           </section>
@@ -357,21 +378,18 @@ export function CRMDashboardClient({ data }: { data: DashboardData }) {
   );
 }
 
-function StatCard({ title, value, subtitle, growth, icon, bgColor }: { title: string, value: string | number, subtitle?: string, growth: number, icon: React.ReactNode, bgColor: string }) {
+function StatCard({ title, value, subtitle, growth, icon }: { title: string, value: string | number, subtitle?: string, growth: number, icon: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-4 shadow-sm hover:border-indigo-200 transition-colors relative overflow-hidden group h-full">
-      <div className="flex justify-between items-start mb-2">
-        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${bgColor} group-hover:scale-105 transition-transform`}>
+    <div className="group relative h-full overflow-hidden rounded-xl border border-[#eaeaea] bg-white p-5 transition-all duration-300 hover:border-black hover:bg-[#fafafa] active:scale-[0.98]">
+      <div className="mb-5 flex items-start justify-between gap-3">
+        <p className="max-w-[120px] text-[13px] font-medium leading-snug text-gray-500">{title}</p>
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[#eaeaea] bg-white text-black transition-colors group-hover:border-black group-hover:bg-black group-hover:text-white">
           {icon}
         </div>
       </div>
-      <div>
-        <div className="text-[13px] font-medium text-slate-600">{title}</div>
-        <div className="text-[15px] font-medium text-slate-900 tracking-tight mt-1 mb-1">{value}</div>
-        <div className="flex items-center justify-between">
-          <div className="text-[11px] text-slate-400">{subtitle}</div>
-        </div>
-        <div className="mt-2 flex items-center text-[11px] font-medium">
+      <div className="min-w-0">
+        <div className="truncate text-[24px] font-medium leading-none tracking-tight text-black">{value}</div>
+        <div className="mt-4 flex items-center text-[12px] font-medium">
           <GrowthText growth={growth} />
         </div>
       </div>
@@ -384,35 +402,34 @@ function GrowthText({ growth }: { growth: number }) {
   const isNeutral = growth === 0;
   
   if (isNeutral) {
-    return <span className="text-slate-500 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> 0% <span className="text-slate-400 font-normal">so với tháng trước</span></span>;
+    return <span className="flex items-center gap-1 text-gray-500"><TrendingUp className="h-3 w-3" /> 0%</span>;
   }
   
   return (
     <span className={`flex items-center gap-1 ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
-      {isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-      {Math.abs(growth)}% 
-      <span className="text-slate-400 font-normal ml-0.5">so với tháng trước</span>
+      {isPositive ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+      {Math.abs(growth)}%
     </span>
   );
 }
 
 function QuickStatRow({ 
-  icon, iconBg, title, subtitle, value, chartData, chartColor 
+  icon, title, subtitle, value, chartData, chartColor 
 }: { 
-  icon: React.ReactNode; iconBg: string; title: string; subtitle: React.ReactNode; value: string; chartData: any[]; chartColor: string;
+  icon: React.ReactNode; title: string; subtitle: React.ReactNode; value: string; chartData: SparklinePoint[]; chartColor: string;
 }) {
   return (
-    <div className="flex items-center p-2 rounded hover:bg-slate-50 transition-colors">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconBg} mr-3`}>
+    <div className="flex items-center rounded-lg p-2 transition-colors hover:bg-gray-50">
+      <div className="mr-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[#eaeaea] bg-white text-black">
         {icon}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-[12px] font-medium text-slate-800">{title}</div>
-        <div className="text-[10px] text-slate-500 truncate">{subtitle}</div>
+        <div className="text-[12px] font-medium text-black">{title}</div>
+        <div className="truncate text-[10px] text-gray-500">{subtitle}</div>
       </div>
       <div className="flex items-center gap-4 shrink-0">
-        <div className="font-medium text-[12px] text-slate-900 text-right w-24 truncate">{value}</div>
-        <div className="w-16 h-8 opacity-80 shrink-0">
+        <div className="w-24 truncate text-right text-[12px] font-medium text-black">{value}</div>
+        <div className="h-8 w-16 shrink-0 opacity-80">
           <LineChart width={64} height={32} data={chartData}>
             <Line type="monotone" dataKey="value" stroke={chartColor} strokeWidth={1.5} dot={false} isAnimationActive={false} />
           </LineChart>

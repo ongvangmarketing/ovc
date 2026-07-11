@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
-import { PROJECT_PERMISSIONS } from "@/modules/projects/constants/project-permissions";
-import { requireProjectModule } from "@/modules/projects/guards/project-module.guard";
-import { reorderTasksSchema, taskCommentSchema, taskCreateSchema, taskUpdateSchema } from "@/modules/projects/schemas/task.schema";
+import { PROJECT_PERMISSIONS } from "@/modules/projects/types/project-permissions";
+import { requireProjectModule } from "@/modules/projects/services/project-module.guard";
+import { reorderTasksSchema, taskCommentSchema, taskCreateSchema, taskUpdateSchema } from "@/modules/projects/types/task.schema";
 import {
   addTaskCommentService,
   completeTaskService,

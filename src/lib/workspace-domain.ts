@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { getTenantDb } from "@/lib/db";
 
 type WorkspaceDomainConfig = {
   domain?: string;
@@ -33,7 +33,7 @@ export async function getOrganizationPublicBaseUrl(
   organizationId: string,
   target: "portal" | "homepage" | "marketing" | "training" | "app" = "portal",
 ) {
-  const setting = await db.setting.findUnique({
+  const setting = await getTenantDb().setting.findUnique({
     where: {
       organizationId_key: {
         organizationId,
