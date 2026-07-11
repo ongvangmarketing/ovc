@@ -98,9 +98,9 @@ export function MobileBottomNav({
     const endItems = [
       {
         label: "Ứng dụng",
-        onClick: onOpenApps,
-        icon: Grid3x3,
-        isActive: false,
+        href: "/workspace",
+        icon: ({ className }: { className?: string }) => <Grid3x3 className={className} />,
+        isActive: pathname === "/workspace",
       },
     ];
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, ChevronDown, ChevronLeft, ChevronRight, FileCheck2, FileText, Folder, FolderKanban, Grid3x3, Inbox, LayoutDashboard, Link2, MessageSquare, ReceiptText, Search, Settings, ShieldAlert, User as UserIcon, UserPlus, WalletCards, X } from "lucide-react";
+import { Bell, ChevronDown, ChevronLeft, ChevronRight, FileCheck2, FileText, Folder, FolderKanban, Grid3x3, Home, Inbox, LayoutDashboard, Link2, MessageSquare, ReceiptText, Search, Settings, ShieldAlert, User as UserIcon, UserPlus, WalletCards, X } from "lucide-react";
 import { getPusherClient } from "@/lib/pusher";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -416,60 +416,17 @@ export function Topbar({
         <div className="flex items-center gap-1 lg:gap-2">
 
           {onToggleSidebar ? (
-            <div ref={mobileAppMenuRef} className="relative lg:hidden">
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileAppMenuOpen((current) => !current);
-                  setProfileMenuOpen(false);
-                  setSearchOpen(false);
-                  setNotificationOpen(false);
-                }}
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#e5e7eb] bg-white text-slate-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-gray-300 hover:shadow-md"
-                title="Danh sách ứng dụng"
-                aria-label="Danh sách ứng dụng"
-                aria-haspopup="menu"
-                aria-expanded={mobileAppMenuOpen}
+            <div className="relative lg:hidden">
+              <Link
+                href="/workspace"
+                prefetch={false}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900 active:scale-95"
+                title="Trang chủ Workspace"
               >
-                <Grid3x3 className="h-5 w-5" />
-              </button>
-            {mobileAppMenuOpen ? (
-              <div role="menu" className="fixed inset-0 z-[900] overflow-y-auto bg-[#F4F5F7] px-6 pb-10 pt-5">
-                <div className="mb-8 flex items-center justify-between pl-4">
-                  <div>
-                    <p className="text-[11px] font-medium uppercase tracking-widest text-gray-400">Workspace</p>
-                    <h2 className="mt-1 text-[24px] font-semibold tracking-tight text-black">Ứng dụng của bạn</h2>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="Đóng"
-                    onClick={() => setMobileAppMenuOpen(false)}
-                    className="flex h-10 w-10 items-center justify-center rounded-md border border-[#eaeaea] bg-white text-gray-500"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-3 gap-x-3 gap-y-6 px-2">
-                  {mobileLauncherItems.map((item) => (
-                    <Link
-                      key={item.href || item.label}
-                      href={item.href || "#"}
-                      prefetch={false}
-                      role="menuitem"
-                      onClick={() => setMobileAppMenuOpen(false)}
-                      className="flex flex-col items-center gap-2 text-center"
-                    >
-                      <span className="flex h-16 w-16 items-center justify-center rounded-xl border border-[#eaeaea] bg-white text-black [&>svg]:h-6 [&>svg]:w-6 [&>svg]:stroke-[1.5]">
-                        {item.icon}
-                      </span>
-                      <span className="text-[12px] font-medium leading-4 text-black">{item.label}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
+                <Home className="h-5 w-5" />
+              </Link>
+            </div>
+          ) : null}
         </div>
         
         {/* Back / Forward Buttons - Desktop */}
@@ -802,77 +759,79 @@ export function Topbar({
     </header>
     
     {/* Mobile Secondary Navigation Bar */}
-    <div className="flex lg:hidden items-center bg-white border-b border-[#eaeaea] px-2 py-1.5 shrink-0 z-[190] gap-1">
-      <button 
-        type="button" 
-        onClick={() => window.history.back()} 
-        className="flex h-8 px-2 items-center justify-center gap-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-50 active:scale-95 transition-all"
-        title="Quay lại"
-      >
-        <ChevronLeft className="h-4 w-4" />
-        <span className="text-[13px] font-medium">Quay lại</span>
-      </button>
+    {!isAppLauncher ? (
+      <div className="flex lg:hidden items-center bg-white border-b border-[#eaeaea] px-2 py-1.5 shrink-0 z-[190] gap-1">
+        <button 
+          type="button" 
+          onClick={() => window.history.back()} 
+          className="flex h-8 px-2 items-center justify-center gap-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-50 active:scale-95 transition-all"
+          title="Quay lại"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          <span className="text-[13px] font-medium">Quay lại</span>
+        </button>
 
-      {/* Level 2 Menu Dropdown */}
-      <div className="flex-1 flex items-center justify-center">
-        {!isAppLauncher && activeModule ? (
-          <div ref={mobileModuleMenuRef} className="relative min-w-0">
-            <button
-              type="button"
-              aria-expanded={mobileModuleMenuOpen}
-              onClick={() => {
-                setMobileModuleMenuOpen((current) => !current);
-                setMobileAppMenuOpen(false);
-                setProfileMenuOpen(false);
-                setSearchOpen(false);
-                setNotificationOpen(false);
-              }}
-              className="flex min-w-0 items-center gap-2 rounded-full px-3 py-1.5 text-slate-900 transition-all active:scale-[0.98] hover:bg-slate-50"
-            >
-              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-slate-900">
-                {activeModule.icon ? <span className="[&>svg]:h-3 [&>svg]:w-3">{activeModule.icon}</span> : <span className="text-[10px] font-bold">{activeModule.label.charAt(0)}</span>}
-              </div>
-              <span className="truncate text-[13px] font-medium text-slate-900">{activeModule.label}</span>
-              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500" />
-            </button>
-            {mobileModuleMenuOpen ? (
-              <div role="menu" className="absolute left-1/2 -translate-x-1/2 top-10 z-[700] w-[min(280px,calc(100vw-32px))] rounded-xl border border-[#eaeaea] bg-white p-2 shadow-[0_24px_70px_rgba(15,23,42,0.2)]">
-                <div className="grid gap-1">
-                  {(activeModule.children?.length ? activeModule.children : [activeModule]).map((item) => (
-                    <Link
-                      key={item.href || item.label}
-                      href={item.href || "#"}
-                      prefetch={false}
-                      role="menuitem"
-                      onClick={() => setMobileModuleMenuOpen(false)}
-                      className={cn(
-                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-light text-slate-700 transition-colors hover:bg-gray-50 hover:text-black",
-                        (item.href ? isActive(pathname, item.href) : false) && "bg-gray-50 font-medium text-black"
-                      )}
-                    >
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#eaeaea] bg-white text-slate-600 [&>svg]:h-4 [&>svg]:w-4">
-                        {getChildMenuIcon(item)}
-                      </span>
-                      <span>{item.label}</span>
-                    </Link>
-                  ))}
+        {/* Level 2 Menu Dropdown */}
+        <div className="flex-1 flex items-center justify-center">
+          {activeModule ? (
+            <div ref={mobileModuleMenuRef} className="relative min-w-0">
+              <button
+                type="button"
+                aria-expanded={mobileModuleMenuOpen}
+                onClick={() => {
+                  setMobileModuleMenuOpen((current) => !current);
+                  setMobileAppMenuOpen(false);
+                  setProfileMenuOpen(false);
+                  setSearchOpen(false);
+                  setNotificationOpen(false);
+                }}
+                className="flex min-w-0 items-center gap-2 rounded-full px-3 py-1.5 text-slate-900 transition-all active:scale-[0.98] hover:bg-slate-50"
+              >
+                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-slate-900">
+                  {activeModule.icon ? <span className="[&>svg]:h-3 [&>svg]:w-3">{activeModule.icon}</span> : <span className="text-[10px] font-bold">{activeModule.label.charAt(0)}</span>}
                 </div>
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+                <span className="truncate text-[13px] font-medium text-slate-900">{activeModule.label}</span>
+                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+              </button>
+              {mobileModuleMenuOpen ? (
+                <div role="menu" className="absolute left-1/2 -translate-x-1/2 top-10 z-[700] w-[min(280px,calc(100vw-32px))] rounded-xl border border-[#eaeaea] bg-white p-2 shadow-[0_24px_70px_rgba(15,23,42,0.2)]">
+                  <div className="grid gap-1">
+                    {(activeModule.children?.length ? activeModule.children : [activeModule]).map((item) => (
+                      <Link
+                        key={item.href || item.label}
+                        href={item.href || "#"}
+                        prefetch={false}
+                        role="menuitem"
+                        onClick={() => setMobileModuleMenuOpen(false)}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-light text-slate-700 transition-colors hover:bg-gray-50 hover:text-black",
+                          (item.href ? isActive(pathname, item.href) : false) && "bg-gray-50 font-medium text-black"
+                        )}
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#eaeaea] bg-white text-slate-600 [&>svg]:h-4 [&>svg]:w-4">
+                          {getChildMenuIcon(item)}
+                        </span>
+                        <span>{item.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
 
-      <button 
-        type="button" 
-        onClick={() => window.history.forward()} 
-        className="flex h-8 px-2 items-center justify-center gap-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-50 active:scale-95 transition-all"
-        title="Tiến tới"
-      >
-        <span className="text-[13px] font-medium">Tiến tới</span>
-        <ChevronRight className="h-4 w-4" />
-      </button>
-    </div>
+        <button 
+          type="button" 
+          onClick={() => window.history.forward()} 
+          className="flex h-8 px-2 items-center justify-center gap-1 rounded-md text-slate-500 hover:text-slate-900 hover:bg-slate-50 active:scale-95 transition-all"
+          title="Tiến tới"
+        >
+          <span className="text-[13px] font-medium">Tiến tới</span>
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+    ) : null}
     </>
   );
 }
