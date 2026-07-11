@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getZaloAccountsAction, initZaloLoginAction, checkZaloStatusAction, disconnectZaloAction } from "@/modules/zalo-integration/actions/zalo.actions";
+import { getZaloAccountsAction, initZaloLoginAction, checkZaloStatusAction, disconnectZaloAction, deleteZaloAccountAction } from "@/modules/zalo-integration/actions/zalo.actions";
 import { Loader2, Plus, QrCode } from "lucide-react";
 import { toast } from "sonner";
 
@@ -99,6 +99,21 @@ export function ZaloConnectCard() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Bạn có chắc muốn xóa vĩnh viễn tài khoản này khỏi hệ thống? (Lịch sử chat liên quan có thể bị xóa theo)")) return;
+    try {
+      const res = await deleteZaloAccountAction(id);
+      if (res.success) {
+        toast.success("Đã xóa tài khoản");
+        fetchAccounts();
+      } else {
+        toast.error(res.error || "Xóa thất bại");
+      }
+    } catch (e: any) {
+      toast.error("Có lỗi xảy ra");
+    }
+  };
+
   if (isLoading) {
     return <div className="p-8 flex justify-center"><Loader2 className="animate-spin text-gray-400 w-6 h-6" /></div>;
   }
@@ -166,9 +181,15 @@ export function ZaloConnectCard() {
                   {acc.status === "CONNECTED" ? "Đang kết nối" : "Mất kết nối"}
                 </span>
                 
-                <button onClick={() => handleDisconnect(acc.id)} className="text-xs text-red-600 hover:underline">
-                  Gỡ kết nối
-                </button>
+                {acc.status === "CONNECTED" ? (
+                  <button onClick={() => handleDisconnect(acc.id)} className="text-xs text-amber-600 hover:underline">
+                    Gỡ kết nối
+                  </button>
+                ) : (
+                  <button onClick={() => handleDelete(acc.id)} className="text-xs text-red-600 hover:underline">
+                    Xóa tài khoản
+                  </button>
+                )}
               </div>
             </div>
           </div>

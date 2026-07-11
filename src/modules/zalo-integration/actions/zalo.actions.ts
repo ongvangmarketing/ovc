@@ -80,3 +80,31 @@ export async function disconnectZaloAction(accountId: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function deleteZaloAccountAction(accountId: string) {
+  const session = await requireAuth();
+  
+  const db = getSystemDb();
+  const account = await db.zaloAccount.findUnique({ where: { id: accountId } });
+  
+  if (!account || account.organizationId !== session.organizationId) {
+    return { success: false, error: "Tài khoản không tồn tại hoặc không thuộc Organization này" };
+  }
+  
+  if ((!session.user.role || !["SUPER_ADMIN", "ADMIN", "MANAGER"].includes(session.user.role)) && account.ownerId !== session.user.id) {
+    return { success: false, error: "Không có quyền xóa tài khoản này" };
+  }
+
+  if (account.status === "CONNECTED") {
+    return { success: false, error: "Phải gỡ kết nối trước khi xóa tài khoản" };
+  }
+
+  try {
+    await db.zaloAccount.delete({
+      where: { id: accountId }
+    });
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
