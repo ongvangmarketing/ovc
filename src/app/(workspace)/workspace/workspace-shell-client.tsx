@@ -99,19 +99,21 @@ export function WorkspaceShellClient({
         </div>
       </div>
       
-      <MobileBottomNav 
-        enabledModuleCodes={enabledModuleCodes}
-        launcherPreferences={launcherPreferences}
-        onOpenApps={() => {
-          if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("open-mobile-apps"));
-        }}
-        onOpenProfile={() => {
-          if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("open-mobile-profile"));
-        }}
-        onOpenNotifications={() => {
-          if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("open-mobile-notifications"));
-        }}
-      />
+      {!isWorkspaceRoot && (
+        <MobileBottomNav 
+          enabledModuleCodes={enabledModuleCodes}
+          launcherPreferences={launcherPreferences}
+          onOpenApps={() => {
+            if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("open-mobile-apps"));
+          }}
+          onOpenProfile={() => {
+            if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("open-mobile-profile"));
+          }}
+          onOpenNotifications={() => {
+            if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("open-mobile-notifications"));
+          }}
+        />
+      )}
     </div>
   );
 }

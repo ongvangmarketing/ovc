@@ -415,7 +415,7 @@ export function Topbar({
 
   return (
     <>
-    <header className="relative z-[200] flex h-20 flex-shrink-0 items-center gap-2 border-b border-[#eaeaea] bg-[#fafafa] px-4 sm:gap-4 sm:px-8">
+    <header className="relative z-[200] flex h-20 flex-shrink-0 items-center gap-2 border-b border-[#eaeaea] bg-gradient-to-b from-white to-[#fafafa] px-4 sm:gap-4 sm:px-8">
       <div className="relative flex min-w-0 items-center gap-3 text-[15px] sm:gap-4">
         <div className="flex items-center gap-1 lg:gap-2">
 

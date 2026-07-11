@@ -389,7 +389,7 @@ export function Sidebar({ enabledModuleCodes = defaultModuleCodes, launcherPrefe
         if ((event.target as HTMLElement).closest("a")) onMobileNavigate?.();
       }}
       className={cn(
-        "fixed inset-y-0 left-0 z-[700] flex w-[min(86vw,320px)] shrink-0 flex-col border-r border-[#eaeaea] bg-[#fafafa] text-slate-800 shadow-2xl transition-transform duration-300 lg:relative lg:inset-auto lg:z-[700] lg:shadow-none lg:transition-all",
+        "fixed inset-y-0 left-0 z-[700] flex w-[min(86vw,320px)] shrink-0 flex-col border-r border-[#eaeaea] bg-gradient-to-r from-white to-[#fafafa] text-slate-800 shadow-2xl transition-transform duration-300 lg:relative lg:inset-auto lg:z-[700] lg:shadow-none lg:transition-all",
         isRailOnly || appLauncherOpen ? "overflow-visible" : "overflow-y-auto",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         collapsed || isRailOnly ? "lg:w-[86px]" : "lg:w-[248px]",

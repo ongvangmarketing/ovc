@@ -138,6 +138,17 @@ export default function AppLauncherClient({
     ];
   }, [activeModules]);
 
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setCurrentTime(new Date());
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formattedTime = currentTime?.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+  const formattedDate = currentTime?.toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long" });
+
   const defaultOrder = useMemo(() => availableItems.map((item) => item.code), [availableItems]);
   
   const initialDockOrder = useMemo(() => {
@@ -356,8 +367,15 @@ export default function AppLauncherClient({
           onClick={savePreferences}
         />
       )}
-      <div className={cn("flex items-center relative z-10", editing ? "mb-4 justify-end sm:mb-10 sm:justify-between" : "hidden sm:flex sm:mb-10 sm:justify-between")}>
-        <h1 className="hidden text-[22px] font-bold tracking-tight text-gray-900 sm:block sm:text-[24px]">Ứng dụng của bạn</h1>
+      <div className={cn("flex items-end relative z-10", editing ? "mb-4 justify-end sm:mb-12 sm:justify-between" : "hidden sm:flex sm:mb-12 sm:justify-between")}>
+        <div className="hidden sm:flex flex-col">
+          <h1 className="text-[56px] font-medium tracking-tighter text-slate-800 leading-none">
+            {formattedTime || "\u00A0"}
+          </h1>
+          <p className="text-[20px] font-medium text-slate-500 capitalize mt-2">
+            {formattedDate || "\u00A0"}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           {editing ? (
             <>
