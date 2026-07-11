@@ -68,8 +68,8 @@ export function AccountSettingsClient({ initialData }: { initialData: UserProfil
     const data = {
       name: formData.get("name") as string,
       phone: formData.get("phone") as string,
-      timezone: formData.get("timezone") as string,
-      locale: formData.get("locale") as string,
+      timezone: (formData.get("timezone") as string) || undefined,
+      locale: (formData.get("locale") as string) || undefined,
       image: avatarUrlInput || avatarPreview || profile.image,
     };
 
