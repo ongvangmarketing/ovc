@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import {
   DndContext,
   PointerSensor,
+  MouseSensor,
+  TouchSensor,
   KeyboardSensor,
   closestCenter,
   useSensor,
@@ -62,37 +64,34 @@ function SortableLauncherCard({
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`group relative flex flex-col items-center gap-2 sm:gap-4 ${
         hidden ? "opacity-35" : ""
-      } ${isDragging ? "z-20 scale-105 opacity-80" : ""}`}
+      } ${isDragging ? "z-20 scale-105 opacity-80" : ""} ${
+        editing ? "cursor-grab active:cursor-grabbing" : ""
+      }`}
+      {...(editing ? attributes : {})}
+      {...(editing ? listeners : {})}
     >
       <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-[#eaeaea] bg-white transition-colors duration-200 group-hover:border-gray-400 group-hover:bg-gray-50 sm:h-20 sm:w-20">
-        <span className="flex items-center justify-center text-black [&>svg]:h-6 [&>svg]:w-6 [&>svg]:stroke-[1.5] sm:[&>svg]:h-7 sm:[&>svg]:w-7">
+        <span className="flex items-center justify-center text-black [&>svg]:h-6 [&>svg]:w-6 [&>svg]:stroke-[1.5] sm:[&>svg]:h-7 sm:[&>svg]:w-7 pointer-events-none">
           {item.icon}
         </span>
         {editing ? (
           <button
             type="button"
-            onClick={() => onToggleVisibility(item.code)}
-            className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm hover:text-black"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleVisibility(item.code);
+            }}
+            className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 shadow-sm hover:text-black z-10"
             aria-label={hidden ? `Hiện ${item.name}` : `Ẩn ${item.name}`}
           >
             {hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           </button>
         ) : null}
       </div>
-      <span className="w-[72px] break-words text-center text-[11px] font-medium leading-tight tracking-tight text-black sm:w-[88px] sm:text-[13px]">
+      <span className="w-[72px] break-words text-center text-[11px] font-medium leading-tight tracking-tight text-black sm:w-[88px] sm:text-[13px] pointer-events-none">
         {item.name}
       </span>
-      {editing ? (
-        <button
-          type="button"
-          className="absolute -bottom-5 flex cursor-grab items-center gap-1 text-[10px] text-gray-400 active:cursor-grabbing"
-          aria-label={`Di chuyển ${item.name}`}
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical className="h-3 w-3" /> Kéo
-        </button>
-      ) : null}
     </div>
   );
 
@@ -169,7 +168,8 @@ export default function AppLauncherClient({
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -345,13 +345,13 @@ export default function AppLauncherClient({
         </DroppableZone>
 
         {editing ? (
-          <div className="fixed bottom-0 left-0 right-0 z-[100] border-t border-[#eaeaea] bg-white/80 p-4 pb-[env(safe-area-inset-bottom,16px)] backdrop-blur-xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+          <div className="fixed bottom-0 left-0 right-0 z-[400] border-t border-[#eaeaea] bg-white/80 p-4 pb-[calc(env(safe-area-inset-bottom,16px)+24px)] backdrop-blur-xl shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
             <div className="mx-auto max-w-[1200px]">
               <div className="mb-3 flex items-center justify-between px-2">
                 <h3 className="text-[11px] font-semibold tracking-widest text-gray-500 uppercase">Thanh Dock (Tối đa 4)</h3>
                 <span className="text-[11px] font-medium text-gray-400">{dockItems.length}/4</span>
               </div>
-              <DroppableZone id="dock-zone" className="flex min-h-[96px] items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/50 p-2 sm:gap-6">
+              <DroppableZone id="dock-zone" className="flex min-h-[96px] items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50/80 p-2 sm:gap-6">
                 <SortableContext items={dockItems.map((item) => item.code)} strategy={rectSortingStrategy}>
                   {dockItems.map((item) => (
                     <SortableLauncherCard
