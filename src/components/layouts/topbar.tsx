@@ -420,7 +420,7 @@ export function Topbar({
         <div className="flex items-center gap-1 lg:gap-2">
 
           {onToggleSidebar ? (
-            <div className="relative lg:hidden">
+            <div className="relative">
               <Link
                 href="/workspace"
                 prefetch={false}
@@ -460,19 +460,19 @@ export function Topbar({
           <Link
             href="/workspace/dashboard"
             prefetch={false}
-            className="hidden lg:flex min-w-0 items-center gap-3 rounded-md px-2 py-1 transition-colors hover:bg-gray-50"
+            className="flex min-w-0 items-center gap-2 sm:gap-3 rounded-md sm:px-2 sm:py-1 transition-colors hover:bg-gray-50"
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500 text-white">
               <LayoutDashboard className="h-4 w-4" />
             </div>
-            <span className="truncate text-[16px] font-semibold text-slate-900">Dashboard</span>
+            <span className="truncate text-[16px] font-semibold text-slate-900 hidden sm:block">Dashboard</span>
           </Link>
         ) : isAppLauncher ? (
           <Link
             href="/workspace"
             prefetch={false}
             title="Về Workspace"
-            className="hidden lg:flex min-w-0 items-center gap-3 rounded-md px-2 py-1 transition-colors hover:bg-gray-50"
+            className="flex min-w-0 items-center gap-2 sm:gap-3 rounded-md sm:px-2 sm:py-1 transition-colors hover:bg-gray-50"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white border border-[#eaeaea]">
               <img
@@ -481,14 +481,14 @@ export function Topbar({
                 className="h-5 w-5 object-contain"
               />
             </span>
-            <span className="truncate text-[16px] font-semibold text-slate-900">{brand?.name || "Workspace"}</span>
+            <span className="truncate text-[16px] font-semibold text-slate-900 hidden sm:block">{brand?.name || "Workspace"}</span>
           </Link>
         ) : activeModule ? (
-          <Link href={activeModule.href} className="hidden lg:flex min-w-0 items-center gap-3 rounded-md px-2 py-1 transition-colors hover:bg-gray-50">
+          <Link href={activeModule.href} className="flex min-w-0 items-center gap-2 sm:gap-3 rounded-md sm:px-2 sm:py-1 transition-colors hover:bg-gray-50">
             <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${getIconBg(activeModule.code)}`}>
               {activeModule.icon ? <span className="[&>svg]:h-4 [&>svg]:w-4">{activeModule.icon}</span> : <span className="text-[14px] font-bold">{activeModule.label.charAt(0)}</span>}
             </div>
-            <span className="truncate text-[16px] font-semibold text-slate-900">{activeModule.label}</span>
+            <span className="truncate text-[16px] font-semibold text-slate-900 hidden sm:block">{activeModule.label}</span>
           </Link>
         ) : null}
 

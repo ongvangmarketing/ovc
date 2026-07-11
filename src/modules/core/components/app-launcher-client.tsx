@@ -391,17 +391,7 @@ export default function AppLauncherClient({
                 {isPending ? "Đang lưu..." : "Xong"}
               </button>
             </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="flex items-center justify-center h-8 w-8 rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
-              aria-label="Tùy chỉnh"
-              title="Tùy chỉnh ứng dụng"
-            >
-              <Pencil className="h-4 w-4" />
-            </button>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -443,6 +433,18 @@ export default function AppLauncherClient({
             </div>
           </div>
         ) : null}
+        
+        {!editing && (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="fixed bottom-6 left-6 z-[100] flex items-center justify-center h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-white text-slate-500 shadow-[0_4px_20px_rgb(0,0,0,0.1)] border border-slate-100 transition-all hover:scale-105 hover:text-blue-600 active:scale-95"
+            aria-label="Tùy chỉnh"
+            title="Tùy chỉnh ứng dụng"
+          >
+            <Pencil className="h-4 w-4 sm:h-5 sm:w-5" />
+          </button>
+        )}
       </DndContext>
     </div>
   );
