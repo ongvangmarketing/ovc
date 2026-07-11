@@ -320,7 +320,17 @@ export default function AppLauncherClient({
   };
 
   return (
-    <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-6 sm:px-0 sm:py-8">
+    <div 
+      className="mx-auto max-w-[1200px] px-4 pt-6 pb-6 sm:px-0 sm:py-8"
+      onPointerDown={startLongPress}
+      onPointerUp={cancelLongPress}
+      onPointerLeave={cancelLongPress}
+      onPointerMove={handlePointerMove}
+      onContextMenu={(e) => {
+        if (!editing) e.preventDefault();
+      }}
+      style={{ WebkitTouchCallout: "none", userSelect: "none", WebkitUserSelect: "none" }}
+    >
       {editing && (
         <div 
           className="fixed inset-0 z-[5]"
@@ -353,10 +363,6 @@ export default function AppLauncherClient({
           <SortableContext items={gridItems.map((item) => item.code)} strategy={rectSortingStrategy}>
             <div 
               className="grid grid-cols-4 gap-x-2 gap-y-6 sm:gap-x-6 sm:gap-y-10 md:grid-cols-5 lg:grid-cols-6 relative z-10"
-              onPointerDown={startLongPress}
-              onPointerUp={cancelLongPress}
-              onPointerLeave={cancelLongPress}
-              onPointerMove={cancelLongPress}
             >
               {gridItems.map((item) => (
                 <SortableLauncherCard
