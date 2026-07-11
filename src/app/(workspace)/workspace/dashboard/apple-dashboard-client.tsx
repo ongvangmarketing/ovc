@@ -62,7 +62,7 @@ export function AppleDashboardClient({ data, userName, showAIPreview = false }: 
   const activeProjectsCount = data.projectStatus?.find(p => p.status === "ACTIVE")?.value || 0;
 
   return (
-    <div className="min-h-screen bg-white text-black font-sans pb-20 animate-in fade-in duration-300">
+    <div className="min-h-screen text-black font-sans pb-20 animate-in fade-in duration-300">
       <div className="max-w-[1200px] mx-auto p-4 sm:px-10 sm:py-8 space-y-6">
         
         <div className="mb-12 border-b border-[#eaeaea] pb-8">

@@ -79,7 +79,16 @@ export function WorkspaceShellClient({
             }}
           />
           {currentUser?.role === "SUPER_ADMIN" ? <ContextualAIPanel /> : null}
-          <main className="scrollable flex-1 bg-white min-h-0 flex flex-col overflow-y-auto overscroll-none">{children}</main>
+          <main className="scrollable flex-1 relative bg-white min-h-0 flex flex-col overflow-y-auto overscroll-none">
+            {/* Blurred Grid Pattern */}
+            <div className="fixed inset-0 z-0 pointer-events-none bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:44px_44px] md:bg-[size:64px_64px]" />
+            {/* White radial overlay to fade out grid in the center */}
+            <div className="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_center,white_20%,transparent_70%)]" />
+            
+            <div className="relative z-10 flex flex-col flex-1 min-h-0">
+              {children}
+            </div>
+          </main>
         </div>
       </div>
       

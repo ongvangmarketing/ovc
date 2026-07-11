@@ -54,7 +54,7 @@ function taskValue(data: WorkspaceDashboardData, status: string) {
 }
 
 export function DashboardContainer({ children }: { children: ReactNode }) {
-  return <div className="min-h-full bg-[#fafafa]">{children}</div>;
+  return <div className="min-h-full">{children}</div>;
 }
 
 export function WorkspaceDashboard({ data, dateFrom, dateTo, period }: { data: WorkspaceDashboardData; dateFrom?: string; dateTo?: string; period: "7d" | "30d" | "3m" | "6m" | "12m" }) {
