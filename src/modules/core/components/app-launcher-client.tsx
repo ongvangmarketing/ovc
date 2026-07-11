@@ -70,7 +70,7 @@ function SortableLauncherCard({
       {...(editing ? attributes : {})}
       {...(editing ? listeners : {})}
     >
-      <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-[#eaeaea] bg-white transition-colors duration-200 group-hover:border-gray-400 group-hover:bg-gray-50 sm:h-20 sm:w-20">
+      <div className="relative flex h-[60px] w-[60px] items-center justify-center rounded-2xl border border-[#eaeaea] bg-white transition-colors duration-200 group-hover:border-gray-400 group-hover:bg-gray-50 sm:h-20 sm:w-20">
         <span className="flex items-center justify-center text-black [&>svg]:h-6 [&>svg]:w-6 [&>svg]:stroke-[1.5] sm:[&>svg]:h-7 sm:[&>svg]:w-7 pointer-events-none">
           {item.icon}
         </span>
@@ -89,7 +89,7 @@ function SortableLauncherCard({
           </button>
         ) : null}
       </div>
-      <span className="w-[72px] break-words text-center text-[11px] font-medium leading-tight tracking-tight text-black sm:w-[88px] sm:text-[13px] pointer-events-none">
+      <span className="w-[68px] break-words text-center text-[11px] font-medium leading-tight tracking-tight text-black sm:w-[88px] sm:text-[13px] pointer-events-none">
         {item.name}
       </span>
     </div>
@@ -320,7 +320,7 @@ export default function AppLauncherClient({
   };
 
   return (
-    <div className="mx-auto max-w-[1200px] px-2 pt-4 pb-4 sm:px-0 sm:py-8">
+    <div className="mx-auto max-w-[1200px] px-4 pt-6 pb-6 sm:px-0 sm:py-8">
       {editing && (
         <div 
           className="fixed inset-0 z-[5]"
@@ -344,18 +344,7 @@ export default function AppLauncherClient({
                 {isPending ? "Đang lưu..." : "Xong"}
               </button>
             </>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900"
-              aria-label="Tùy chỉnh"
-              title="Tùy chỉnh ứng dụng"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Tùy chỉnh</span>
-            </button>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -363,7 +352,7 @@ export default function AppLauncherClient({
         <DroppableZone id="grid-zone" className="flex-1">
           <SortableContext items={gridItems.map((item) => item.code)} strategy={rectSortingStrategy}>
             <div 
-              className="grid grid-cols-3 gap-x-2 gap-y-8 sm:gap-x-6 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-6 relative z-10"
+              className="grid grid-cols-4 gap-x-2 gap-y-6 sm:gap-x-6 sm:gap-y-10 md:grid-cols-5 lg:grid-cols-6 relative z-10"
               onPointerDown={startLongPress}
               onPointerUp={cancelLongPress}
               onPointerLeave={cancelLongPress}
