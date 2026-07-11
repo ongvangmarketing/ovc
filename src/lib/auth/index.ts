@@ -53,7 +53,8 @@ export const auth = betterAuth({
         where: { userId: user.id },
       });
       
-      const resetUrl = `${appUrl}/reset-password?token=${token}`;
+      // better-auth provides the correct absolute 'url' based on the request's host/origin
+      const resetUrl = url;
       
       await sendEmail({
         organizationId: member?.organizationId || "", // We might need a fallback or skip if no org, but system requires it
