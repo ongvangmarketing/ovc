@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, ChevronDown, ChevronLeft, ChevronRight, FileCheck2, FileText, Folder, FolderKanban, Grid3x3, Home, Inbox, LayoutDashboard, Link2, MessageSquare, ReceiptText, Search, Settings, ShieldAlert, User as UserIcon, UserPlus, WalletCards, X } from "lucide-react";
+import { Bell, ChevronDown, ChevronLeft, ChevronRight, FileCheck2, FileText, Folder, FolderKanban, Grid3x3, Home, Inbox, LayoutDashboard, Link2, MessageSquare, Plus, ReceiptText, Search, Settings, ShieldAlert, User as UserIcon, UserPlus, WalletCards, X } from "lucide-react";
 import { getPusherClient } from "@/lib/pusher";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -586,9 +586,9 @@ export function Topbar({
         </button>
         <button 
           title="Tạo nhanh"
-          className="hidden sm:flex relative h-8 w-8 items-center justify-center rounded-full bg-black text-white shadow-sm transition-all hover:scale-105 active:scale-95"
+          className="flex relative h-9 w-9 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-blue-600 shadow-sm transition-all hover:scale-105 active:scale-95 hover:border-blue-200 hover:bg-blue-50"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <Plus className="h-5 w-5 sm:h-4 sm:w-4 stroke-[2.5]" />
         </button>
 
         {/* Chat Inbox Icon */}
