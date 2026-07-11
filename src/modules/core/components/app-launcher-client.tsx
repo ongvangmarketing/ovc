@@ -173,21 +173,34 @@ export default function AppLauncherClient({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
-  const longPressTimer = useRef<NodeJS.Timeout>();
+  const longPressTimer = useRef<NodeJS.Timeout | undefined>(undefined);
+  const startPos = useRef<{ x: number; y: number } | null>(null);
 
-  const startLongPress = () => {
+  const startLongPress = (e: React.PointerEvent) => {
     if (editing) return;
+    startPos.current = { x: e.clientX, y: e.clientY };
     longPressTimer.current = setTimeout(() => {
       setEditing(true);
       if (typeof window !== "undefined" && window.navigator.vibrate) {
         window.navigator.vibrate(50);
       }
-    }, 1500); // 1.5s feels like Apple iOS long press
+    }, 1200); // 1.2s feels more responsive
   };
 
   const cancelLongPress = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
+      longPressTimer.current = undefined;
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (startPos.current && longPressTimer.current) {
+      const dx = Math.abs(e.clientX - startPos.current.x);
+      const dy = Math.abs(e.clientY - startPos.current.y);
+      if (dx > 10 || dy > 10) {
+        cancelLongPress();
+      }
     }
   };
 
@@ -235,7 +248,7 @@ export default function AppLauncherClient({
         newDock.splice(activeIndex, 1);
         newGrid.splice(overIndex, 0, activeId);
       } else {
-        if (newDock.length >= 4) return prev; // Max 4 items in dock
+        if (newDock.length >= 5) return prev; // Max 5 items in dock
         newGrid.splice(activeIndex, 1);
         newDock.splice(overIndex, 0, activeId);
       }
@@ -307,25 +320,28 @@ export default function AppLauncherClient({
   };
 
   return (
-    <div className="mx-auto max-w-[1200px] px-2 pt-4 pb-12 sm:px-0 sm:py-8">
-      <div className={cn("flex items-center", editing ? "mb-4 justify-end sm:mb-10 sm:justify-between" : "hidden sm:flex sm:mb-10 sm:justify-between")}>
+    <div className="mx-auto max-w-[1200px] px-2 pt-4 pb-4 sm:px-0 sm:py-8">
+      {editing && (
+        <div 
+          className="fixed inset-0 z-[5]"
+          onClick={savePreferences}
+        />
+      )}
+      <div className={cn("flex items-center relative z-10", editing ? "mb-4 justify-end sm:mb-10 sm:justify-between" : "hidden sm:flex sm:mb-10 sm:justify-between")}>
         <h1 className="hidden text-[22px] font-bold tracking-tight text-gray-900 sm:block sm:text-[24px]">Ứng dụng của bạn</h1>
         <div className="flex items-center gap-2">
           {editing ? (
             <>
-              <button type="button" onClick={resetPreferences} className="quote-action-button quote-action-secondary !px-3 !py-1.5 text-xs sm:text-sm">
-                <RotateCcw className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Mặc định</span>
-              </button>
-              <button type="button" onClick={cancelEditing} className="quote-action-button quote-action-secondary !px-3 !py-1.5 text-xs sm:text-sm">
-                <X className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Hủy</span>
+              <button type="button" onClick={resetPreferences} className="quote-action-button quote-action-secondary !px-4 !py-1.5 text-xs sm:text-sm font-semibold">
+                <RotateCcw className="h-3.5 w-3.5 mr-1" /> Mặc định
               </button>
               <button
                 type="button"
                 onClick={savePreferences}
                 disabled={isPending}
-                className="quote-action-button quote-action-primary !px-3 !py-1.5 text-xs sm:text-sm"
+                className="quote-action-button quote-action-primary !px-4 !py-1.5 text-xs sm:text-sm font-semibold rounded-full bg-blue-600 hover:bg-blue-700 text-white border-0"
               >
-                <Save className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{isPending ? "Lưu..." : "Lưu bố cục"}</span>
+                {isPending ? "Đang lưu..." : "Xong"}
               </button>
             </>
           ) : (
@@ -343,17 +359,11 @@ export default function AppLauncherClient({
         </div>
       </div>
 
-      {editing ? (
-        <p className="mb-7 text-sm text-gray-500">
-          Kéo thả giữa Lưới và Thanh Dock để tùy chỉnh. Nhấn biểu tượng con mắt để ẩn/hiện.
-        </p>
-      ) : null}
-
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
         <DroppableZone id="grid-zone" className="flex-1">
           <SortableContext items={gridItems.map((item) => item.code)} strategy={rectSortingStrategy}>
             <div 
-              className="grid grid-cols-3 gap-x-2 gap-y-8 sm:gap-x-6 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-6"
+              className="grid grid-cols-3 gap-x-2 gap-y-8 sm:gap-x-6 sm:gap-y-10 md:grid-cols-4 lg:grid-cols-6 relative z-10"
               onPointerDown={startLongPress}
               onPointerUp={cancelLongPress}
               onPointerLeave={cancelLongPress}
@@ -373,18 +383,9 @@ export default function AppLauncherClient({
         </DroppableZone>
 
         {editing ? (
-          <div className="mt-12 rounded-2xl border-2 border-[#eaeaea] bg-gray-50/50 p-4 sm:p-6 shadow-sm mx-2 sm:mx-0">
-            <div className="mb-4 flex items-center justify-between px-2">
-              <div>
-                <h3 className="text-[13px] font-bold text-gray-900 sm:text-base">Thanh Điều Hướng (Bottom Nav)</h3>
-                <p className="text-[11px] text-gray-500 mt-1">Kéo thả tối đa 4 ứng dụng vào đây.</p>
-              </div>
-              <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-gray-600 shadow-sm border border-gray-200">
-                {dockItems.length}/4
-              </span>
-            </div>
-            <div className="flex items-center justify-between overflow-x-auto pb-2">
-              <DroppableZone id="dock-zone" className="flex flex-1 min-h-[96px] items-center gap-1 rounded-xl border-2 border-dashed border-gray-300 bg-white p-2 sm:gap-4">
+          <div className="mt-12 mx-2 sm:mx-0 relative z-10 rounded-3xl bg-white/40 backdrop-blur-xl border border-white/60 p-3 sm:p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+            <div className="flex items-center justify-center overflow-x-auto">
+              <DroppableZone id="dock-zone" className="flex flex-1 min-h-[96px] items-center justify-center gap-2 sm:gap-4">
                 <SortableContext items={dockItems.map((item) => item.code)} strategy={rectSortingStrategy}>
                   {dockItems.map((item) => (
                     <SortableLauncherCard
@@ -395,22 +396,8 @@ export default function AppLauncherClient({
                       onToggleVisibility={toggleVisibility}
                     />
                   ))}
-                  {dockItems.length === 0 && (
-                    <div className="flex w-full items-center justify-center">
-                      <span className="text-sm font-medium text-gray-400">Kéo ứng dụng thả vào đây</span>
-                    </div>
-                  )}
                 </SortableContext>
               </DroppableZone>
-              
-              <div className="flex shrink-0 flex-col items-center gap-2 sm:gap-4 opacity-50 grayscale pointer-events-none px-2 sm:px-4 border-l border-gray-300 ml-2">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-[#eaeaea] bg-white sm:h-20 sm:w-20">
-                  <Grid3x3 className="h-6 w-6 stroke-[1.5] text-black sm:h-7 sm:w-7" />
-                </div>
-                <span className="w-[72px] text-center text-[11px] font-medium leading-tight text-black sm:w-[88px] sm:text-[13px]">
-                  Ứng dụng
-                </span>
-              </div>
             </div>
           </div>
         ) : null}
