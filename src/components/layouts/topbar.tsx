@@ -403,7 +403,11 @@ export function Topbar({
   };
 
   const openNotification = async (notification: TopbarNotification) => {
-    await markNotificationsRead([notification.id]);
+    try {
+      await markNotificationsRead([notification.id]);
+    } catch (e) {
+      console.error("Failed to mark notification read", e);
+    }
     setNotifications((current) => current.filter((item) => item.id !== notification.id));
     setNotificationOpen(false);
     if (notification.link) router.push(notification.link);
@@ -430,24 +434,26 @@ export function Topbar({
         </div>
         
         {/* Back / Forward Buttons - Desktop */}
-        <div className="hidden lg:flex items-center gap-1 border-r border-[#eaeaea] pr-3 mr-1">
-          <button 
-            type="button" 
-            onClick={() => window.history.back()} 
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-            title="Quay lại"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <button 
-            type="button" 
-            onClick={() => window.history.forward()} 
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"
-            title="Tiến tới"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        </div>
+        {!isAppLauncher ? (
+          <div className="hidden lg:flex items-center gap-1 border-r border-[#eaeaea] pr-3 mr-1">
+            <button 
+              type="button" 
+              onClick={() => window.history.back()} 
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+              title="Quay lại"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button 
+              type="button" 
+              onClick={() => window.history.forward()} 
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+              title="Tiến tới"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+          </div>
+        ) : null}
 
         {/* Brand / Active Module Info */}
         {isWorkspaceDashboard ? (
@@ -653,7 +659,11 @@ export function Topbar({
                     type="button"
                     onClick={async () => {
                       const ids = notifications.map((item) => item.id);
-                      await markNotificationsRead(ids);
+                      try {
+                        await markNotificationsRead(ids);
+                      } catch (e) {
+                        console.error("Failed to mark notifications read", e);
+                      }
                       setNotifications([]);
                     }}
                     className="text-xs font-medium text-blue-600 hover:text-blue-700"
