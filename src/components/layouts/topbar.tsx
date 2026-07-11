@@ -467,7 +467,23 @@ export function Topbar({
             </div>
             <span className="truncate text-[16px] font-semibold text-slate-900">Dashboard</span>
           </Link>
-        ) : !isAppLauncher && activeModule ? (
+        ) : isAppLauncher ? (
+          <Link
+            href="/workspace"
+            prefetch={false}
+            title="Về Workspace"
+            className="hidden lg:flex min-w-0 items-center gap-3 rounded-md px-2 py-1 transition-colors hover:bg-gray-50"
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white border border-[#eaeaea]">
+              <img
+                src={brand?.logo || "https://res.cloudinary.com/ongvang/image/upload/v1741549419/ovc-workspace/assets/logo.png"}
+                alt={brand?.name || "Workspace"}
+                className="h-5 w-5 object-contain"
+              />
+            </span>
+            <span className="truncate text-[16px] font-semibold text-slate-900">{brand?.name || "Workspace"}</span>
+          </Link>
+        ) : activeModule ? (
           <Link href={activeModule.href} className="hidden lg:flex min-w-0 items-center gap-3 rounded-md px-2 py-1 transition-colors hover:bg-gray-50">
             <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${getIconBg(activeModule.code)}`}>
               {activeModule.icon ? <span className="[&>svg]:h-4 [&>svg]:w-4">{activeModule.icon}</span> : <span className="text-[14px] font-bold">{activeModule.label.charAt(0)}</span>}
