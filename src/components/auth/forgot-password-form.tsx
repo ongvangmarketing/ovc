@@ -38,15 +38,15 @@ export function ForgotPasswordForm() {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      <div className="mb-6 inline-flex items-center rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white">
+      <div className="mb-6 inline-flex items-center rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
         OVC Workspace
       </div>
 
-      <h1 className="text-[48px] md:text-[60px] tracking-tighter leading-[1.05] font-medium text-black mb-4">
+      <h1 className="text-[48px] md:text-[60px] tracking-tighter leading-[1.05] font-medium text-white mb-4">
         Quên mật khẩu.
       </h1>
 
-      <p className="text-[16px] text-gray-500 leading-relaxed max-w-2xl mb-12">
+      <p className="text-[16px] text-white/70 leading-relaxed max-w-2xl mb-12">
         Nhập email của bạn để nhận liên kết khôi phục.
       </p>
 

@@ -344,7 +344,7 @@ export default function AppLauncherClient({
         />
       )}
       <div className={cn("flex items-center relative z-10", editing ? "mb-4 justify-end sm:mb-10 sm:justify-between" : "hidden sm:flex sm:mb-10 sm:justify-between")}>
-        <h1 className="hidden text-[22px] font-bold tracking-tight text-gray-900 sm:block sm:text-[24px]">Ứng dụng của bạn</h1>
+        <h1 className="hidden text-[22px] font-bold tracking-tight text-white sm:block sm:text-[24px]">Ứng dụng của bạn</h1>
         <div className="flex items-center gap-2">
           {editing ? (
             <>
@@ -364,7 +364,7 @@ export default function AppLauncherClient({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="flex items-center justify-center h-8 w-8 rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+              className="flex items-center justify-center h-8 w-8 rounded-full text-white/60 transition-colors hover:bg-white/20 hover:text-white"
               aria-label="Tùy chỉnh"
               title="Tùy chỉnh ứng dụng"
             >

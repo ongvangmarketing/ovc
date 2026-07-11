@@ -13,8 +13,18 @@ export default async function WorkspaceIndex() {
   ]);
 
   return (
-    <div className="min-h-screen bg-[#F4F5F7]">
-      <div className="max-w-6xl mx-auto p-8 pt-12">
+    <div className="relative h-full w-full bg-[#111] overflow-hidden sm:min-h-screen">
+      {/* Background texture from hero */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <img
+          src="https://ovc.vn/wp-content/uploads/2025/07/bg-slide.webp"
+          alt="Hero background"
+          className="h-full w-full object-cover opacity-20"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#111]/70 via-[#111]/50 to-[#111]" />
+      </div>
+      
+      <div className="relative z-10 h-full w-full">
         <AppLauncherClient
           activeModules={withDevelopmentModulesForRole(entitlements.enabledModules, authData.user.role)}
           initialPreferences={launcherPreferences}
