@@ -151,11 +151,10 @@ export default function AppLauncherClient({
 
   const initialGridOrder = useMemo(() => {
     const known = new Set(defaultOrder);
-    const dockSet = new Set(initialDockOrder);
-    const validInitialOrder = initialPreferences.order.filter((code) => known.has(code) && !dockSet.has(code));
-    const missing = defaultOrder.filter((code) => !initialPreferences.order.includes(code) && !dockSet.has(code));
+    const validInitialOrder = initialPreferences.order.filter((code) => known.has(code));
+    const missing = defaultOrder.filter((code) => !initialPreferences.order.includes(code));
     return [...validInitialOrder, ...missing];
-  }, [defaultOrder, initialPreferences.order, initialDockOrder]);
+  }, [defaultOrder, initialPreferences.order]);
 
   const [preferences, setPreferences] = useState<AppLauncherPreferences>({
     version: 1,
@@ -225,57 +224,64 @@ export default function AppLauncherClient({
     .filter((item): item is LauncherItem => Boolean(item));
 
   const handleDragOver = ({ active, over }: DragEndEvent) => {
-    if (!over) return;
-    const activeId = String(active.id);
-    const overId = String(over.id);
-
-    const activeContainer = preferences.bottomNavOrder?.includes(activeId) ? "dock" : "grid";
-    const overContainer = overId === "dock-zone" ? "dock" : overId === "grid-zone" ? "grid" : preferences.bottomNavOrder?.includes(overId) ? "dock" : "grid";
-
-    if (!activeContainer || !overContainer || activeContainer === overContainer) return;
-
-    setPreferences((prev) => {
-      const activeItems = activeContainer === "dock" ? prev.bottomNavOrder || [] : prev.order;
-      const overItems = overContainer === "dock" ? prev.bottomNavOrder || [] : prev.order;
-
-      const activeIndex = activeItems.indexOf(activeId);
-      const overIndex = overId === "dock-zone" || overId === "grid-zone" ? overItems.length : overItems.indexOf(overId);
-
-      const newGrid = [...prev.order];
-      const newDock = [...(prev.bottomNavOrder || [])];
-
-      if (activeContainer === "dock") {
-        newDock.splice(activeIndex, 1);
-        newGrid.splice(overIndex, 0, activeId);
-      } else {
-        if (newDock.length >= 5) return prev; // Max 5 items in dock
-        newGrid.splice(activeIndex, 1);
-        newDock.splice(overIndex, 0, activeId);
-      }
-
-      return { ...prev, order: newGrid, bottomNavOrder: newDock };
-    });
+    // Cross-container drag logic is removed from handleDragOver 
+    // to prevent dnd-kit from pulling the item out of the grid visually.
+    // We handle pinning/unpinning completely in handleDragEnd.
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over) return;
-    const activeId = String(active.id);
-    const overId = String(over.id);
+    const activeIdStr = String(active.id);
+    const overIdStr = String(over.id);
 
-    const activeContainer = preferences.bottomNavOrder?.includes(activeId) ? "dock" : "grid";
-    const overContainer = overId === "dock-zone" ? "dock" : overId === "grid-zone" ? "grid" : preferences.bottomNavOrder?.includes(overId) ? "dock" : "grid";
+    const isFromDock = activeIdStr.startsWith("dock-");
+    const isToDock = overIdStr === "dock-zone" || overIdStr.startsWith("dock-");
 
-    if (activeContainer === overContainer && activeId !== overId) {
-      setPreferences((prev) => {
-        const items = activeContainer === "dock" ? prev.bottomNavOrder || [] : prev.order;
-        const oldIndex = items.indexOf(activeId);
-        const newIndex = items.indexOf(overId);
+    const originalActiveId = activeIdStr.replace("dock-", "");
+    const originalOverId = overIdStr.replace("dock-", "");
 
-        if (activeContainer === "dock") {
+    if (isFromDock && isToDock) {
+      // Reorder within Dock
+      if (activeIdStr !== overIdStr) {
+        setPreferences((prev) => {
+          const items = prev.bottomNavOrder || [];
+          const oldIndex = items.indexOf(originalActiveId);
+          const newIndex = items.indexOf(originalOverId);
           return { ...prev, bottomNavOrder: arrayMove(items, oldIndex, newIndex) };
-        } else {
+        });
+      }
+    } else if (!isFromDock && !isToDock) {
+      // Reorder within Grid
+      if (activeIdStr !== overIdStr) {
+        setPreferences((prev) => {
+          const items = prev.order;
+          const oldIndex = items.indexOf(originalActiveId);
+          const newIndex = items.indexOf(originalOverId);
           return { ...prev, order: arrayMove(items, oldIndex, newIndex) };
+        });
+      }
+    } else if (!isFromDock && isToDock) {
+      // Drop from Grid to Dock -> Pin to Dock!
+      setPreferences((prev) => {
+        const newDock = [...(prev.bottomNavOrder || [])];
+        if (newDock.length >= 5 || newDock.includes(originalActiveId)) return prev;
+        
+        let newIndex = newDock.length;
+        if (overIdStr.startsWith("dock-")) {
+           newIndex = newDock.indexOf(originalOverId);
         }
+        newDock.splice(newIndex, 0, originalActiveId);
+        return { ...prev, bottomNavOrder: newDock };
+      });
+    } else if (isFromDock && !isToDock) {
+      // Drop from Dock to Grid -> Remove from Dock!
+      setPreferences((prev) => {
+        const newDock = [...(prev.bottomNavOrder || [])];
+        const oldIndex = newDock.indexOf(originalActiveId);
+        if (oldIndex > -1) {
+          newDock.splice(oldIndex, 1);
+        }
+        return { ...prev, bottomNavOrder: newDock };
       });
     }
   };
@@ -354,7 +360,17 @@ export default function AppLauncherClient({
                 {isPending ? "Đang lưu..." : "Xong"}
               </button>
             </>
-          ) : null}
+          ) : (
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="flex items-center justify-center h-8 w-8 rounded-full text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-900"
+              aria-label="Tùy chỉnh"
+              title="Tùy chỉnh ứng dụng"
+            >
+              <Pencil className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -381,14 +397,14 @@ export default function AppLauncherClient({
           <div className="mt-12 mx-2 sm:mx-0 relative z-10 rounded-3xl bg-white/40 backdrop-blur-xl border border-white/60 p-3 sm:p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
             <div className="flex items-center justify-center overflow-x-auto">
               <DroppableZone id="dock-zone" className="flex flex-1 min-h-[96px] items-center justify-center gap-2 sm:gap-4">
-                <SortableContext items={dockItems.map((item) => item.code)} strategy={rectSortingStrategy}>
+                <SortableContext items={dockItems.map((item) => `dock-${item.code}`)} strategy={rectSortingStrategy}>
                   {dockItems.map((item) => (
                     <SortableLauncherCard
-                      key={item.code}
-                      item={item}
+                      key={`dock-${item.code}`}
+                      item={{ ...item, code: `dock-${item.code}` }}
                       editing={editing}
                       hidden={false}
-                      onToggleVisibility={toggleVisibility}
+                      onToggleVisibility={() => toggleVisibility(item.code)}
                     />
                   ))}
                 </SortableContext>
