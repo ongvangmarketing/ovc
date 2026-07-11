@@ -67,17 +67,17 @@ export function MobileBottomNav({
     let topKeys: string[] = [];
     
     if (launcherPreferences?.bottomNavOrder && launcherPreferences.bottomNavOrder.length > 0) {
-      // Use explicitly defined bottomNavOrder, up to 4 items
-      topKeys = launcherPreferences.bottomNavOrder.filter(key => itemByKey.has(key)).slice(0, 4);
+      // Use explicitly defined bottomNavOrder, up to 5 items
+      topKeys = launcherPreferences.bottomNavOrder.filter(key => itemByKey.has(key)).slice(0, 5);
     } else {
-      // Fallback to Dashboard + top 3 visible items from App Launcher
+      // Fallback to Dashboard + top 4 visible items from App Launcher
       const orderedCodes = [
         ...(launcherPreferences?.order ?? []).filter((key) => itemByKey.has(key)),
         ...items.map((item) => item.code).filter((key) => !(launcherPreferences?.order ?? []).includes(key)),
       ];
       const hidden = new Set(launcherPreferences?.hidden ?? []);
       const visibleKeys = orderedCodes.filter(key => !hidden.has(key) && key !== "DASHBOARD");
-      topKeys = ["DASHBOARD", ...visibleKeys.slice(0, 3)];
+      topKeys = ["DASHBOARD", ...visibleKeys.slice(0, 4)];
     }
     
     // Final fallback if everything is empty
@@ -87,26 +87,14 @@ export function MobileBottomNav({
   }, [moduleItems, launcherPreferences]);
 
   const navItems = useMemo(() => {
-    const middleItems = pinnedItems.map(item => ({
+    return pinnedItems.map((item) => ({
       label: item.label,
       href: item.href,
       icon: item.icon ? ({ className }: { className?: string }) => <span className={cn("flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:stroke-[1.5]", className)}>{item.icon}</span> : Folder,
       isActive: pathname === item.href || (item.href !== "/workspace" && item.href !== "/workspace/dashboard" && pathname.startsWith(item.href)),
       badge: item.code === "CHAT" ? unreadMessagesCount : item.code === "ACCOUNT" ? unreadNotificationsCount : undefined,
-    }));
-
-    const endItems = [
-      {
-        label: "Ứng dụng",
-        href: "/workspace",
-        icon: ({ className }: { className?: string }) => <Grid3x3 className={className} />,
-        isActive: pathname === "/workspace",
-      },
-    ];
-
-    // Ensure we only have max 5 items total (4 pinned + 1 apps)
-    return [...middleItems.slice(0, 4), ...endItems];
-  }, [pathname, pinnedItems, onOpenApps, unreadMessagesCount, unreadNotificationsCount]);
+    })).slice(0, 5);
+  }, [pathname, pinnedItems, unreadMessagesCount, unreadNotificationsCount]);
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-[300] bg-white border-t border-[#eaeaea] pb-[env(safe-area-inset-bottom)]">

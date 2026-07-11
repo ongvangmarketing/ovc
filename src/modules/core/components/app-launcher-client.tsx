@@ -146,7 +146,7 @@ export default function AppLauncherClient({
     }
     const hidden = new Set(initialPreferences.hidden);
     const visibleKeys = initialPreferences.order.filter((key) => !hidden.has(key) && key !== "DASHBOARD");
-    return ["DASHBOARD", ...visibleKeys.slice(0, 3)];
+    return ["DASHBOARD", ...visibleKeys.slice(0, 4)];
   }, [initialPreferences]);
 
   const initialGridOrder = useMemo(() => {
@@ -230,7 +230,20 @@ export default function AppLauncherClient({
   };
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    if (!over) return;
+    if (!over) {
+      // If dropped outside any zone while dragging from dock, remove from dock
+      const activeIdStr = String(active.id);
+      if (activeIdStr.startsWith("dock-")) {
+        const originalActiveId = activeIdStr.replace("dock-", "");
+        setPreferences((prev) => {
+          const newDock = [...(prev.bottomNavOrder || [])];
+          const oldIndex = newDock.indexOf(originalActiveId);
+          if (oldIndex > -1) newDock.splice(oldIndex, 1);
+          return { ...prev, bottomNavOrder: newDock };
+        });
+      }
+      return;
+    }
     const activeIdStr = String(active.id);
     const overIdStr = String(over.id);
 
@@ -395,8 +408,8 @@ export default function AppLauncherClient({
 
         {editing ? (
           <div className="mt-12 mx-2 sm:mx-0 relative z-10 rounded-3xl bg-white/40 backdrop-blur-xl border border-white/60 p-3 sm:p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-            <div className="flex items-center justify-center overflow-x-auto">
-              <DroppableZone id="dock-zone" className="flex flex-1 min-h-[96px] items-center justify-center gap-2 sm:gap-4">
+            <div className="flex w-full items-center justify-center overflow-x-auto">
+              <DroppableZone id="dock-zone" className="flex flex-1 w-full min-w-full min-h-[96px] items-center justify-center gap-2 sm:gap-4">
                 <SortableContext items={dockItems.map((item) => `dock-${item.code}`)} strategy={rectSortingStrategy}>
                   {dockItems.map((item) => (
                     <SortableLauncherCard
