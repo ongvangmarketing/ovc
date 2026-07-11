@@ -46,15 +46,15 @@ export function LoginForm() {
 
   return (
     <div className="w-full max-w-4xl mx-auto">
-      <div className="mb-6 inline-flex items-center rounded-full bg-white/10 border border-white/20 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
+      <div className="mb-6 inline-flex items-center rounded-full bg-black px-4 py-1.5 text-sm font-medium text-white">
         OVC Workspace
       </div>
 
-      <h1 className="text-[48px] md:text-[60px] tracking-tighter leading-[1.05] font-medium text-white mb-4">
+      <h1 className="text-[48px] md:text-[60px] tracking-tighter leading-[1.05] font-medium text-black mb-4">
         Chào mừng trở lại.
       </h1>
 
-      <p className="text-[16px] text-white/70 leading-relaxed max-w-2xl mb-12">
+      <p className="text-[16px] text-gray-500 leading-relaxed max-w-2xl mb-12">
         Hệ thống quản trị trung tâm giúp bạn dễ dàng theo dõi, cập nhật tiến độ công việc và quản lý dữ liệu của toàn bộ hệ thống OVC.
       </p>
 
