@@ -2,6 +2,7 @@
 
 import type { ReactNode, SetStateAction } from "react";
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 
 import { Sidebar } from "@/components/layouts/sidebar";
 import { Topbar } from "@/components/layouts/topbar";
@@ -41,10 +42,13 @@ export function WorkspaceShellClient({
     });
   };
 
+  const pathname = usePathname();
+  const isWorkspaceRoot = pathname === "/workspace" || pathname === "/workspace/";
+
   return (
     <div className="workspace-shell flex h-[100dvh] overflow-hidden bg-[#F4F5F7] lg:bg-white">
       <div className="workspace-frame flex min-w-0 flex-1 h-full overflow-hidden">
-        {mobileSidebarOpen ? (
+        {!isWorkspaceRoot && mobileSidebarOpen ? (
           <button
             type="button"
             aria-label="Đóng menu"
@@ -52,17 +56,20 @@ export function WorkspaceShellClient({
             onClick={() => setMobileSidebarOpen(false)}
           />
         ) : null}
-        <Sidebar
-          enabledModuleCodes={enabledModuleCodes}
-          launcherPreferences={launcherPreferences}
-          brand={brand}
-          currentUser={currentUser}
-          switcher={switcher}
-          collapsed={sidebarCollapsed}
-          onCollapsedChange={updateSidebarCollapsed}
-          mobileOpen={mobileSidebarOpen}
-          onMobileNavigate={() => setMobileSidebarOpen(false)}
-        />
+        
+        {!isWorkspaceRoot && (
+          <Sidebar
+            enabledModuleCodes={enabledModuleCodes}
+            launcherPreferences={launcherPreferences}
+            brand={brand}
+            currentUser={currentUser}
+            switcher={switcher}
+            collapsed={sidebarCollapsed}
+            onCollapsedChange={updateSidebarCollapsed}
+            mobileOpen={mobileSidebarOpen}
+            onMobileNavigate={() => setMobileSidebarOpen(false)}
+          />
+        )}
 
         <div className="flex min-w-0 flex-1 flex-col bg-white h-full overflow-hidden md:pb-0 pb-16">
           <Topbar
@@ -72,11 +79,11 @@ export function WorkspaceShellClient({
             mobileSidebarOpen={mobileSidebarOpen}
             enabledModuleCodes={enabledModuleCodes}
             launcherPreferences={launcherPreferences}
-            onToggleSidebar={() => {
+            onToggleSidebar={!isWorkspaceRoot ? () => {
               if (window.matchMedia("(max-width: 1023px)").matches) {
                 setMobileSidebarOpen((current) => !current);
               }
-            }}
+            } : undefined}
           />
           {currentUser?.role === "SUPER_ADMIN" ? <ContextualAIPanel /> : null}
           <main className="scrollable flex-1 relative bg-white min-h-0 flex flex-col overflow-y-auto overscroll-none">
