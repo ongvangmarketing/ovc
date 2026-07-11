@@ -79,7 +79,7 @@ export function WorkspaceShellClient({
             }}
           />
           {currentUser?.role === "SUPER_ADMIN" ? <ContextualAIPanel /> : null}
-          <main className="scrollable flex-1 bg-white min-h-0 flex flex-col overflow-y-auto">{children}</main>
+          <main className="scrollable flex-1 bg-white min-h-0 flex flex-col overflow-y-auto overscroll-none">{children}</main>
         </div>
       </div>
       
