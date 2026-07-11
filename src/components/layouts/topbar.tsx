@@ -415,7 +415,7 @@ export function Topbar({
 
   return (
     <>
-    <header className="relative z-[200] flex h-20 flex-shrink-0 items-center gap-2 border-b border-[#eaeaea] bg-gradient-to-b from-white to-[#fafafa] px-4 sm:gap-4 sm:px-8">
+    <header className="relative z-[200] flex h-20 flex-shrink-0 items-center gap-2 border-b border-[#eaeaea] bg-white/70 backdrop-blur-md px-4 sm:gap-4 sm:px-8">
       <div className="relative flex min-w-0 items-center gap-3 text-[15px] sm:gap-4">
         <div className="flex items-center gap-1 lg:gap-2">
 
@@ -518,8 +518,13 @@ export function Topbar({
                 if (firstResult) navigateFromSearch(firstResult.href);
               }
             }}
-            className="h-10 w-full rounded-xl border border-[#eaeaea] bg-white pl-9 pr-3 text-[14px] text-black placeholder:text-gray-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black sm:h-9 sm:rounded-md sm:text-[15px]"
+            className="h-10 w-full rounded-xl border border-[#eaeaea] bg-white pl-9 pr-12 text-[14px] text-black placeholder:text-gray-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black sm:h-9 sm:rounded-md sm:text-[15px]"
           />
+          <div className="pointer-events-none absolute inset-y-0 right-2 hidden sm:flex items-center">
+            <kbd className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium text-gray-400">
+              ⌘K
+            </kbd>
+          </div>
           {searchOpen ? (
             <div className="absolute left-0 right-0 top-11 z-[430] max-h-[60vh] overflow-y-auto overflow-x-hidden rounded-xl border border-[#eaeaea] bg-white p-2 shadow-sm">
               <div className="px-2 pb-2 pt-1 text-[11px] font-medium uppercase tracking-widest text-gray-400">Đi tới</div>
@@ -579,13 +584,20 @@ export function Topbar({
           <Link2 className="h-4 w-4" />
           <span>Share</span>
         </button>
+        <button 
+          title="Tạo nhanh"
+          className="hidden sm:flex relative h-8 w-8 items-center justify-center rounded-full bg-black text-white shadow-sm transition-all hover:scale-105 active:scale-95"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </button>
+
         {/* Chat Inbox Icon */}
         <div ref={chatRef} className="relative hidden sm:block">
           <button
             type="button"
             aria-label="Tin nhắn"
             onClick={() => { setChatOpen((o) => !o); setNotificationOpen(false); setProfileMenuOpen(false); }}
-            className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-transparent text-slate-600 transition-all hover:-translate-y-0.5 hover:border-slate-200 hover:bg-white hover:shadow-sm"
+            className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-transparent text-slate-600 transition-all hover:scale-105 active:scale-95 hover:border-slate-200 hover:bg-white hover:shadow-sm"
           >
             <MessageSquare className="h-6 w-6 sm:h-4 sm:w-4" />
             {chatUnread.length > 0 && (
@@ -654,7 +666,7 @@ export function Topbar({
             onClick={() => {
               setNotificationOpen(true);
             }}
-            className="relative flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-50"
+            className="relative flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-all hover:scale-105 active:scale-95 hover:bg-slate-50"
           >
             <Bell className="w-4 h-4" />
             {notifications.length ? (
@@ -746,7 +758,7 @@ export function Topbar({
               onClick={() => {
                 setProfileMenuOpen(true);
               }}
-              className="hidden h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-white shadow-sm ring-2 ring-white transition hover:ring-blue-100 sm:flex"
+              className="hidden h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-white shadow-sm ring-2 ring-white transition-all hover:scale-105 active:scale-95 hover:ring-blue-100 sm:flex"
             >
               {user.image ? (
                 <img src={user.image} alt="Avatar" className="h-full w-full object-cover" />
