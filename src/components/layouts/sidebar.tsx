@@ -389,7 +389,7 @@ export function Sidebar({ enabledModuleCodes = defaultModuleCodes, launcherPrefe
         if ((event.target as HTMLElement).closest("a")) onMobileNavigate?.();
       }}
       className={cn(
-        "fixed inset-y-0 left-0 z-[700] flex w-[min(86vw,320px)] shrink-0 flex-col border-r border-[#eaeaea] bg-white text-slate-800 shadow-2xl transition-transform duration-300 lg:relative lg:inset-auto lg:z-[700] lg:shadow-none lg:transition-all",
+        "fixed inset-y-0 left-0 z-[700] flex w-[min(86vw,320px)] shrink-0 flex-col border-r border-[#eaeaea] bg-[#fafafa] text-slate-800 shadow-2xl transition-transform duration-300 lg:relative lg:inset-auto lg:z-[700] lg:shadow-none lg:transition-all",
         isRailOnly || appLauncherOpen ? "overflow-visible" : "overflow-y-auto",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         collapsed || isRailOnly ? "lg:w-[86px]" : "lg:w-[248px]",
@@ -445,12 +445,12 @@ export function Sidebar({ enabledModuleCodes = defaultModuleCodes, launcherPrefe
             {appLauncherOpen ? (
               <div
                 role="menu"
-                className="absolute left-0 top-12 z-[900] w-[480px] max-w-[calc(100vw-24px)] rounded-xl border border-[#eaeaea] bg-white p-4"
+                className="absolute left-0 top-12 z-[900] w-[340px] max-w-[calc(100vw-24px)] rounded-[20px] border border-[#eaeaea] bg-white/95 p-5 shadow-2xl backdrop-blur-xl"
               >
                 <div className="mb-4 border-b border-[#eaeaea] pb-3">
-                  <h2 className="text-[16px] font-normal tracking-tight text-black">Ứng dụng của bạn</h2>
+                  <h2 className="text-[18px] font-semibold tracking-tight text-black">Ứng dụng của bạn</h2>
                 </div>
-                <div className="grid grid-cols-4 gap-x-2 gap-y-3">
+                <div className="grid grid-cols-3 gap-x-2 gap-y-4">
                   {launcherItems.map((item) => (
                     <Link
                       key={item.href}

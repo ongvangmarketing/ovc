@@ -415,7 +415,7 @@ export function Topbar({
 
   return (
     <>
-    <header className="relative z-[200] flex h-20 flex-shrink-0 items-center gap-2 border-b border-[#eaeaea] bg-white px-4 sm:gap-4 sm:px-8">
+    <header className="relative z-[200] flex h-20 flex-shrink-0 items-center gap-2 border-b border-[#eaeaea] bg-[#fafafa] px-4 sm:gap-4 sm:px-8">
       <div className="relative flex min-w-0 items-center gap-3 text-[15px] sm:gap-4">
         <div className="flex items-center gap-1 lg:gap-2">
 
@@ -770,7 +770,7 @@ export function Topbar({
     
     {/* Mobile Secondary Navigation Bar */}
     {!isAppLauncher ? (
-      <div className="flex lg:hidden items-center bg-white border-b border-[#eaeaea] px-2 py-1.5 shrink-0 z-[190] gap-1">
+      <div className="flex lg:hidden items-center bg-[#fafafa] border-b border-[#eaeaea] px-2 py-1.5 shrink-0 z-[190] gap-1">
         <button 
           type="button" 
           onClick={() => window.history.back()} 
